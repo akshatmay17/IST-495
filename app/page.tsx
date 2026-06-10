@@ -232,17 +232,57 @@ scrollbar-width: none;
 }
 .toggle-track.on .toggle-knob { left: 26px; }
 
-/* Responsive */
-@media (min-width: 768px) {
-  .desktop-grid { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
-  .desktop-sidebar { position: fixed; left: 0; top: 0; width: 280px; height: 100vh; overflow-y: auto; border-right: 1px solid var(--border2); background: var(--surface); z-index: 100; }
+/* ============================================================
+   RESPONSIVE BREAKPOINTS
+   Phone:        < 768px   — bottom nav, no sidebar, full width
+   iPad/Tablet:  768–1023px — sidebar hidden, wider content, bottom nav
+   iPad Pro:     1024–1199px — narrow sidebar (240px), wider content
+   Laptop:       1200–1439px — full sidebar (280px), content max 900px
+   Desktop/iMac: 1440px+   — full sidebar (300px), content max 1100px
+   ============================================================ */
+
+/* ── Phone (max 767px) ── */
+@media (max-width: 767px) {
+  .desktop-sidebar { display: none !important; }
+  .desktop-main { margin-left: 0 !important; }
+  .desktop-content { padding: 64px 16px 100px; max-width: 100%; }
+}
+
+/* ── iPad / Tablet portrait (768px – 1023px) ── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .desktop-sidebar { display: none !important; }
+  .desktop-main { margin-left: 0 !important; }
+  .mobile-nav { display: flex !important; }
+  .desktop-content { max-width: 680px; margin: 0 auto; padding: 48px 28px 100px; }
+}
+
+/* ── iPad Pro / Large Tablet landscape (1024px – 1199px) ── */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .desktop-sidebar { position: fixed; left: 0; top: 0; width: 240px; height: 100vh; overflow-y: auto; border-right: 1px solid var(--border2); background: var(--surface); z-index: 100; display: flex !important; flex-direction: column; }
+  .desktop-main { margin-left: 240px; }
+  .mobile-nav { display: none !important; }
+  .desktop-content { max-width: 720px; margin: 0 auto; padding: 36px 28px 80px; }
+}
+
+/* ── Laptop (1200px – 1439px) ── */
+@media (min-width: 1200px) and (max-width: 1439px) {
+  .desktop-sidebar { position: fixed; left: 0; top: 0; width: 280px; height: 100vh; overflow-y: auto; border-right: 1px solid var(--border2); background: var(--surface); z-index: 100; display: flex !important; flex-direction: column; }
   .desktop-main { margin-left: 280px; }
   .mobile-nav { display: none !important; }
-  .desktop-content { max-width: 800px; margin: 0 auto; padding: 40px 32px 80px; }
+  .desktop-content { max-width: 900px; margin: 0 auto; padding: 40px 32px 80px; }
 }
-@media (max-width: 767px) {
-  .desktop-sidebar { display: none; }
-  .desktop-content { padding: 64px 20px 100px; }
+
+/* ── Desktop / iMac / Large Monitor (1440px+) ── */
+@media (min-width: 1440px) {
+  .desktop-sidebar { position: fixed; left: 0; top: 0; width: 300px; height: 100vh; overflow-y: auto; border-right: 1px solid var(--border2); background: var(--surface); z-index: 100; display: flex !important; flex-direction: column; }
+  .desktop-main { margin-left: 300px; }
+  .mobile-nav { display: none !important; }
+  .desktop-content { max-width: 1100px; margin: 0 auto; padding: 48px 40px 80px; }
+}
+
+/* ── Shared desktop (1024px+) ── */
+@media (min-width: 1024px) {
+  .desktop-grid { display: grid; min-height: 100vh; }
 }
 `;
 
