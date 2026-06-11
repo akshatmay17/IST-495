@@ -1,5 +1,11 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  "https://xlizcyyuadwnmdqbkjfg.supabase.co",
+  "sb_publishable_3BnSyxM0zyXudw2OZXF3wA_I0cuODRG"
+);
 
 /* ============================================================
    DESIGN SYSTEM
@@ -714,10 +720,15 @@ function Sidebar({ active, go, theme, toggleTheme, profile }: {
 
       {/* Theme toggle */}
       <div style={{padding:"0 24px"}}>
-        <button onClick={toggleTheme} className="btn-ghost press" style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px"}}>
+        <button onClick={toggleTheme} className="btn-ghost press" style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",marginBottom:8}}>
           <span style={{fontSize:13}}>{theme==="dark"?"🌙 Dark":"☀️ Light"} Mode</span>
           <Toggle on={theme==="light"} set={toggleTheme}/>
         </button>
+        {onSignOut && (
+          <button onClick={onSignOut} className="btn-ghost press" style={{width:"100%",padding:"10px 14px",fontSize:13,color:"var(--rose)",borderColor:"rgba(244,97,122,.3)"}}>
+            Sign Out
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1479,15 +1490,60 @@ function Chat({ cards, profile }: { cards:CreditCard[]; profile:UserProfile }) {
   const [nextId, setNextId] = useState(1);
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[msgs,busy]);
-  const send = useCallback((text:string)=>{
+  const send = useCallback(async (text:string)=>{
     if(!text.trim()||busy) return;
     const uid=nextId;
     setMsgs(p=>[...p,{role:"user",text,id:uid}]);
     setNextId(n=>n+2); setVal(""); setBusy(true);
-    setTimeout(()=>{
-      setMsgs(p=>[...p,{role:"ai",text:aiReply(text,cards,profile),id:uid+1}]);
-      setBusy(false);
-    },800+Math.random()*600);
+    try {
+      const totalPts=cards.reduce((s,c)=>s+c.points,0);
+      const totalBal=cards.reduce((s,c)=>s+c.balance,0);
+      const totalLim=cards.reduce((s,c)=>s+c.limit,0);
+      const util=totalLim>0?Math.round(totalBal/totalLim*100):0;
+      const systemPrompt = `You are an expert AI financial advisor for CardPilot Elite, a premium credit card optimization app. You know everything about the user.
+
+USER PROFILE:
+- Name: ${profile.name || "User"}
+- Age: ${profile.age || "not specified"}
+- Annual Income: ${profile.income || "not specified"}
+- Credit Score: ${profile.creditScore || "not specified"}
+- Goal: ${profile.goal || "not specified"}
+- Lifestyles: ${(profile.lifestyles||[]).join(", ") || "not specified"}
+- Monthly Spending: Dining $${profile.spending?.dining||0}, Groceries $${profile.spending?.groceries||0}, Travel $${profile.spending?.travel||0}, Gas $${profile.spending?.gas||0}, Shopping $${profile.spending?.shopping||0}
+
+THEIR CARDS (${cards.length} total):
+${cards.map(c=>`- ${c.name} (${c.issuer}): Balance $${c.balance}, Limit $${c.limit}, Points ${c.points}, Min Payment $${c.minPayment}, Due: ${c.dueDate||"not set"}, Rewards: ${c.rewardRate}`).join("\n")}
+
+PORTFOLIO SUMMARY:
+- Total Points: ${f(totalPts)} (worth ~$${f(Math.round(totalPts*0.015))})
+- Total Balance: $${f(totalBal)}
+- Credit Utilization: ${util}%
+
+INSTRUCTIONS:
+- Give specific, personalized advice based on their exact cards and profile
+- Always mention specific card names from their wallet
+- Give exact numbers and calculations
+- Be concise but thorough — 2-4 sentences max unless detail is needed
+- Never give generic advice — always reference their specific situation
+- If they ask which card to use, rank their actual cards with exact multipliers
+- If they ask about credit score, reference their actual utilization
+- Format responses clearly — use bullet points only when listing multiple items`;
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemPrompt,
+          messages: [{ role: "user", content: text }],
+        }),
+      });
+      const data = await response.json();
+      const aiText = data.text || "Sorry, I could not get a response. Please try again.";
+      setMsgs(p=>[...p,{role:"ai",text:aiText,id:uid+1}]);
+    } catch(err) {
+      setMsgs(p=>[...p,{role:"ai",text:"Connection error. Please check your internet and try again.",id:uid+1}]);
+    }
+    setBusy(false);
   },[busy,nextId,cards,profile]);
 
   return (
@@ -2915,6 +2971,88 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
 }
 
 /* ============================================================
+   AUTH SCREENS
+   ============================================================ */
+function AuthScreen({onAuth}:{onAuth:()=>void}) {
+  const [mode, setMode] = useState<"login"|"signup">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handleAuth = async () => {
+    if (!email || !password) { setError("Please fill in all fields"); return; }
+    setLoading(true); setError(""); setSuccess("");
+    try {
+      if (mode === "signup") {
+        if (!name) { setError("Please enter your name"); setLoading(false); return; }
+        const { error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
+        if (error) setError(error.message);
+        else { setSuccess("Account created! Please check your email to verify, then log in."); setMode("login"); }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) setError(error.message);
+        else onAuth();
+      }
+    } catch(e) { setError("Something went wrong. Try again."); }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",fontFamily:"var(--sans)"}}>
+      <div style={{width:"100%",maxWidth:400}}>
+        {/* Logo */}
+        <div style={{textAlign:"center",marginBottom:40}}>
+          <div style={{width:72,height:72,borderRadius:22,background:"linear-gradient(135deg,var(--gold),var(--gold2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,margin:"0 auto 16px",boxShadow:"0 8px 32px var(--gold-glow)",animation:"glow 3s ease infinite"}}>💳</div>
+          <div className="serif gold-text" style={{fontSize:13,letterSpacing:3,fontWeight:500,marginBottom:4}}>CARDPILOT ELITE</div>
+          <h1 className="serif" style={{fontSize:36,fontWeight:400,lineHeight:1.1}}>
+            {mode==="login"?"Welcome back":"Get started"}
+          </h1>
+          <p style={{color:"var(--text2)",fontSize:13,marginTop:8}}>
+            {mode==="login"?"Sign in to your account":"Create your free account"}
+          </p>
+        </div>
+
+        {/* Form */}
+        <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:24,padding:"28px 24px"}}>
+          {mode==="signup" && (
+            <div style={{marginBottom:16}}>
+              <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Your Name</label>
+              <input className="field" placeholder="First name" value={name} onChange={e=>setName(e.target.value)} style={{padding:"13px 16px"}}/>
+            </div>
+          )}
+          <div style={{marginBottom:16}}>
+            <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Email</label>
+            <input className="field" type="email" placeholder="your@email.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAuth()} style={{padding:"13px 16px"}}/>
+          </div>
+          <div style={{marginBottom:24}}>
+            <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Password</label>
+            <input className="field" type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAuth()} style={{padding:"13px 16px"}}/>
+          </div>
+
+          {error && <div style={{background:"rgba(244,97,122,.1)",border:"1px solid rgba(244,97,122,.3)",borderRadius:10,padding:"10px 14px",marginBottom:16}}><p style={{color:"var(--rose)",fontSize:13}}>{error}</p></div>}
+          {success && <div style={{background:"rgba(45,200,160,.1)",border:"1px solid rgba(45,200,160,.3)",borderRadius:10,padding:"10px 14px",marginBottom:16}}><p style={{color:"var(--emerald)",fontSize:13}}>{success}</p></div>}
+
+          <button onClick={handleAuth} disabled={loading} className="btn-gold press" style={{width:"100%",opacity:loading?0.7:1}}>
+            {loading ? "Please wait..." : mode==="login" ? "Sign In →" : "Create Account →"}
+          </button>
+
+          <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setSuccess("");}} style={{width:"100%",marginTop:14,background:"none",border:"none",color:"var(--text2)",fontSize:13,cursor:"pointer",padding:"8px"}}>
+            {mode==="login" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+          </button>
+        </div>
+
+        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:16}}>
+          Your data is encrypted and never shared
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    ROOT APP
    ============================================================ */
 export default function App() {
@@ -2922,6 +3060,9 @@ export default function App() {
   const [profile, setProfile] = useState<UserProfile>({name:"",age:"",income:"",lifestyles:[],creditScore:"",spending:{dining:"",groceries:"",travel:"",gas:"",shopping:"",other:""},goal:""});
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [theme, setTheme] = useState<"dark"|"light">("dark");
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Inject CSS
   useEffect(()=>{
@@ -2937,20 +3078,128 @@ export default function App() {
     else document.documentElement.classList.remove("light");
   },[theme]);
 
+  // Check auth state on load
+  useEffect(()=>{
+    supabase.auth.getSession().then(({data:{session}})=>{
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+    const {data:{subscription}} = supabase.auth.onAuthStateChange((_,session)=>{
+      setUser(session?.user ?? null);
+    });
+    return ()=>subscription.unsubscribe();
+  },[]);
+
+  // Load user data from Supabase when logged in
+  useEffect(()=>{
+    if(!user || dataLoaded) return;
+    const loadData = async () => {
+      // Load profile
+      const {data:prof} = await supabase.from("profiles").select("*").eq("id",user.id).single();
+      if(prof) {
+        setProfile({
+          name:prof.name||"", age:prof.age||"", income:prof.income||"",
+          lifestyles:prof.lifestyles||[], creditScore:prof.credit_score||"",
+          goal:prof.goal||"",
+          spending:{
+            dining:prof.spending_dining||"", groceries:prof.spending_groceries||"",
+            travel:prof.spending_travel||"", gas:prof.spending_gas||"",
+            shopping:prof.spending_shopping||"", other:prof.spending_other||"",
+          }
+        });
+        setScreen("home");
+      }
+      // Load cards
+      const {data:cardData} = await supabase.from("cards").select("*").eq("user_id",user.id);
+      if(cardData && cardData.length>0) {
+        const mapped = cardData.map((c:any):CreditCard=>({
+          id:c.id, dbId:c.db_id, name:c.name, issuer:c.issuer,
+          gradient:c.gradient, accentColor:c.accent_color,
+          balance:c.balance, limit:c.credit_limit, minPayment:c.min_payment,
+          dueDate:c.due_date, points:c.points, apr:c.apr,
+          rewardRate:c.reward_rate, annualFee:c.annual_fee, perksValue:c.perks_value,
+          cashback:c.cashback, category:c.category,
+          signupBonus:c.signup_bonus||"", bestFor:c.best_for||[],
+          keyBenefits:c.key_benefits||[], bestPlaces:c.best_places||[],
+          notGoodFor:c.not_good_for||[],
+          offers:[
+            {title:"10% back at Uber Eats",merchant:"Uber Eats",expires:"Dec 31, 2025",value:"Up to $25"},
+            {title:"$50 off at Best Buy",merchant:"Best Buy",expires:"Nov 30, 2025",value:"$50 cashback"},
+            {title:"5x points on hotels",merchant:"Hotels.com",expires:"Jan 15, 2026",value:"Bonus points"},
+          ],
+        }));
+        setCards(mapped);
+      }
+      setDataLoaded(true);
+    };
+    loadData();
+  },[user, dataLoaded]);
+
   const go = (s:S) => setScreen(s);
   const toggleTheme = () => setTheme(t=>t==="dark"?"light":"dark");
-  const addCard = (card:CreditCard) => setCards(p=>[...p,card]);
 
-  if(screen==="onboard") return <Onboard done={p=>{setProfile(p);setScreen("home");}}/>;
+  // Save card to Supabase + local state
+  const addCard = async (card:CreditCard) => {
+    setCards(p=>[...p,card]);
+    if(user) {
+      await supabase.from("cards").insert({
+        user_id:user.id, db_id:card.dbId, name:card.name, issuer:card.issuer,
+        gradient:card.gradient, accent_color:card.accentColor,
+        balance:card.balance, credit_limit:card.limit, min_payment:card.minPayment,
+        due_date:card.dueDate, points:card.points, apr:card.apr,
+        reward_rate:card.rewardRate, annual_fee:card.annualFee, perks_value:card.perksValue,
+        cashback:card.cashback, category:card.category,
+        signup_bonus:card.signupBonus, best_for:card.bestFor,
+        key_benefits:card.keyBenefits, best_places:card.bestPlaces,
+        not_good_for:card.notGoodFor,
+      });
+    }
+  };
+
+  // Save profile to Supabase
+  const saveProfile = async (p:UserProfile) => {
+    setProfile(p);
+    if(user) {
+      await supabase.from("profiles").upsert({
+        id:user.id, name:p.name, age:p.age, income:p.income,
+        credit_score:p.creditScore, lifestyles:p.lifestyles, goal:p.goal,
+        spending_dining:p.spending.dining, spending_groceries:p.spending.groceries,
+        spending_travel:p.spending.travel, spending_gas:p.spending.gas,
+        spending_shopping:p.spending.shopping, spending_other:p.spending.other,
+      });
+    }
+    setScreen("home");
+  };
+
+  // Sign out
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null); setCards([]); setDataLoaded(false);
+    setProfile({name:"",age:"",income:"",lifestyles:[],creditScore:"",spending:{dining:"",groceries:"",travel:"",gas:"",shopping:"",other:""},goal:""});
+    setScreen("onboard");
+  };
+
+  // Loading spinner while checking auth
+  if(authLoading) return (
+    <div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--sans)"}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{width:60,height:60,borderRadius:18,background:"linear-gradient(135deg,var(--gold),var(--gold2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 16px",animation:"glow 2s ease infinite"}}>💳</div>
+        <p style={{color:"var(--text2)",fontSize:14}}>Loading CardPilot...</p>
+      </div>
+    </div>
+  );
+
+  // Show auth screen if not logged in
+  if(!user) return <AuthScreen onAuth={()=>setDataLoaded(false)}/>;
+
+  // Show onboarding if logged in but no profile yet
+  if(screen==="onboard") return <Onboard done={saveProfile}/>;
 
   const isChat = screen === "chat";
 
   return (
     <div style={{background:"var(--bg)",minHeight:"100vh",fontFamily:"var(--sans)"}}>
-      {/* Desktop sidebar */}
-      <Sidebar active={screen} go={go} theme={theme} toggleTheme={toggleTheme} profile={profile}/>
-
-      {/* Main content */}
+      <Sidebar active={screen} go={go} theme={theme} toggleTheme={toggleTheme} profile={profile} onSignOut={signOut}/>
       <div className={isChat?"":"desktop-main"}>
         {screen==="home"     && <Home     profile={profile} cards={cards} go={go}/>}
         {screen==="cards"    && <Cards    cards={cards} go={go}/>}
@@ -2960,12 +3209,10 @@ export default function App() {
         {screen==="goals"    && <Goals/>}
         {screen==="split"    && <Split    cards={cards}/>}
         {screen==="perks"    && <Perks    cards={cards}/>}
-        {screen==="settings" && <Settings go={go} profile={profile} theme={theme} toggleTheme={toggleTheme}/>}
+        {screen==="settings" && <Settings go={go} profile={profile} theme={theme} toggleTheme={toggleTheme} onSignOut={signOut}/>}
         {screen==="lifestyle" && <LifestyleOptimizer go={go} cards={cards} profile={profile}/>}
         {screen==="ai-recommender" && <AIRecommender go={go} cards={cards} profile={profile}/>}
       </div>
-
-      {/* Mobile nav */}
       {!isChat && <MobileNav active={screen} go={go}/>}
     </div>
   );
