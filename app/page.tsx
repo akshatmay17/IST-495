@@ -756,7 +756,7 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
           <div style={{fontSize:11,letterSpacing:2.5,marginBottom:10,fontWeight:600,color:"var(--accent)",textTransform:"uppercase"}}>CardPilot Elite</div>
           <h1 style={{fontSize:34,lineHeight:1.15,marginBottom:14,fontWeight:700,color:"var(--text)",letterSpacing:"-.5px"}}>Your cards,<br/>working harder.</h1>
           <p style={{color:"var(--text2)",fontSize:15,lineHeight:1.7,marginBottom:40,maxWidth:300}}>AI-powered credit card optimization. Maximize rewards, track spending, make smarter decisions.</p>
-          <Btn label="Get Started" onClick={()=>setStep(1)}/>
+          <GoldBtn label="Get Started" onClick={()=>setStep(1)}/>
                     <p style={{color:"var(--text3)",fontSize:12,marginTop:14}}>Free  Takes 3 minutes</p>
         </div>
       )}
