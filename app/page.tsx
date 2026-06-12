@@ -8,67 +8,59 @@ const supabase = createClient(
 );
 
 /* ============================================================
-   DESIGN SYSTEM
-   Aesthetic: Luxury Fintech — like if Private Banking met Silicon Valley
-   Font: Cormorant Garamond (display) + Outfit (body)
-   Dark: Deep obsidian with gold accents
-   Light: Cream parchment with ink and gold
+   DESIGN SYSTEM — v2
+   Aesthetic: Clean modern fintech. Think Apple Wallet meets MaxRewards.
+   Light mode default. White backgrounds. Sharp typography. No clutter.
+   Font: Inter (system-level clarity) — no decorative serif
+   Colors: White, light grey, one strong blue accent, real card colors only
    ============================================================ */
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap');`;
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');`;
 
 const DARK_CSS = `
-  --bg:          #080B10;
-  --bg2:         #0C1018;
-  --surface:     #111520;
-  --surface2:    #161C2C;
-  --border:      rgba(255,255,255,.06);
-  --border2:     rgba(255,255,255,.10);
-  --text:        #F0EDE8;
-  --text2:       #8A8799;
-  --text3:       #3D3C50;
-  --gold:        #C9A84C;
-  --gold2:       #E8D5A3;
-  --gold-glow:   rgba(201,168,76,.2);
-  --accent:      #4F6EF7;
-  --accent2:     #3B56E8;
-  --emerald:     #2DC8A0;
-  --rose:        #F4617A;
-  --amber:       #F0A429;
-  --sky:         #4BB8F5;
-  --serif:       'Cormorant Garamond', Georgia, serif;
-  --sans:        'Outfit', system-ui, sans-serif;
-  --shadow:      0 4px 24px rgba(0,0,0,.6);
-  --shadow-lg:   0 8px 48px rgba(0,0,0,.8);
+  --bg:        #0A0A0F;
+  --bg2:       #111118;
+  --surface:   #18181F;
+  --surface2:  #1E1E28;
+  --border:    rgba(255,255,255,.07);
+  --border2:   rgba(255,255,255,.11);
+  --text:      #EDEDED;
+  --text2:     #888;
+  --text3:     #444;
+  --accent:    #2563EB;
+  --accent2:   #1D4ED8;
+  --green:     #16A34A;
+  --red:       #DC2626;
+  --amber:     #D97706;
+  --sans:      'Inter', system-ui, -apple-system, sans-serif;
+  --shadow:    0 1px 8px rgba(0,0,0,.4);
+  --shadow-lg: 0 4px 24px rgba(0,0,0,.6);
+  --radius:    12px;
 `;
 
 const LIGHT_CSS = `
-  --bg:          #F5F0E8;
-  --bg2:         #EDE8DF;
-  --surface:     #FDFAF5;
-  --surface2:    #F5F0E8;
-  --border:      rgba(0,0,0,.08);
-  --border2:     rgba(0,0,0,.14);
-  --text:        #1A1611;
-  --text2:       #6B6355;
-  --text3:       #B8B0A0;
-  --gold:        #9A7228;
-  --gold2:       #7A5A1E;
-  --gold-glow:   rgba(154,114,40,.15);
-  --accent:      #2A4ED4;
-  --accent2:     #1A3AB8;
-  --emerald:     #1A9E7A;
-  --rose:        #D4405A;
-  --amber:       #C47C10;
-  --sky:         #2E8FCC;
-  --serif:       'Cormorant Garamond', Georgia, serif;
-  --sans:        'Outfit', system-ui, sans-serif;
-  --shadow:      0 4px 24px rgba(0,0,0,.12);
-  --shadow-lg:   0 8px 48px rgba(0,0,0,.2);
+  --bg:        #F7F8FA;
+  --bg2:       #ECEEF2;
+  --surface:   #FFFFFF;
+  --surface2:  #F3F4F6;
+  --border:    rgba(0,0,0,.07);
+  --border2:   rgba(0,0,0,.11);
+  --text:      #0D0D0D;
+  --text2:     #6B7280;
+  --text3:     #C4C9D4;
+  --accent:    #2563EB;
+  --accent2:   #1D4ED8;
+  --green:     #16A34A;
+  --red:       #DC2626;
+  --amber:     #D97706;
+  --sans:      'Inter', system-ui, -apple-system, sans-serif;
+  --shadow:    0 1px 4px rgba(0,0,0,.06);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.10);
+  --radius:    12px;
 `;
 
 const BASE_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -79,164 +71,125 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  transition: background .3s, color .3s;
+  transition: background .25s, color .25s;
 }
 
 button, input, select, textarea { font-family: var(--sans); cursor: pointer; }
 ::-webkit-scrollbar { display: none; }
-scrollbar-width: none;
 
-/* ── Animations ── */
-@keyframes fadeUp   { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
-@keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
-@keyframes popIn    { from { opacity:0; transform:scale(.9); } to { opacity:1; transform:scale(1); } }
-@keyframes shimmer  { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-@keyframes pulse    { 0%,100% { opacity:1; } 50% { opacity:.3; } }
-@keyframes glow     { 0%,100% { box-shadow: 0 0 20px var(--gold-glow); } 50% { box-shadow: 0 0 40px var(--gold-glow), 0 0 80px var(--gold-glow); } }
-@keyframes countUp  { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+/* Animations — subtle, not flashy */
+@keyframes fadeUp  { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
+@keyframes popIn   { from { opacity:0; transform:scale(.97); } to { opacity:1; transform:scale(1); } }
+@keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
 
-.au   { animation: fadeUp .5s cubic-bezier(.22,.68,0,1.2) both; }
-.ai   { animation: fadeIn .3s ease both; }
-.ap   { animation: popIn  .4s cubic-bezier(.22,.68,0,1.2) both; }
+.au { animation: fadeUp .35s ease both; }
+.ai { animation: fadeIn .25s ease both; }
+.ap { animation: popIn  .3s ease both; }
+.d1{animation-delay:.04s} .d2{animation-delay:.08s} .d3{animation-delay:.12s}
+.d4{animation-delay:.16s} .d5{animation-delay:.20s} .d6{animation-delay:.24s}
 
-.d1{animation-delay:.06s} .d2{animation-delay:.12s} .d3{animation-delay:.18s}
-.d4{animation-delay:.24s} .d5{animation-delay:.30s} .d6{animation-delay:.36s}
-
-/* ── Reusable ── */
-.hover-lift { transition: transform .2s ease, box-shadow .2s ease; }
-.hover-lift:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-.press:active { transform: scale(.96) !important; transition: transform .1s; }
-
-.glass {
-  background: rgba(17,21,32,.8);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-}
-.glass-light {
-  background: rgba(253,250,245,.88);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-}
-
-.serif { font-family: var(--serif); }
-
-/* Gold gradient text */
-.gold-text {
-  background: linear-gradient(135deg, var(--gold), var(--gold2), var(--gold));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Pill badge */
-.pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 10px; border-radius: 20px;
-  font-size: 11px; font-weight: 600; letter-spacing: .2px;
-}
-.pill-gold    { background: rgba(201,168,76,.15); color: var(--gold); border: 1px solid rgba(201,168,76,.3); }
-.pill-emerald { background: rgba(45,200,160,.12); color: var(--emerald); border: 1px solid rgba(45,200,160,.25); }
-.pill-rose    { background: rgba(244,97,122,.12);  color: var(--rose);    border: 1px solid rgba(244,97,122,.25); }
-.pill-accent  { background: rgba(79,110,247,.15); color: var(--accent);  border: 1px solid rgba(79,110,247,.3); }
-.pill-amber   { background: rgba(240,164,41,.12);  color: var(--amber);   border: 1px solid rgba(240,164,41,.25); }
+.press:active { opacity:.75; transition: opacity .1s; }
 
 /* Input */
 .field {
-  width: 100%; padding: 14px 18px;
-  border-radius: 12px;
+  width: 100%; padding: 12px 16px;
+  border-radius: var(--radius);
   background: var(--surface);
   border: 1.5px solid var(--border2);
   color: var(--text); font-size: 15px; outline: none;
-  transition: border-color .2s, box-shadow .2s;
+  transition: border-color .15s, box-shadow .15s;
   font-family: var(--sans);
 }
-.field:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
+.field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
 .field::placeholder { color: var(--text3); }
+select.field { appearance: none; }
 
-/* Section wrapper */
-.screen { min-height: 100vh; padding-bottom: 96px; }
-.px { padding-left: 20px; padding-right: 20px; }
+/* Pill */
+.pill {
+  display: inline-flex; align-items: center;
+  padding: 2px 9px; border-radius: 99px;
+  font-size: 11px; font-weight: 600; letter-spacing: .1px;
+}
+.pill-blue    { background: rgba(37,99,235,.1);  color: var(--accent); border: 1px solid rgba(37,99,235,.2); }
+.pill-green   { background: rgba(22,163,74,.1);  color: var(--green);  border: 1px solid rgba(22,163,74,.2); }
+.pill-red     { background: rgba(220,38,38,.1);  color: var(--red);    border: 1px solid rgba(220,38,38,.2); }
+.pill-amber   { background: rgba(217,119,6,.1);  color: var(--amber);  border: 1px solid rgba(217,119,6,.2); }
+.pill-gray    { background: var(--surface2);     color: var(--text2);  border: 1px solid var(--border2); }
 
-/* Progress bar */
-.track { background: var(--border2); border-radius: 99px; overflow: hidden; }
-.fill  { height: 100%; border-radius: 99px; transition: width .9s cubic-bezier(.22,.68,0,1.2); }
+/* Keep old pill names as aliases */
+.pill-gold    { background: rgba(37,99,235,.1);  color: var(--accent); border: 1px solid rgba(37,99,235,.2); }
+.pill-emerald { background: rgba(22,163,74,.1);  color: var(--green);  border: 1px solid rgba(22,163,74,.2); }
+.pill-rose    { background: rgba(220,38,38,.1);  color: var(--red);    border: 1px solid rgba(220,38,38,.2); }
+.pill-accent  { background: rgba(37,99,235,.1);  color: var(--accent); border: 1px solid rgba(37,99,235,.2); }
+
+/* Card surfaces */
+.card-s  { background: var(--surface);  border: 1px solid var(--border2); border-radius: var(--radius); }
+.card-s2 { background: var(--surface2); border: 1px solid var(--border);  border-radius: var(--radius); }
+.card-surface  { background: var(--surface);  border: 1px solid var(--border2); border-radius: var(--radius); }
+.card-surface-2{ background: var(--surface2); border: 1px solid var(--border);  border-radius: var(--radius); }
 
 /* Divider */
 .divider { height: 1px; background: var(--border); width: 100%; }
 
-/* Card surface */
-.card-surface {
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: 20px;
-}
-.card-surface-2 {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-}
+/* Layout */
+.screen { min-height: 100vh; padding-bottom: 88px; }
+.px { padding-left: 20px; padding-right: 20px; }
+.serif { font-family: var(--sans); }
+.nav-safe { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
 
-/* Gold button */
+/* Progress */
+.track { background: var(--border2); border-radius: 99px; overflow: hidden; }
+.fill  { height: 100%; border-radius: 99px; transition: width .7s ease; }
+
+/* Primary button */
 .btn-gold {
-  background: linear-gradient(135deg, var(--gold), var(--gold2));
-  color: #1A1611;
-  border: none;
-  font-weight: 700;
-  border-radius: 14px;
-  padding: 16px 24px;
-  font-size: 15px;
-  font-family: var(--sans);
-  cursor: pointer;
-  box-shadow: 0 4px 24px var(--gold-glow);
-  transition: all .2s;
+  background: var(--accent);
+  color: #fff; border: none; font-weight: 600;
+  border-radius: var(--radius); padding: 14px 24px;
+  font-size: 15px; font-family: var(--sans); cursor: pointer;
+  transition: background .15s, transform .1s;
+  box-shadow: 0 1px 4px rgba(37,99,235,.3);
 }
-.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 32px var(--gold-glow); }
-.btn-gold:active { transform: scale(.97); }
+.btn-gold:hover { background: var(--accent2); }
+.btn-gold:active { transform: scale(.98); }
+.btn-gold:disabled { background: var(--border2); color: var(--text3); box-shadow: none; cursor: not-allowed; }
+
+/* Secondary button */
 .btn-ghost {
-  background: var(--surface2);
-  color: var(--text2);
-  border: 1.5px solid var(--border2);
-  font-weight: 500;
-  border-radius: 12px;
-  padding: 12px 20px;
-  font-size: 14px;
-  font-family: var(--sans);
-  cursor: pointer;
-  transition: all .2s;
+  background: var(--surface); color: var(--text2);
+  border: 1.5px solid var(--border2); font-weight: 500;
+  border-radius: var(--radius); padding: 11px 18px;
+  font-size: 14px; font-family: var(--sans); cursor: pointer;
+  transition: border-color .15s, color .15s;
 }
-.btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Nav safe */
-.nav-safe { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+/* Gold-text now uses accent */
+.gold-text { color: var(--accent); }
 
-/* Skeleton */
-.skel {
-  background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.6s infinite;
-  border-radius: 8px;
-}
-
-/* Toggle switch */
+/* Toggle */
 .toggle-track {
-  width: 50px; height: 28px; border-radius: 14px;
-  background: var(--border2);
-  border: none; cursor: pointer; position: relative;
-  transition: background .25s;
-  flex-shrink: 0;
+  width: 44px; height: 26px; border-radius: 13px;
+  background: var(--border2); border: none; cursor: pointer;
+  position: relative; transition: background .2s; flex-shrink: 0;
 }
-.toggle-track.on { background: var(--gold); }
+.toggle-track.on { background: var(--accent); }
 .toggle-knob {
-  position: absolute; top: 4px; left: 4px;
-  width: 20px; height: 20px; border-radius: 50%;
-  background: white;
-  transition: left .25s cubic-bezier(.22,.68,0,1.2);
-  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  position: absolute; top: 3px; left: 3px;
+  width: 20px; height: 20px; border-radius: 50%; background: white;
+  transition: left .2s ease; box-shadow: 0 1px 4px rgba(0,0,0,.2);
 }
-.toggle-track.on .toggle-knob { left: 26px; }
+.toggle-track.on .toggle-knob { left: 21px; }
+
+/* Hover lift — very subtle */
+.hover-lift { transition: box-shadow .15s; }
+.hover-lift:hover { box-shadow: var(--shadow-lg); }
 
 /* ============================================================
    RESPONSIVE BREAKPOINTS
@@ -671,12 +624,14 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
   return (
     <div className="desktop-sidebar" style={{display:"flex",flexDirection:"column",padding:"32px 0"}}>
       {/* Logo */}
-      <div style={{padding:"0 24px 32px"}}>
+      <div style={{padding:"0 24px 28px"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,var(--gold),var(--gold2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>💳</div>
+          <div style={{width:32,height:32,borderRadius:8,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
           <div>
-            <div className="serif gold-text" style={{fontSize:20,fontWeight:600}}>CardPilot</div>
-            <div style={{fontSize:10,color:"var(--text3)",letterSpacing:.8}}>ELITE</div>
+            <div style={{fontSize:16,fontWeight:700,color:"var(--text)",letterSpacing:"-.3px"}}>CardPilot</div>
+            <div style={{fontSize:10,color:"var(--text2)",letterSpacing:.5,fontWeight:500}}>ELITE</div>
           </div>
         </div>
       </div>
@@ -702,7 +657,7 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
             <button key={id} onClick={()=>go(id)} className="press" style={{
               width:"100%",display:"flex",alignItems:"center",gap:12,
               padding:"11px 14px",borderRadius:12,border:"none",
-              background:on?"rgba(201,168,76,.12)":"none",
+              background:on?"rgba(37,99,235,.08)":"none",
               color:on?"var(--gold)":"var(--text2)",
               fontSize:14,fontWeight:on?600:400,
               textAlign:"left",marginBottom:2,
@@ -754,9 +709,9 @@ function MobileNav({ active, go }: { active:S; go:(s:S)=>void }) {
             flex:1,padding:"10px 0 8px",background:"none",border:"none",
             display:"flex",flexDirection:"column",alignItems:"center",gap:3,
           }}>
-            <span style={{fontSize:19,color:on?"var(--gold)":"var(--text3)",transition:"color .2s"}}>{icon}</span>
-            <span style={{fontSize:10,fontWeight:600,color:on?"var(--gold)":"var(--text3)",letterSpacing:.3}}>{label}</span>
-            {on && <span style={{width:18,height:2,borderRadius:99,background:"var(--gold)"}}/>}
+            <span style={{fontSize:19,color:on?"var(--accent)":"var(--text3)",transition:"color .2s"}}>{icon}</span>
+            <span style={{fontSize:10,fontWeight:600,color:on?"var(--accent)":"var(--text3)",letterSpacing:.3}}>{label}</span>
+            {on && <span style={{width:18,height:2,borderRadius:99,background:"var(--accent)"}}/>}
           </button>
         );
       })}
@@ -813,7 +768,7 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
       {/* Step 0 — Welcome */}
       {step===0 && (
         <div className="au" style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:"40px 28px",textAlign:"center"}}>
-          <div style={{width:90,height:90,borderRadius:26,background:"linear-gradient(135deg,var(--gold),var(--gold2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:42,marginBottom:36,animation:"glow 3s ease infinite"}}>💳</div>
+          <div style={{width:90,height:90,borderRadius:26,background:"linear-gradient(135deg,var(--gold),var(--gold2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:42,marginBottom:36,}}}>💳</div>
           <div className="serif gold-text" style={{fontSize:14,letterSpacing:3,marginBottom:12,fontWeight:500}}>CARDPILOT ELITE</div>
           <h1 className="serif" style={{fontSize:44,lineHeight:1.1,marginBottom:16,fontWeight:400}}>Your money,<br/><em style={{fontStyle:"italic"}}>optimized.</em></h1>
           <p style={{color:"var(--text2)",fontSize:15,lineHeight:1.8,marginBottom:48,maxWidth:320}}>The most sophisticated credit card optimization platform. AI-powered. Built for people who expect more.</p>
@@ -995,28 +950,28 @@ function Home({ profile, cards, go }: { profile:UserProfile; cards:CreditCard[];
       {/* Due date alert */}
       {dueSoon.length > 0 && (
         <div className="au d2" style={{
-          background:"rgba(244,97,122,.06)",border:"1px solid rgba(244,97,122,.25)",
+          background:"rgba(220,38,38,.04)",border:"1px solid rgba(220,38,38,.15)",
           borderRadius:16,padding:"14px 18px",marginBottom:16,
           display:"flex",gap:12,alignItems:"center",cursor:"pointer",
         }} onClick={()=>go("cards")}>
           <span style={{fontSize:22}}>⚠️</span>
           <div style={{flex:1}}>
-            <p style={{color:"var(--rose)",fontSize:13,fontWeight:600,marginBottom:2}}>Payment due soon</p>
+            <p style={{color:"var(--red)",fontSize:13,fontWeight:600,marginBottom:2}}>Payment due soon</p>
             <p style={{color:"var(--text2)",fontSize:12}}>{dueSoon[0].name} — minimum ${f(dueSoon[0].minPayment)} due in {daysUntil(dueSoon[0].dueDate)} days</p>
           </div>
-          <span style={{color:"var(--rose)",fontSize:16}}>→</span>
+          <span style={{color:"var(--red)",fontSize:16}}>→</span>
         </div>
       )}
 
       {/* Quick actions */}
       <div className="au d2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:24}}>
         {([
-          ["◎","Ask AI","Smart card advice","chat","var(--accent)"],
-          ["★","Card Picks","Apply & use AI","ai-recommender","var(--gold)"],
-          ["◈","Travel","Use your points","travel","var(--sky)"],
-          ["⊕","Split Bill","Group expenses","split","var(--emerald)"],
-          ["◉","Goals","Track progress","goals","var(--rose)"],
-          ["◈","Optimizer","Save more money","lifestyle","var(--emerald)"],
+          ["AI","Ask AI","Smart card advice","chat","var(--accent)"],
+          ["Picks","Card Picks","Apply & use AI","ai-recommender","var(--accent)"],
+          ["Travel","Travel","Use your points","travel","var(--accent)"],
+          ["Split","Split Bill","Group expenses","split","var(--green)"],
+          ["Goals","Goals","Track progress","goals","var(--accent)"],
+          ["Save","Optimizer","Save more money","lifestyle","var(--green)"],
         ] as [string,string,string,S,string][]).map(([icon,label,sub,target,color])=>(
           <button key={label} onClick={()=>go(target)} className="hover-lift press card-surface" style={{padding:"16px 14px",textAlign:"left",width:"100%",border:"1px solid var(--border2)"}}>
             <span style={{fontSize:22,color,display:"block",marginBottom:8}}>{icon}</span>
@@ -1500,34 +1455,46 @@ function Chat({ cards, profile }: { cards:CreditCard[]; profile:UserProfile }) {
       const totalBal=cards.reduce((s,c)=>s+c.balance,0);
       const totalLim=cards.reduce((s,c)=>s+c.limit,0);
       const util=totalLim>0?Math.round(totalBal/totalLim*100):0;
-      const systemPrompt = `You are an expert AI financial advisor for CardPilot Elite, a premium credit card optimization app. You know everything about the user.
+      const systemPrompt = `You are the AI advisor inside CardPilot Elite — a premium credit card optimization app. You are friendly, sharp, and concise.
+
+RESPONSE RULES — CRITICAL:
+- If the user says hi, hello, hey or any greeting → reply with ONLY: "Hi ${profile.name||"there"}! How can I help you today?"
+- If the user asks a simple yes/no question → answer in 1 sentence max
+- If the user asks a complex financial question → answer in 2-4 sentences with specific numbers
+- NEVER write long paragraphs unless explicitly asked
+- NEVER use ** bold ** formatting
+- NEVER start with "Great question!" or similar filler phrases
+- Match response length to question length — short question = short answer
+
+APP GUIDE — you know every feature:
+- Dashboard: shows total points value, credit utilization, payment alerts, card approval chances
+- My Cards: tap any card to see balance, minimum payment, due date, points, active offers, benefits. Tap + Add Card to add a new card by searching from 50+ real US cards
+- AI Advisor (here): ask anything about your cards, spending, rewards, credit score
+- Travel: see all your points across programs, best redemptions, transfer partners ranked by value
+- Goals: track financial goals with progress rings and AI action plans
+- Split Bills: split restaurant bills with friends, select who you ate with, settle via Venmo
+- Perks: see active cashback offers and annual credits before they expire
+- Optimizer: compare prices across 8 stores for any product, or calculate how much you save cutting a daily habit
+- AI Picks: get personalized card recommendations to apply for, or find which card to use at any merchant
+- Settings: toggle features on/off, switch between dark and light theme
+
+HOW TO GUIDE USERS:
+- If user seems lost or confused → briefly explain what CardPilot can do and suggest where to start
+- If user asks "how do I..." → give exact step by step instructions for that feature
+- If user asks "what can you do" → list the main features in a short bullet list
+- Always be helpful and point users to the right screen
 
 USER PROFILE:
 - Name: ${profile.name || "User"}
-- Age: ${profile.age || "not specified"}
-- Annual Income: ${profile.income || "not specified"}
-- Credit Score: ${profile.creditScore || "not specified"}
-- Goal: ${profile.goal || "not specified"}
-- Lifestyles: ${(profile.lifestyles||[]).join(", ") || "not specified"}
+- Income: ${profile.income || "not set"}
+- Credit Score: ${profile.creditScore || "not set"}
+- Goal: ${profile.goal || "not set"}
 - Monthly Spending: Dining $${profile.spending?.dining||0}, Groceries $${profile.spending?.groceries||0}, Travel $${profile.spending?.travel||0}, Gas $${profile.spending?.gas||0}, Shopping $${profile.spending?.shopping||0}
 
 THEIR CARDS (${cards.length} total):
-${cards.map(c=>`- ${c.name} (${c.issuer}): Balance $${c.balance}, Limit $${c.limit}, Points ${c.points}, Min Payment $${c.minPayment}, Due: ${c.dueDate||"not set"}, Rewards: ${c.rewardRate}`).join("\n")}
+${cards.map(c=>`- ${c.name} (${c.issuer}): Balance $${c.balance}, Limit $${c.limit}, Points ${c.points}, Due: ${c.dueDate||"not set"}, Rewards: ${c.rewardRate}`).join("\n")}
 
-PORTFOLIO SUMMARY:
-- Total Points: ${f(totalPts)} (worth ~$${f(Math.round(totalPts*0.015))})
-- Total Balance: $${f(totalBal)}
-- Credit Utilization: ${util}%
-
-INSTRUCTIONS:
-- Give specific, personalized advice based on their exact cards and profile
-- Always mention specific card names from their wallet
-- Give exact numbers and calculations
-- Be concise but thorough — 2-4 sentences max unless detail is needed
-- Never give generic advice — always reference their specific situation
-- If they ask which card to use, rank their actual cards with exact multipliers
-- If they ask about credit score, reference their actual utilization
-- Format responses clearly — use bullet points only when listing multiple items`;
+PORTFOLIO: ${f(totalPts)} total points worth ~$${f(Math.round(totalPts*0.015))} | Utilization: ${util}%`;
 
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -1959,12 +1926,12 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
       <PageHead title="Settings" back={()=>go("home")}/>
       <div className="px">
         {/* Profile */}
-        <div className="au card-surface" style={{padding:"20px 22px",marginBottom:28,background:"linear-gradient(135deg,#2A1E00,#1A1200)",border:"1px solid rgba(201,168,76,.3)"}}>
+        <div className="au card-surface" style={{padding:"20px 22px",marginBottom:28,background:"var(--surface2)",border:"1px solid var(--border2)"}}>
           <div style={{display:"flex",alignItems:"center",gap:16}}>
             <div style={{width:56,height:56,borderRadius:18,background:"rgba(201,168,76,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>👤</div>
             <div>
-              <p style={{color:"rgba(201,168,76,.6)",fontSize:12,marginBottom:2}}>Your profile</p>
-              <p style={{color:"var(--gold2)",fontSize:20,fontWeight:600}}>{profile.name||"User"}</p>
+              <p style={{color:"var(--text2)",fontSize:12,marginBottom:2}}>Your profile</p>
+              <p style={{color:"var(--text)",fontSize:20,fontWeight:600}}>{profile.name||"User"}</p>
               {profile.creditScore&&<p style={{color:"var(--emerald)",fontSize:12,marginTop:2}}>Score: {profile.creditScore}</p>}
             </div>
           </div>
@@ -3005,7 +2972,7 @@ function AuthScreen({onAuth}:{onAuth:()=>void}) {
       <div style={{width:"100%",maxWidth:400}}>
         {/* Logo */}
         <div style={{textAlign:"center",marginBottom:40}}>
-          <div style={{width:72,height:72,borderRadius:22,background:"linear-gradient(135deg,var(--gold),var(--gold2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,margin:"0 auto 16px",boxShadow:"0 8px 32px var(--gold-glow)",animation:"glow 3s ease infinite"}}>💳</div>
+          <div style={{width:72,height:72,borderRadius:22,background:"linear-gradient(135deg,var(--gold),var(--gold2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,margin:"0 auto 16px",boxShadow:"0 8px 32px var(--gold-glow)",}}}>💳</div>
           <div className="serif gold-text" style={{fontSize:13,letterSpacing:3,fontWeight:500,marginBottom:4}}>CARDPILOT ELITE</div>
           <h1 className="serif" style={{fontSize:36,fontWeight:400,lineHeight:1.1}}>
             {mode==="login"?"Welcome back":"Get started"}
@@ -3059,7 +3026,7 @@ export default function App() {
   const [screen, setScreen] = useState<S>("onboard");
   const [profile, setProfile] = useState<UserProfile>({name:"",age:"",income:"",lifestyles:[],creditScore:"",spending:{dining:"",groceries:"",travel:"",gas:"",shopping:"",other:""},goal:""});
   const [cards, setCards] = useState<CreditCard[]>([]);
-  const [theme, setTheme] = useState<"dark"|"light">("dark");
+  const [theme, setTheme] = useState<"dark"|"light">("light");
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
