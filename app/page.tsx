@@ -42,28 +42,28 @@ const DARK_CSS = `
 `;
 
 const LIGHT_CSS = `
-  --bg:        #F0F4F8;
-  --bg2:       #E4E9F0;
+  --bg:        #F3F6FB;
+  --bg2:       #E8EDF5;
   --surface:   #FFFFFF;
-  --surface2:  #F8FAFC;
-  --border:    #E5E9EF;
-  --border2:   #D8DDE6;
-  --text:      #0F172A;
-  --text2:     #64748B;
-  --text3:     #CBD5E1;
+  --surface2:  #F7F9FC;
+  --border:    #E2E8F0;
+  --border2:   #C9D3E0;
+  --text:      #1A202C;
+  --text2:     #718096;
+  --text3:     #BEC8D6;
   --accent:    #2563EB;
   --accent2:   #1D4ED8;
-  --accentbg:  #EFF6FF;
-  --green:     #16A34A;
-  --greenbg:   #F0FDF4;
-  --red:       #DC2626;
-  --redbg:     #FEF2F2;
-  --amber:     #D97706;
-  --amberbg:   #FFFBEB;
+  --accentbg:  #EBF4FF;
+  --green:     #276749;
+  --greenbg:   #F0FFF4;
+  --red:       #C53030;
+  --redbg:     #FFF5F5;
+  --amber:     #B7791F;
+  --amberbg:   #FFFFF0;
   --sans:      'Inter', system-ui, -apple-system, sans-serif;
-  --shadow:    0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-  --shadow-lg: 0 4px 16px rgba(0,0,0,.08);
-  --radius:    10px;
+  --shadow:    0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg: 0 6px 20px rgba(0,0,0,.08);
+  --radius:    8px;
 `;
 
 const BASE_CSS = `
@@ -588,7 +588,7 @@ function PageHead({ title, sub, right, back }: { title:string; sub?:string; righ
       <div style={{display:"flex",alignItems:"flex-end",gap:12}}>
         {back && <button onClick={back} className="btn-ghost press" style={{padding:"8px 14px",fontSize:13}}>← Back</button>}
         <div>
-          <h1 className="serif" style={{fontSize:32,fontWeight:400,lineHeight:1.1,marginBottom:sub?6:0}}>{title}</h1>
+          <h1 className="serif" style={{fontSize:24,fontWeight:700,lineHeight:1.2,letterSpacing:"-.3px",marginBottom:sub?4:0}}>{title}</h1>
           {sub && <p style={{fontSize:13,color:"var(--text2)"}}>{sub}</p>}
         </div>
       </div>
@@ -609,66 +609,63 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
     ["perks","◆","Perks"],["lifestyle","◈","Optimizer"],["ai-recommender","★","AI Picks"],["settings","⚙","Settings"],
   ];
   return (
-    <div className="desktop-sidebar" style={{display:"flex",flexDirection:"column",padding:"32px 0"}}>
-      {/* Logo */}
-      <div style={{padding:"0 24px 28px"}}>
+    <div className="desktop-sidebar" style={{display:"flex",flexDirection:"column",paddingTop:28,paddingBottom:20}}>
+      <div style={{padding:"0 20px 24px"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:32,height:32,borderRadius:8,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          <div style={{width:34,height:34,borderRadius:9,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           </div>
           <div>
-            <div style={{fontSize:16,fontWeight:700,color:"var(--text)",letterSpacing:"-.3px"}}>CardPilot</div>
-            <div style={{fontSize:10,color:"var(--text2)",letterSpacing:.5,fontWeight:500}}>ELITE</div>
+            <div style={{fontSize:15,fontWeight:700,color:"var(--text)",letterSpacing:"-.3px",lineHeight:1.2}}>CardPilot</div>
+            <div style={{fontSize:10,color:"var(--text2)",fontWeight:500,letterSpacing:.6,textTransform:"uppercase"}}>Elite</div>
           </div>
         </div>
       </div>
 
-      {/* User */}
       {profile.name && (
-        <div style={{padding:"0 24px 24px"}}>
+        <div style={{padding:"0 16px 20px"}}>
           <div style={{background:"var(--accentbg)",borderRadius:8,padding:"10px 12px",border:"1px solid rgba(37,99,235,.12)"}}>
-            <div style={{fontSize:11,color:"var(--text3)",marginBottom:3}}>Welcome back</div>
-            <div style={{fontSize:15,fontWeight:600,color:"var(--text)"}}>{profile.name}</div>
-            {profile.creditScore && <div style={{fontSize:11,color:"var(--green)",marginTop:2}}>Score: {profile.creditScore}</div>}
+            <div style={{fontSize:11,color:"var(--accent)",marginBottom:2,fontWeight:500}}>Signed in as</div>
+            <div style={{fontSize:14,fontWeight:600,color:"var(--text)",letterSpacing:"-.1px"}}>{profile.name}</div>
+            {profile.creditScore && <div style={{fontSize:11,color:"var(--green)",marginTop:2,fontWeight:500}}>{profile.creditScore}</div>}
           </div>
         </div>
       )}
 
-      <div className="divider" style={{margin:"0 0 16px"}}/>
+      <div className="divider"/>
 
-      {/* Nav */}
-      <nav style={{flex:1,padding:"0 12px"}}>
+      <nav style={{flex:1,padding:"12px 12px 0"}}>
         {navItems.map(([id,icon,label]) => {
           const on = active === id;
           return (
             <button key={id} onClick={()=>go(id)} className="press" style={{
-              width:"100%",display:"flex",alignItems:"center",gap:12,
-              padding:"11px 14px",borderRadius:12,border:"none",
-              background:on?"rgba(37,99,235,.08)":"none",
+              width:"100%",display:"flex",alignItems:"center",gap:9,
+              padding:"9px 10px",borderRadius:7,border:"none",
+              background:on?"var(--accentbg)":"transparent",
               color:on?"var(--accent)":"var(--text2)",
-              fontSize:14,fontWeight:on?600:400,
-              textAlign:"left",marginBottom:2,
-              transition:"all .15s",
+              fontSize:13.5,fontWeight:on?600:400,
+              textAlign:"left",marginBottom:1,
+              transition:"background .12s, color .12s",
+              borderLeft:on?"2px solid var(--accent)":"2px solid transparent",
             }}>
-              <span style={{fontSize:17,width:22,textAlign:"center"}}>{icon}</span>
+              <span style={{fontSize:14,width:18,textAlign:"center",opacity:on?1:.7}}>{icon}</span>
               {label}
-              {on && <span style={{marginLeft:"auto",width:4,height:4,borderRadius:"50%",background:"var(--accent)"}}/>}
             </button>
           );
         })}
       </nav>
 
-      <div className="divider" style={{margin:"16px 0"}}/>
+      <div className="divider" style={{marginTop:16,marginBottom:16}}/>
 
-      {/* Theme toggle */}
-      <div style={{padding:"0 24px"}}>
-        <button onClick={toggleTheme} className="btn-ghost press" style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",marginBottom:8}}>
-          <span style={{fontSize:13}}>{theme==="dark"?"🌙 Dark":"☀️ Light"} Mode</span>
-          <Toggle on={theme==="light"} set={toggleTheme}/>
-        </button>
+      <div style={{padding:"0 16px"}}>
         {onSignOut && (
-          <button onClick={onSignOut} className="btn-ghost press" style={{width:"100%",padding:"10px 14px",fontSize:13,color:"var(--red)",borderColor:"rgba(220,38,38,.2)"}}>
-            Sign Out
+          <button onClick={onSignOut} className="press" style={{
+            width:"100%",padding:"9px 14px",fontSize:13,
+            color:"var(--red)",background:"transparent",
+            border:"1px solid rgba(197,48,48,.25)",borderRadius:7,
+            fontWeight:500,cursor:"pointer",fontFamily:"var(--sans)",
+          }}>
+            Sign out
           </button>
         )}
       </div>
@@ -686,19 +683,18 @@ function MobileNav({ active, go }: { active:S; go:(s:S)=>void }) {
   return (
     <nav className="mobile-nav nav-safe" style={{
       position:"fixed",bottom:0,left:0,right:0,
-      background:"var(--surface)",borderTop:"1px solid var(--border2)",
-      display:"flex",zIndex:200,
+      background:"var(--surface)",borderTop:"1px solid var(--border)",
+      display:"flex",zIndex:200,paddingTop:4,
     }}>
       {tabs.map(([id,icon,label]) => {
         const on = active === id;
         return (
           <button key={id} onClick={()=>go(id)} className="press" style={{
-            flex:1,padding:"10px 0 8px",background:"none",border:"none",
-            display:"flex",flexDirection:"column",alignItems:"center",gap:3,
+            flex:1,padding:"8px 0 10px",background:"none",border:"none",
+            display:"flex",flexDirection:"column",alignItems:"center",gap:4,
           }}>
-            <span style={{fontSize:19,color:on?"var(--accent)":"var(--text3)",transition:"color .2s"}}>{icon}</span>
-            <span style={{fontSize:10,fontWeight:600,color:on?"var(--accent)":"var(--text3)",letterSpacing:.3}}>{label}</span>
-            {on && <span style={{width:18,height:2,borderRadius:99,background:"var(--accent)"}}/>}
+            <span style={{fontSize:17,color:on?"var(--accent)":"var(--text3)",transition:"color .15s"}}>{icon}</span>
+            <span style={{fontSize:10,fontWeight:on?600:400,color:on?"var(--accent)":"var(--text3)"}}>{label}</span>
           </button>
         );
       })}
@@ -771,9 +767,9 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
           <span className="pill pill-gold" style={{marginBottom:20,display:"inline-flex"}}>Step 1 of 5</span>
           <h2 className="serif" style={{fontSize:36,fontWeight:400,marginBottom:8,lineHeight:1.2}}>What's your<br/>name?</h2>
           <p style={{color:"var(--text2)",fontSize:14,marginBottom:32,lineHeight:1.6}}>We personalize every recommendation around you.</p>
-          <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>First Name</label>
+          <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>First Name</label>
           <input className="field" placeholder="Your first name" value={p.name} onChange={e=>set("name",e.target.value)} style={{fontSize:20,padding:"18px 20px",marginBottom:20}} autoFocus onKeyDown={e=>e.key==="Enter"&&p.name.trim()&&setStep(2)}/>
-          <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Age</label>
+          <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Age</label>
           <input className="field" type="number" placeholder="Your age" value={p.age} onChange={e=>set("age",e.target.value)} style={{marginBottom:32}}/>
           <GoldBtn label="Continue →" disabled={!p.name.trim()} onClick={()=>setStep(2)}/>
         </div>
@@ -785,12 +781,12 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
           <span className="pill pill-gold" style={{marginBottom:20,display:"inline-flex"}}>Step 2 of 5</span>
           <h2 className="serif" style={{fontSize:36,fontWeight:400,marginBottom:8,lineHeight:1.2}}>Financial<br/>profile</h2>
           <p style={{color:"var(--text2)",fontSize:14,marginBottom:28,lineHeight:1.6}}>Used to calculate approval chances and optimize your strategy.</p>
-          <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Annual Income</label>
+          <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Annual Income</label>
           <select className="field" value={p.income} onChange={e=>set("income",e.target.value)} style={{marginBottom:20,appearance:"none"}}>
             <option value="">Select income range</option>
             {INCOMES.map(o=><option key={o} value={o}>{o}</option>)}
           </select>
-          <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Credit Score (approximate)</label>
+          <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Credit Score (approximate)</label>
           <select className="field" value={p.creditScore} onChange={e=>set("creditScore",e.target.value)} style={{marginBottom:24,appearance:"none"}}>
             <option value="">Select score range</option>
             {SCORES.map(o=><option key={o} value={o}>{o}</option>)}
@@ -899,8 +895,8 @@ function Home({ profile, cards, go }: { profile:UserProfile; cards:CreditCard[];
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:32}}>
         <div>
-          <p style={{color:"var(--text3)",fontSize:12,letterSpacing:.8,textTransform:"uppercase",marginBottom:6}}>{greet}</p>
-          <h1 className="serif" style={{fontSize:36,fontWeight:400,lineHeight:1}}>{profile.name || "Welcome"}</h1>
+          <p style={{color:"var(--text2)",fontSize:13,fontWeight:500,marginBottom:4}}>{greet}</p>
+          <h1 className="serif" style={{fontSize:28,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px"}}>{profile.name || "Welcome"}</h1>
         </div>
         <button onClick={()=>go("settings")} className="press" style={{
           width:44,height:44,borderRadius:12,background:"var(--surface)",
@@ -962,8 +958,8 @@ function Home({ profile, cards, go }: { profile:UserProfile; cards:CreditCard[];
           ["Save","Optimizer","Save more money","lifestyle","var(--green)"],
         ] as [string,string,string,S,string][]).map(([icon,label,sub,target,color])=>(
           <button key={label} onClick={()=>go(target)} className="hover-lift press card-surface" style={{padding:"16px 14px",textAlign:"left",width:"100%",border:"1px solid var(--border2)"}}>
-            <span style={{fontSize:22,color,display:"block",marginBottom:8}}>{icon}</span>
-            <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
+            <span style={{fontSize:18,color:"var(--accent)",display:"block",marginBottom:8}}>{icon}</span>
+            <p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px"}}>{label}</p>
             <p style={{color:"var(--text2)",fontSize:11,marginTop:2}}>{sub}</p>
           </button>
         ))}
@@ -1443,16 +1439,18 @@ function Chat({ cards, profile }: { cards:CreditCard[]; profile:UserProfile }) {
       const totalBal=cards.reduce((s,c)=>s+c.balance,0);
       const totalLim=cards.reduce((s,c)=>s+c.limit,0);
       const util=totalLim>0?Math.round(totalBal/totalLim*100):0;
-      const systemPrompt = `You are the AI advisor inside CardPilot Elite — a premium credit card optimization app. You are friendly, sharp, and concise.
+      const systemPrompt = `You are the AI financial advisor inside CardPilot Elite. Respond like a knowledgeable human advisor — natural, clear, and appropriately detailed.
 
-RESPONSE RULES — CRITICAL:
-- If the user says hi, hello, hey or any greeting → reply with ONLY: "Hi ${profile.name||"there"}! How can I help you today?"
-- If the user asks a simple yes/no question → answer in 1 sentence max
-- If the user asks a complex financial question → answer in 2-4 sentences with specific numbers
-- NEVER write long paragraphs unless explicitly asked
-- NEVER use ** bold ** formatting
-- NEVER start with "Great question!" or similar filler phrases
-- Match response length to question length — short question = short answer
+RULES:
+- Greetings (hi, hello, hey) → respond with only "Hi ${profile.name||"there"}, how can I help you today?"
+- Simple questions → answer in 1-2 sentences
+- Complex financial questions → answer as thoroughly as needed with real numbers and clear explanations
+- Questions asking for a list or comparison → use a clean numbered or bulleted list
+- NEVER use **bold** or *italic* markdown formatting — plain text only
+- NEVER use emojis
+- NEVER start with "Great!" "Sure!" "Absolutely!" or filler phrases
+- Be direct and specific — always reference their actual cards, balances, and spending when relevant
+- Match the depth of your answer to the complexity of the question
 
 APP GUIDE — you know every feature:
 - Dashboard: shows total points value, credit utilization, payment alerts, card approval chances
@@ -1606,7 +1604,7 @@ function Travel({ cards }: { cards:CreditCard[] }) {
             <div key={c.id} className={`au d${i+1} card-surface hover-lift`} style={{padding:"14px 16px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{display:"flex",alignItems:"center",gap:12}}>
                 <div style={{width:42,height:28,borderRadius:7,background:c.gradient,boxShadow:"0 2px 8px rgba(0,0,0,.5)"}}/>
-                <div><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{c.name}</p><p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{c.issuer}</p></div>
+                <div><p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px"}}>{c.name}</p><p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{c.issuer}</p></div>
               </div>
               <div style={{textAlign:"right"}}>
                 <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{f(c.points)}</p>
@@ -1651,7 +1649,7 @@ function Travel({ cards }: { cards:CreditCard[] }) {
             <div key={i} className={`au d${i+1} card-surface`} style={{padding:"14px 18px",marginBottom:10,border:`1.5px solid ${p.best?"var(--accent)":"var(--border2)"}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                  <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{p.p}</p>
+                  <p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px"}}>{p.p}</p>
                   {p.best&&<span className="pill pill-gold">Best Value</span>}
                 </div>
                 <p style={{color:"var(--text2)",fontSize:11}}>{p.n}</p>
@@ -1850,7 +1848,7 @@ function Perks({ cards }: { cards:CreditCard[] }) {
               <div key={i} className={`au d${i+1} card-surface`} style={{padding:"14px 16px",marginBottom:10,display:"flex",gap:12,alignItems:"center"}}>
                 <div style={{width:36,height:24,borderRadius:6,background:offer.cardGradient,flexShrink:0}}/>
                 <div style={{flex:1}}>
-                  <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{offer.title}</p>
+                  <p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px"}}>{offer.title}</p>
                   <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{offer.cardName} · Expires {offer.expires}</p>
                 </div>
                 <span className="pill pill-emerald" style={{fontSize:10}}>{offer.value}</span>
@@ -1947,7 +1945,7 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
             <div key={key} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",borderBottom:i<FEATS.length-1?"1px solid var(--border)":"none"}}>
               <span style={{fontSize:18,width:28,textAlign:"center"}}>{icon}</span>
               <div style={{flex:1}}>
-                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
+                <p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px"}}>{label}</p>
                 <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
               </div>
               <Toggle on={t[key]} set={()=>tog(key)}/>
@@ -2362,7 +2360,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                             </div>
                             <div style={{textAlign:"right"}}>
                               <p style={{color:"var(--text3)",fontSize:10,marginBottom:2}}>Perks value</p>
-                              <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>${rec.card.perksValue}/yr</p>
+                              <p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px"}}>${rec.card.perksValue}/yr</p>
                             </div>
                           </div>
                         </div>
@@ -2394,7 +2392,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
               ) : (
                 <>
                   <div style={{marginBottom:12}}>
-                    <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Where are you shopping?</label>
+                    <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Where are you shopping?</label>
                     <input
                       className="field"
                       placeholder="e.g. Starbucks, Whole Foods, Amazon, Delta flight..."
@@ -2405,7 +2403,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                     />
                   </div>
                   <div style={{marginBottom:16}}>
-                    <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Purchase amount (optional)</label>
+                    <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Purchase amount (optional)</label>
                     <input
                       className="field"
                       type="number"
@@ -2489,7 +2487,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                     </span>
                     <div style={{width:42,height:28,borderRadius:7,background:r.card.gradient,flexShrink:0,boxShadow:"0 2px 8px rgba(0,0,0,.4)"}}/>
                     <div style={{flex:1}}>
-                      <p style={{color:"var(--text)",fontSize:13,fontWeight:600,marginBottom:2}}>{r.card.name}</p>
+                      <p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px",marginBottom:2}}>{r.card.name}</p>
                       <p style={{color:"var(--text2)",fontSize:11}}>{r.reason}</p>
                     </div>
                     <div style={{textAlign:"right",flexShrink:0}}>
@@ -2804,17 +2802,17 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
             {/* Input form */}
             <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:20,padding:"18px 20px",marginBottom:16}}>
               <div style={{marginBottom:16}}>
-                <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>What is the habit?</label>
+                <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>What is the habit?</label>
                 <input className="field" placeholder="e.g. Starbucks coffee, gym, takeout lunch..." value={habitName} onChange={e=>{setHabitName(e.target.value);setCalculated(false);}} style={{padding:"12px 16px"}}/>
               </div>
 
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
                 <div>
-                  <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Current cost ($)</label>
+                  <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Current cost ($)</label>
                   <input className="field" type="number" placeholder="e.g. 6.50" value={habitCost} onChange={e=>{setHabitCost(e.target.value);setCalculated(false);}} style={{padding:"12px 16px"}}/>
                 </div>
                 <div>
-                  <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Home alternative ($)</label>
+                  <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Home alternative ($)</label>
                   <input className="field" type="number" placeholder="e.g. 0.50" value={homeCost} onChange={e=>{setHomeCost(e.target.value);setCalculated(false);}} style={{padding:"12px 16px"}}/>
                 </div>
               </div>
@@ -2962,7 +2960,7 @@ function AuthScreen({onAuth}:{onAuth:()=>void}) {
         <div style={{textAlign:"center",marginBottom:40}}>
           <div style={{width:72,height:72,borderRadius:22,background:"linear-gradient(135deg,var(--accent),var(--accent2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,margin:"0 auto 16px",boxShadow:"0 8px 32px rgba(37,99,235,.15)",}}}>💳</div>
           <div className="serif gold-text" style={{fontSize:13,letterSpacing:3,fontWeight:500,marginBottom:4}}>CARDPILOT ELITE</div>
-          <h1 className="serif" style={{fontSize:36,fontWeight:400,lineHeight:1.1}}>
+          <h1 className="serif" style={{fontSize:28,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px".1}}>
             {mode==="login"?"Welcome back":"Get started"}
           </h1>
           <p style={{color:"var(--text2)",fontSize:13,marginTop:8}}>
@@ -2974,16 +2972,16 @@ function AuthScreen({onAuth}:{onAuth:()=>void}) {
         <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"28px 24px",boxShadow:"var(--shadow-lg)"}}>
           {mode==="signup" && (
             <div style={{marginBottom:16}}>
-              <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Your Name</label>
+              <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Your Name</label>
               <input className="field" placeholder="First name" value={name} onChange={e=>setName(e.target.value)} style={{padding:"13px 16px"}}/>
             </div>
           )}
           <div style={{marginBottom:16}}>
-            <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Email</label>
+            <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Email</label>
             <input className="field" type="email" placeholder="your@email.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAuth()} style={{padding:"13px 16px"}}/>
           </div>
           <div style={{marginBottom:24}}>
-            <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:8}}>Password</label>
+            <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Password</label>
             <input className="field" type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAuth()} style={{padding:"13px 16px"}}/>
           </div>
 
@@ -3137,7 +3135,7 @@ export default function App() {
   if(authLoading) return (
     <div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--sans)"}}>
       <div style={{textAlign:"center"}}>
-        <div style={{width:60,height:60,borderRadius:18,background:"linear-gradient(135deg,var(--accent),var(--accent2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 16px",animation:"glow 2s ease infinite"}}>💳</div>
+        <div style={{width:60,height:60,borderRadius:18,background:"linear-gradient(135deg,var(--accent),var(--accent2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 16px",}}>💳</div>
         <p style={{color:"var(--text2)",fontSize:14}}>Loading CardPilot...</p>
       </div>
     </div>
