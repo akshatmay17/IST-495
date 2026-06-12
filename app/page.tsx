@@ -2439,7 +2439,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
             {/* Loading */}
             {useLoading && (
               <div style={{textAlign:"center",padding:"30px 20px"}}>
-                <div style={{fontSize:36,marginBottom:12,animation:"pulse 1s ease infinite"}}>💳</div>
+                <div style={{fontSize:36,marginBottom:12,animation:"pulse 1s ease infinite"}}>🔍</div>
                 <p style={{color:"var(--text2)",fontSize:14}}>Ranking your {cards.length} cards...</p>
               </div>
             )}
@@ -2957,14 +2957,19 @@ function AuthScreen({onAuth}:{onAuth:()=>void}) {
     <div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",fontFamily:"var(--sans)"}}>
       <div style={{width:"100%",maxWidth:400}}>
         {/* Logo */}
-        <div style={{textAlign:"center",marginBottom:40}}>
-          <div style={{width:52,height:52,borderRadius:14,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+        <div style={{textAlign:"center",marginBottom:32}}>
+          <div style={{width:50,height:50,borderRadius:13,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 18px"}}>
+            <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="4" width="22" height="16" rx="2"/>
+              <line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
+          </div>
           <div style={{fontSize:11,letterSpacing:2,fontWeight:600,marginBottom:8,color:"var(--accent)",textTransform:"uppercase"}}>CardPilot Elite</div>
-          <h1 className="serif" style={{fontSize:28,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px"}}>
+          <h1 style={{fontSize:26,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px",color:"var(--text)"}}>
             {mode==="login"?"Welcome back":"Get started"}
           </h1>
-          <p style={{color:"var(--text2)",fontSize:13,marginTop:8}}>
-            {mode==="login"?"Sign in to your account":"Create your free account"}
+          <p style={{color:"var(--text2)",fontSize:14,marginTop:6}}>
+            {mode==="login"?"Sign in to your account":"Start optimizing your cards"}
           </p>
         </div>
 
