@@ -660,8 +660,8 @@ function PageHead({ title, sub, right, back }: { title:string; sub?:string; righ
 /* ============================================================
    DESKTOP SIDEBAR
    ============================================================ */
-function Sidebar({ active, go, theme, toggleTheme, profile }: {
-  active:S; go:(s:S)=>void; theme:"dark"|"light"; toggleTheme:()=>void; profile:UserProfile;
+function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
+  active:S; go:(s:S)=>void; theme:"dark"|"light"; toggleTheme:()=>void; profile:UserProfile; onSignOut?:()=>void;
 }) {
   const navItems: [S,string,string][] = [
     ["home","⊞","Dashboard"],["cards","▣","My Cards"],["chat","◎","AI Advisor"],
@@ -1940,7 +1940,7 @@ function Perks({ cards }: { cards:CreditCard[] }) {
 /* ============================================================
    SETTINGS SCREEN
    ============================================================ */
-function Settings({ go, profile, theme, toggleTheme }: { go:(s:S)=>void; profile:UserProfile; theme:"dark"|"light"; toggleTheme:()=>void }) {
+function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>void; profile:UserProfile; theme:"dark"|"light"; toggleTheme:()=>void; onSignOut?:()=>void }) {
   const [t, setT] = useState({ai:true,geo:true,digest:true,split:true,travel:true,perks:true,fraud:true,goals:true,approvals:true});
   const tog = (k: keyof typeof t) => setT(p=>({...p,[k]:!p[k]}));
   const FEATS: [keyof typeof t, string, string, string][] = [
