@@ -2958,9 +2958,9 @@ function AuthScreen({onAuth}:{onAuth:()=>void}) {
       <div style={{width:"100%",maxWidth:400}}>
         {/* Logo */}
         <div style={{textAlign:"center",marginBottom:40}}>
-          <div style={{width:72,height:72,borderRadius:22,background:"linear-gradient(135deg,var(--accent),var(--accent2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,margin:"0 auto 16px",boxShadow:"0 8px 32px rgba(37,99,235,.15)",}}}>💳</div>
-          <div className="serif gold-text" style={{fontSize:13,letterSpacing:3,fontWeight:500,marginBottom:4}}>CARDPILOT ELITE</div>
-          <h1 className="serif" style={{fontSize:28,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px".1}}>
+          <div style={{width:52,height:52,borderRadius:14,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+          <div style={{fontSize:11,letterSpacing:2,fontWeight:600,marginBottom:8,color:"var(--accent)",textTransform:"uppercase"}}>CardPilot Elite</div>
+          <h1 className="serif" style={{fontSize:28,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px"}}>
             {mode==="login"?"Welcome back":"Get started"}
           </h1>
           <p style={{color:"var(--text2)",fontSize:13,marginTop:8}}>
@@ -3135,7 +3135,7 @@ export default function App() {
   if(authLoading) return (
     <div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--sans)"}}>
       <div style={{textAlign:"center"}}>
-        <div style={{width:60,height:60,borderRadius:18,background:"linear-gradient(135deg,var(--accent),var(--accent2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 16px",}}>💳</div>
+          <div style={{width:52,height:52,borderRadius:14,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
         <p style={{color:"var(--text2)",fontSize:14}}>Loading CardPilot...</p>
       </div>
     </div>
