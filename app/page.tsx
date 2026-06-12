@@ -713,7 +713,7 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
     goal:"",
   });
   const set = (k: keyof UserProfile, v: any) => setP(prev => ({...prev,[k]:v}));
-  const toggleLife = (l: string) => set("lifestyles", p.lifestyles.includes(l) ? p.lifestyles.filter(x=>x!==l) : [...p.lifestyles,l]);
+  const toggleLife = (l: string) => set("lifestyles", (p.lifestyles||[]).includes(l) ? p.lifestyles.filter(x=>x!==l) : [...p.lifestyles,l]);
   const setSp = (k: keyof typeof p.spending, v: string) => set("spending", {...p.spending,[k]:v});
 
   const LIFESTYLES = ["✈️ Frequent Traveler","🍽️ Foodie","💼 Business Professional","🏠 Homebody","🎮 Tech Enthusiast","🛍️ Fashion & Shopping","🎓 Student","🏋️ Fitness & Health"];
@@ -794,7 +794,7 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
           <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:10}}>Lifestyle (select all that apply)</label>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:32}}>
             {LIFESTYLES.map(l => {
-              const on = p.lifestyles.includes(l);
+              const on = (p.lifestyles||[]).includes(l);
               return (
                 <button key={l} onClick={()=>toggleLife(l)} className="press" style={{
                   padding:"11px 10px",borderRadius:12,textAlign:"left",fontSize:12,fontWeight:500,
@@ -906,7 +906,7 @@ function Home({ profile, cards, go }: { profile:UserProfile; cards:CreditCard[];
 
       {/* Hero — Portfolio value */}
       <div className="au d1 hover-lift" style={{
-        background:"linear-gradient(135deg,#1A1200 0%,#3A2A00 30%,#2A1E00 60%,#1A1200 100%)",
+        background:"var(--accent)",
         border:"1px solid rgba(201,168,76,.3)",
         borderRadius:24,padding:"28px 24px",marginBottom:16,
         position:"relative",overflow:"hidden",
@@ -1169,7 +1169,7 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
             {selected.bestFor && selected.bestFor.length > 0 && (
               <div style={{background:"rgba(45,200,160,.06)",border:"1px solid rgba(45,200,160,.2)",borderRadius:14,padding:"12px 16px",marginBottom:16}}>
                 <p style={{color:"var(--green)",fontSize:12,fontWeight:700,marginBottom:8}}>✅ Best Used For</p>
-                {selected.bestFor.map((b:string,i:number)=>(
+                {(selected.bestFor||[]).map((b:string,i:number)=>(
                   <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<selected.bestFor.length-1?6:0}}>
                     <span style={{width:5,height:5,borderRadius:"50%",background:"var(--green)",flexShrink:0,marginTop:5}}/>
                     <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
@@ -1182,7 +1182,7 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
             {selected.keyBenefits && selected.keyBenefits.length > 0 && (
               <div style={{background:"rgba(79,110,247,.06)",border:"1px solid rgba(79,110,247,.2)",borderRadius:14,padding:"12px 16px",marginBottom:16}}>
                 <p style={{color:"var(--accent)",fontSize:12,fontWeight:700,marginBottom:8}}>⭐ Key Benefits</p>
-                {selected.keyBenefits.map((b:string,i:number)=>(
+                {(selected.keyBenefits||[]).map((b:string,i:number)=>(
                   <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<selected.keyBenefits.length-1?6:0}}>
                     <span style={{color:"var(--accent)",fontSize:10,flexShrink:0,marginTop:2}}>→</span>
                     <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
@@ -1195,7 +1195,7 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
             {selected.bestPlaces && selected.bestPlaces.length > 0 && (
               <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.2)",borderRadius:14,padding:"12px 16px",marginBottom:16}}>
                 <p style={{color:"var(--accent)",fontSize:12,fontWeight:700,marginBottom:8}}>📍 Where to Use It</p>
-                {selected.bestPlaces.map((b:string,i:number)=>(
+                {(selected.bestPlaces||[]).map((b:string,i:number)=>(
                   <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<selected.bestPlaces.length-1?6:0}}>
                     <span style={{fontSize:10,flexShrink:0,marginTop:2}}>📌</span>
                     <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
@@ -1208,7 +1208,7 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
             {selected.notGoodFor && selected.notGoodFor.length > 0 && (
               <div style={{background:"rgba(244,97,122,.05)",border:"1px solid rgba(244,97,122,.2)",borderRadius:14,padding:"12px 16px",marginBottom:20}}>
                 <p style={{color:"var(--red)",fontSize:12,fontWeight:700,marginBottom:8}}>⚠️ Not Great For</p>
-                {selected.notGoodFor.map((b:string,i:number)=>(
+                {(selected.notGoodFor||[]).map((b:string,i:number)=>(
                   <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<selected.notGoodFor.length-1?6:0}}>
                     <span style={{color:"var(--red)",fontSize:10,flexShrink:0,marginTop:2}}>✗</span>
                     <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
@@ -1324,7 +1324,7 @@ function Cards({ cards, go }: { cards:CreditCard[]; go:(s:S)=>void }) {
                   <div className="ai" style={{padding:"0 20px 20px",borderTop:"1px solid var(--border)"}}>
                     {/* Active offers */}
                     <p style={{color:"var(--text2)",fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:10,marginTop:14}}>Active Offers & Cashback</p>
-                    {card.offers.map((offer,oi)=>(
+                    {(card.offers||[]).map((offer,oi)=>(
                       <div key={oi} style={{background:"var(--surface2)",borderRadius:12,padding:"10px 14px",marginBottom:8,display:"flex",gap:10,alignItems:"center"}}>
                         <span style={{fontSize:18}}>🎁</span>
                         <div style={{flex:1}}>
@@ -1370,7 +1370,7 @@ function Cards({ cards, go }: { cards:CreditCard[]; go:(s:S)=>void }) {
                       <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.2)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
                         <p style={{color:"var(--accent)",fontSize:12,fontWeight:600,marginBottom:8}}>Best Places to Use This Card</p>
                         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                          {card.bestPlaces.map((place:string,pi:number)=>(
+                          {(card.bestPlaces||[]).map((place:string,pi:number)=>(
                             <span key={pi} style={{background:"rgba(201,168,76,.1)",border:"1px solid rgba(201,168,76,.2)",borderRadius:20,padding:"3px 10px",fontSize:10,color:"var(--accent)"}}>
                               {place.split(" (")[0]}
                             </span>
@@ -1381,7 +1381,7 @@ function Cards({ cards, go }: { cards:CreditCard[]; go:(s:S)=>void }) {
                     {card.keyBenefits && card.keyBenefits.length > 0 && (
                       <div style={{background:"rgba(45,200,160,.06)",border:"1px solid rgba(45,200,160,.2)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
                         <p style={{color:"var(--green)",fontSize:12,fontWeight:600,marginBottom:8}}>Key Card Benefits</p>
-                        {card.keyBenefits.slice(0,5).map((b:string,bi:number)=>(
+                        {(card.keyBenefits||[]).slice(0,5).map((b:string,bi:number)=>(
                           <div key={bi} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:bi<Math.min(card.keyBenefits.length,5)-1?6:0}}>
                             <span style={{color:"var(--green)",fontSize:10,flexShrink:0,marginTop:2}}>check</span>
                             <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.4}}>{b}</p>
@@ -1398,7 +1398,7 @@ function Cards({ cards, go }: { cards:CreditCard[]; go:(s:S)=>void }) {
                     {card.notGoodFor && card.notGoodFor.length > 0 && (
                       <div style={{background:"rgba(244,97,122,.05)",border:"1px solid rgba(244,97,122,.15)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
                         <p style={{color:"var(--red)",fontSize:12,fontWeight:600,marginBottom:8}}>Not Great For</p>
-                        {card.notGoodFor.map((b:string,bi:number)=>(
+                        {(card.notGoodFor||[]).map((b:string,bi:number)=>(
                           <div key={bi} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:bi<card.notGoodFor.length-1?5:0}}>
                             <span style={{color:"var(--red)",fontSize:10,flexShrink:0,marginTop:2}}>x</span>
                             <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.4}}>{b}</p>
@@ -1518,7 +1518,7 @@ PORTFOLIO: ${f(totalPts)} total points worth ~$${f(Math.round(totalPts*0.015))} 
         <div style={{maxWidth:800,margin:"0 auto",width:"100%",display:"flex",flexDirection:"column",gap:14}}>
           {msgs.map(m=>(
             <div key={m.id} className="ai" style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",alignItems:"flex-end",gap:8}}>
-              {m.role==="ai"&&<div style={{width:32,height:32,borderRadius:10,flexShrink:0,background:"linear-gradient(135deg,var(--accent),var(--accent2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>◎</div>}
+              {m.role==="ai"&&<div style={{width:32,height:32,borderRadius:10,flexShrink:0,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>◎</div>}
               <div style={{maxWidth:"78%",padding:"13px 18px",
                 borderRadius:m.role==="user"?"20px 20px 5px 20px":"20px 20px 20px 5px",
                 background:m.role==="user"?"var(--accent)":"var(--surface)",
@@ -1531,7 +1531,7 @@ PORTFOLIO: ${f(totalPts)} total points worth ~$${f(Math.round(totalPts*0.015))} 
           ))}
           {busy&&(
             <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
-              <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,var(--accent),var(--accent2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>◎</div>
+              <div style={{width:32,height:32,borderRadius:10,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>◎</div>
               <div style={{padding:"14px 18px",borderRadius:"20px 20px 20px 5px",background:"var(--surface)",border:"1px solid var(--border2)"}}>
                 <div style={{display:"flex",gap:5,alignItems:"center"}}>
                   {[0,1,2].map(i=><span key={i} style={{width:8,height:8,borderRadius:"50%",background:"var(--accent)",display:"inline-block",animation:"pulse 1.2s ease infinite",animationDelay:`${i*.2}s`}}/>)}
@@ -1589,7 +1589,7 @@ function Travel({ cards }: { cards:CreditCard[] }) {
       <div className="px">
         <div className="au" style={{display:"flex",gap:5,marginBottom:24,background:"var(--surface2)",padding:4,borderRadius:14}}>
           {["Points","Book Travel","Transfers"].map((t,i)=>(
-            <button key={t} onClick={()=>setTab(i)} className="press" style={{flex:1,padding:"10px",borderRadius:11,border:"none",background:tab===i?"var(--accent)":"none",color:tab===i?"#1A1200":"var(--text2)",fontSize:13,fontWeight:tab===i?700:500,transition:"all .2s"}}>{t}</button>
+            <button key={t} onClick={()=>setTab(i)} className="press" style={{flex:1,padding:"10px",borderRadius:11,border:"none",background:tab===i?"var(--accent)":"none",color:tab===i?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===i?700:500,transition:"all .2s"}}>{t}</button>
           ))}
         </div>
 
@@ -1778,7 +1778,7 @@ function Split({ cards }: { cards:CreditCard[] }) {
         )}
         <div style={{display:"flex",gap:5,marginBottom:20,background:"var(--surface2)",padding:4,borderRadius:13}}>
           {["Active","History"].map((t,i)=>(
-            <button key={t} onClick={()=>setTab(i)} className="press" style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===i?"var(--accent)":"none",color:tab===i?"#1A1200":"var(--text2)",fontSize:12,fontWeight:700,transition:"all .2s"}}>{t}</button>
+            <button key={t} onClick={()=>setTab(i)} className="press" style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===i?"var(--accent)":"none",color:tab===i?"#fff":"var(--text2)",fontSize:12,fontWeight:700,transition:"all .2s"}}>{t}</button>
           ))}
         </div>
         {SAMPLE_BILLS.filter(b=>tab===0?!b.done:b.done).map((bill,i)=>(
@@ -2191,10 +2191,10 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
 
         {/* Tab switcher */}
         <div className="au" style={{display:"flex",gap:5,marginBottom:24,background:"var(--surface2)",padding:4,borderRadius:14}}>
-          <button onClick={()=>setTab(0)} className="press" style={{flex:1,padding:"11px 8px",borderRadius:11,border:"none",background:tab===0?"linear-gradient(135deg,var(--accent),var(--accent2))":"none",color:tab===0?"#1A1200":"var(--text2)",fontSize:12,fontWeight:tab===0?700:500,transition:"all .2s",lineHeight:1.3}}>
+          <button onClick={()=>setTab(0)} className="press" style={{flex:1,padding:"11px 8px",borderRadius:11,border:"none",background:tab===0?"var(--accent)":"none",color:tab===0?"#fff":"var(--text2)",fontSize:12,fontWeight:tab===0?700:500,transition:"all .2s",lineHeight:1.3}}>
             ✦ Which card<br/>should I APPLY for?
           </button>
-          <button onClick={()=>setTab(1)} className="press" style={{flex:1,padding:"11px 8px",borderRadius:11,border:"none",background:tab===1?"linear-gradient(135deg,var(--accent),var(--accent2))":"none",color:tab===1?"#1A1200":"var(--text2)",fontSize:12,fontWeight:tab===1?700:500,transition:"all .2s",lineHeight:1.3}}>
+          <button onClick={()=>setTab(1)} className="press" style={{flex:1,padding:"11px 8px",borderRadius:11,border:"none",background:tab===1?"var(--accent)":"none",color:tab===1?"#fff":"var(--text2)",fontSize:12,fontWeight:tab===1?700:500,transition:"all .2s",lineHeight:1.3}}>
             ◎ Which card<br/>should I USE now?
           </button>
         </div>
@@ -2203,7 +2203,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
         {tab===0 && (
           <div className="ai">
             {/* Intro card */}
-            <div style={{background:"linear-gradient(135deg,#1A1200,#2A1E00)",border:"1px solid rgba(201,168,76,.3)",borderRadius:20,padding:"20px",marginBottom:20}}>
+            <div style={{background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)",borderRadius:10,padding:"20px",marginBottom:20}}>
               <h3 className="serif" style={{fontSize:22,fontWeight:400,color:"var(--accent2)",marginBottom:8}}>
                 Personalized card recommendations
               </h3>
@@ -2341,7 +2341,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                             <div style={{marginTop:10}}>
                               <p style={{color:"var(--accent)",fontSize:11,fontWeight:700,marginBottom:8}}>📍 Best places to use it</p>
                               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                                {rec.card.bestPlaces.slice(0,6).map((p:string,pi:number)=>(
+                                {(rec.card.bestPlaces||[]).slice(0,6).map((p:string,pi:number)=>(
                                   <span key={pi} style={{background:"rgba(201,168,76,.1)",border:"1px solid rgba(201,168,76,.2)",borderRadius:20,padding:"3px 9px",fontSize:10,color:"var(--accent)"}}>
                                     {p.split(" (")[0]}
                                   </span>
@@ -2457,7 +2457,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                 </div>
 
                 {/* Winner announcement */}
-                <div style={{background:"linear-gradient(135deg,#1A1200,#2A2000)",border:"1.5px solid var(--accent)",borderRadius:18,padding:"16px 18px",marginBottom:16}}>
+                <div style={{background:"var(--accentbg)",border:"1.5px solid var(--accent)",borderRadius:18,padding:"16px 18px",marginBottom:16}}>
                   <p style={{color:"rgba(255,255,255,.6)",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Best card to use</p>
                   <div style={{display:"flex",alignItems:"center",gap:12}}>
                     <div style={{width:52,height:34,borderRadius:9,background:useResults[0].card.gradient,boxShadow:"0 3px 12px rgba(0,0,0,.5)",flexShrink:0}}/>
@@ -2651,10 +2651,10 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
       <div className="px">
         {/* Tab switcher */}
         <div className="au" style={{display:"flex",gap:5,marginBottom:24,background:"var(--surface2)",padding:4,borderRadius:14}}>
-          <button onClick={()=>setTab(0)} className="press" style={{flex:1,padding:"11px",borderRadius:11,border:"none",background:tab===0?"var(--accent)":"none",color:tab===0?"#1A1200":"var(--text2)",fontSize:13,fontWeight:tab===0?700:500,transition:"all .2s"}}>
+          <button onClick={()=>setTab(0)} className="press" style={{flex:1,padding:"11px",borderRadius:11,border:"none",background:tab===0?"var(--accent)":"none",color:tab===0?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===0?700:500,transition:"all .2s"}}>
             🛒 Price Comparator
           </button>
-          <button onClick={()=>setTab(1)} className="press" style={{flex:1,padding:"11px",borderRadius:11,border:"none",background:tab===1?"var(--accent)":"none",color:tab===1?"#1A1200":"var(--text2)",fontSize:13,fontWeight:tab===1?700:500,transition:"all .2s"}}>
+          <button onClick={()=>setTab(1)} className="press" style={{flex:1,padding:"11px",borderRadius:11,border:"none",background:tab===1?"var(--accent)":"none",color:tab===1?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===1?700:500,transition:"all .2s"}}>
             💡 Habit Savings
           </button>
         </div>
