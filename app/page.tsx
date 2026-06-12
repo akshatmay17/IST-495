@@ -3013,6 +3013,34 @@ function AuthScreen({onAuth}:{onAuth:()=>void}) {
 /* ============================================================
    ROOT APP
    ============================================================ */
+
+/* ============================================================
+   ERROR BOUNDARY - catches all runtime errors
+   ============================================================ */
+class ErrorBoundary extends (require("react") as any).Component<{children:any},{hasError:boolean,error:any}> {
+  constructor(props:any) { super(props); this.state = {hasError:false,error:null}; }
+  static getDerivedStateFromError(error:any) { return {hasError:true,error}; }
+  render() {
+    if(this.state.hasError) {
+      return (
+        <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#F3F6FB",fontFamily:"Inter,system-ui,sans-serif",padding:24}}>
+          <div style={{maxWidth:480,textAlign:"center"}}>
+            <div style={{width:48,height:48,borderRadius:12,background:"#2563EB",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px"}}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            </div>
+            <h1 style={{fontSize:22,fontWeight:700,color:"#1A202C",marginBottom:8}}>Something went wrong</h1>
+            <p style={{color:"#718096",fontSize:15,marginBottom:24}}>Please refresh the page to continue.</p>
+            <button onClick={()=>window.location.reload()} style={{background:"#2563EB",color:"white",border:"none",borderRadius:8,padding:"12px 24px",fontSize:15,fontWeight:600,cursor:"pointer"}}>
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [screen, setScreen] = useState<S>("onboard");
   const [profile, setProfile] = useState<UserProfile>({name:"",age:"",income:"",lifestyles:[],creditScore:"",spending:{dining:"",groceries:"",travel:"",gas:"",shopping:"",other:""},goal:""});
@@ -3024,10 +3052,14 @@ export default function App() {
 
   // Inject CSS
   useEffect(()=>{
-    const el = document.createElement("style");
-    el.textContent = BASE_CSS;
-    document.head.appendChild(el);
-    return ()=>document.head.removeChild(el);
+    try {
+      const el = document.createElement("style");
+      el.id = "cardpilot-styles";
+      if (!document.getElementById("cardpilot-styles")) {
+        el.textContent = BASE_CSS;
+        document.head.appendChild(el);
+      }
+    } catch(e) { console.error("Style injection failed:", e); }
   },[]);
 
   useEffect(()=>{
@@ -3147,7 +3179,7 @@ export default function App() {
   );
 
   // Show auth screen if not logged in
-  if(!user) return <AuthScreen onAuth={()=>setDataLoaded(false)}/>;
+  if(!user) return <AuthScreen onAuth={()=>{setUser(null);setDataLoaded(false);}}/>;
 
   // Show onboarding if logged in but no profile yet
   if(screen==="onboard") return <Onboard done={saveProfile}/>;
