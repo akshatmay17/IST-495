@@ -230,12 +230,26 @@ select.field { appearance:none; }
 @media (min-width: 1024px) {
   .desktop-grid { display: grid; min-height: 100vh; }
 }
+@keyframes toastIn {
+  from { opacity:0; transform:translateX(20px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+@keyframes pulse {
+  0%,100% { opacity:1; }
+  50%      { opacity:.45; }
+}
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(6px); }
+  to   { opacity:1; transform:translateY(0); }
+}
 `;
 
 /* ============================================================
    TYPES
    ============================================================ */
 type S = "onboard"|"home"|"cards"|"add-card"|"card-detail"|"chat"|"travel"|"goals"|"split"|"perks"|"settings"|"lifestyle"|"ai-recommender";
+type ToastType = "success"|"error"|"info"|"warning";
+interface Toast { id: string; message: string; type: ToastType; }
 
 interface UserProfile {
   name: string; age: string; income: string;
@@ -556,6 +570,77 @@ const daysUntil = (dateStr: string) => {
 const urgencyColor = (days: number) => days <= 3 ? "var(--red)" : days <= 7 ? "var(--amber)" : "var(--green)";
 
 /* ============================================================
+   TOAST NOTIFICATION SYSTEM
+   ============================================================ */
+let _showToast: ((msg: string, type?: ToastType) => void) | null = null;
+export const showToast = (msg: string, type: ToastType = "success") => { _showToast?.(msg, type); };
+
+function ToastContainer() {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  useEffect(() => {
+    _showToast = (msg, type = "success") => {
+      const id = Math.random().toString(36).slice(2);
+      setToasts(p => [...p, { id, message: msg, type }]);
+      setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500);
+    };
+    return () => { _showToast = null; };
+  }, []);
+  const icon = (t: ToastType) => t === "success" ? "\u2713" : t === "error" ? "\u2715" : t === "warning" ? "\u26A0" : "\u2139";
+  const bg = (t: ToastType) => t === "success" ? "var(--green)" : t === "error" ? "var(--red)" : t === "warning" ? "var(--amber)" : "var(--accent)";
+  return (
+    <div style={{position:"fixed",top:20,right:20,zIndex:9999,display:"flex",flexDirection:"column",gap:8,pointerEvents:"none"}}>
+      {toasts.map(t => (
+        <div key={t.id} style={{
+          background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10,
+          padding:"12px 16px", display:"flex", alignItems:"center", gap:10,
+          boxShadow:"0 4px 20px rgba(0,0,0,.15)", minWidth:240, maxWidth:320,
+          animation:"toastIn .25s ease", pointerEvents:"all"
+        }}>
+          <span style={{width:20,height:20,borderRadius:"50%",background:bg(t.type),color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>{icon(t.type)}</span>
+          <span style={{fontSize:13,color:"var(--text)",fontWeight:500,lineHeight:1.4}}>{t.message}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ============================================================
+   SKELETON LOADER
+   ============================================================ */
+function Skeleton({ w="100%", h=16, r=6 }: { w?: string|number; h?: number; r?: number }) {
+  return <div style={{width:w,height:h,borderRadius:r,background:"var(--border2)",animation:"pulse 1.5s ease-in-out infinite"}} />;
+}
+function CardSkeleton() {
+  return (
+    <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:20,display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <Skeleton w={140} h={18} r={6}/><Skeleton w={60} h={14} r={6}/>
+      </div>
+      <Skeleton w="100%" h={8} r={4}/>
+      <div style={{display:"flex",gap:16}}>
+        <Skeleton w={80} h={32} r={8}/><Skeleton w={80} h={32} r={8}/><Skeleton w={80} h={32} r={8}/>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+function EmptyState({ icon, title, sub, action, onAction }: { icon:string; title:string; sub:string; action?:string; onAction?:()=>void }) {
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 24px",textAlign:"center",gap:12}}>
+      <div style={{fontSize:40,marginBottom:4}}>{icon}</div>
+      <h3 style={{fontSize:17,fontWeight:700,color:"var(--text)",margin:0}}>{title}</h3>
+      <p style={{fontSize:14,color:"var(--text2)",margin:0,maxWidth:260,lineHeight:1.5}}>{sub}</p>
+      {action && onAction && (
+        <button onClick={onAction} className="btn-gold press" style={{marginTop:8,padding:"10px 24px",fontSize:14}}>{action}</button>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    SHARED ATOMS
    ============================================================ */
 function Bar({ v, max, color="var(--accent)", h=5 }: { v:number; max:number; color?:string; h?:number }) {
@@ -616,7 +701,7 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           </div>
           <div>
-            <div style={{fontSize:15,fontWeight:700,color:"var(--text)",letterSpacing:"-.3px",lineHeight:1.2}}>CardPilot</div>
+            <div style={{fontSize:15,fontWeight:700,color:"var(--text)",letterSpacing:"-.3px",lineHeight:1.2}}>WiseCard</div>
             <div style={{fontSize:10,color:"var(--text2)",fontWeight:500,letterSpacing:.6,textTransform:"uppercase"}}>Elite</div>
           </div>
         </div>
@@ -753,7 +838,7 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
           <div style={{width:64,height:64,borderRadius:16,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:24,boxShadow:"0 4px 16px rgba(37,99,235,.25)"}}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           </div>
-          <div style={{fontSize:11,letterSpacing:2.5,marginBottom:10,fontWeight:600,color:"var(--accent)",textTransform:"uppercase"}}>CardPilot Elite</div>
+          <div style={{fontSize:11,letterSpacing:2.5,marginBottom:10,fontWeight:600,color:"var(--accent)",textTransform:"uppercase"}}>WiseCard</div>
           <h1 style={{fontSize:34,lineHeight:1.15,marginBottom:14,fontWeight:700,color:"var(--text)",letterSpacing:"-.5px"}}>Your cards,<br/>working harder.</h1>
           <p style={{color:"var(--text2)",fontSize:15,lineHeight:1.7,marginBottom:40,maxWidth:300}}>AI-powered credit card optimization. Maximize rewards, track spending, make smarter decisions.</p>
           <GoldBtn label="Get Started" onClick={()=>setStep(1)}/>
@@ -875,7 +960,7 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
 /* ============================================================
    HOME SCREEN
    ============================================================ */
-function Home({ profile, cards, go }: { profile:UserProfile; cards:CreditCard[]; go:(s:S)=>void }) {
+function Home({ profile, cards, go, dataLoaded }: { profile:UserProfile; cards:CreditCard[]; go:(s:S)=>void; dataLoaded?:boolean }) {
   const h = new Date().getHours();
   const greet = h<12?"Good morning" : h<17?"Good afternoon":"Good evening";
   const totalPts = cards.reduce((s,c)=>s+c.points,0);
@@ -973,7 +1058,9 @@ function Home({ profile, cards, go }: { profile:UserProfile; cards:CreditCard[];
             {cards.length > 0 ? "Manage ->" : "Add a card ->"}
           </button>
         </div>
-        {cards.length === 0 ? (
+        {!dataLoaded ? (
+          <><CardSkeleton/><div style={{marginTop:10}}><CardSkeleton/></div></>
+        ) : cards.length === 0 ? (
           <button onClick={()=>go("add-card")} className="press hover-lift" style={{
             width:"100%",padding:"32px 24px",background:"var(--surface)",
             border:"2px dashed var(--accent)",borderRadius:20,textAlign:"center",cursor:"pointer",
@@ -1249,20 +1336,16 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
 /* ============================================================
    CARDS SCREEN
    ============================================================ */
-function Cards({ cards, go }: { cards:CreditCard[]; go:(s:S)=>void }) {
+function Cards({ cards, go, onDelete }: { cards:CreditCard[]; go:(s:S)=>void; onDelete?:(id:string)=>void }) {
   const [open, setOpen] = useState<string|null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string|null>(null);
   return (
     <div className="screen desktop-content">
-      <PageHead title="My Cards" sub={`${cards.length} card${cards.length!==1?"s":""}  ${f(cards.reduce((s,c)=>s+c.points,0))} total points`}
+      <PageHead title="My Cards" sub={cards.length>0?`${cards.length} card${cards.length!==1?"s":""} · ${f(cards.reduce((s,c)=>s+c.points,0))} total points`:"No cards added yet"}
         right={<button onClick={()=>go("add-card")} className="btn-gold press" style={{padding:"10px 18px",fontSize:13}}>+ Add Card</button>}/>
       <div className="px">
         {cards.length === 0 ? (
-          <div style={{textAlign:"center",padding:"60px 20px"}}>
-            <p style={{fontSize:48,marginBottom:16}}>💳</p>
-            <h3 className="serif" style={{fontSize:24,fontWeight:400,marginBottom:10}}>No cards yet</h3>
-            <p style={{color:"var(--text2)",fontSize:14,marginBottom:24}}>Add your credit cards to see balances, points, due dates, and personalized recommendations.</p>
-            <button onClick={()=>go("add-card")} className="btn-gold press" style={{padding:"14px 32px"}}>Add Your First Card</button>
-          </div>
+          <EmptyState icon="💳" title="No cards yet" sub="Add your credit cards to track balances, points, due dates, and get personalized recommendations." action="Add Your First Card" onAction={()=>go("add-card")}/>
         ) : (
           cards.map((card,i)=>{
             const u = pct(card.balance, card.limit);
@@ -1406,6 +1489,24 @@ function Cards({ cards, go }: { cards:CreditCard[]; go:(s:S)=>void }) {
                         ))}
                       </div>
                     )}
+
+                    {/* Delete card button */}
+                    {onDelete && (
+                      <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--border)"}}>
+                        {confirmDelete===card.id ? (
+                          <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                            <span style={{fontSize:12,color:"var(--text2)",flex:1}}>Remove this card permanently?</span>
+                            <button onClick={e=>{e.stopPropagation();onDelete(card.id);setConfirmDelete(null);}} style={{background:"var(--redbg)",border:"1px solid rgba(239,68,68,.3)",color:"var(--red)",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Yes, remove</button>
+                            <button onClick={e=>{e.stopPropagation();setConfirmDelete(null);}} style={{background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text2)",borderRadius:8,padding:"7px 14px",fontSize:12,cursor:"pointer"}}>Cancel</button>
+                          </div>
+                        ) : (
+                          <button onClick={e=>{e.stopPropagation();setConfirmDelete(card.id);}} style={{background:"none",border:"none",color:"var(--text3)",fontSize:12,cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:6}}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                            Remove card
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1439,7 +1540,7 @@ function Chat({ cards, profile }: { cards:CreditCard[]; profile:UserProfile }) {
       const totalBal=cards.reduce((s,c)=>s+c.balance,0);
       const totalLim=cards.reduce((s,c)=>s+c.limit,0);
       const util=totalLim>0?Math.round(totalBal/totalLim*100):0;
-      const systemPrompt = `You are the AI financial advisor inside CardPilot Elite. Respond like a knowledgeable human advisor -- natural, clear, and appropriately detailed.
+      const systemPrompt = `You are the AI financial advisor inside WiseCard. Respond like a knowledgeable human advisor -- natural, clear, and appropriately detailed.
 
 RULES:
 - Greetings (hi, hello, hey) -> respond with only: Hi [their name], how can I help you today? -- nothing else
@@ -1465,7 +1566,7 @@ APP GUIDE -- you know every feature:
 - Settings: toggle features on/off, switch between dark and light theme
 
 HOW TO GUIDE USERS:
-- If user seems lost or confused -> briefly explain what CardPilot can do and suggest where to start
+- If user seems lost or confused -> briefly explain what WiseCard can do and suggest where to start
 - If user asks "how do I..." -> give exact step by step instructions for that feature
 - If user asks "what can you do" -> list the main features in a short bullet list
 - Always be helpful and point users to the right screen
@@ -1669,11 +1770,17 @@ function Travel({ cards }: { cards:CreditCard[] }) {
 function Goals() {
   const [add, setAdd] = useState(false);
   const [open, setOpen] = useState<number|null>(null);
+  const [userGoals, setUserGoals] = useState<typeof SAMPLE_GOALS>([]);
+  const [showSamples, setShowSamples] = useState(true);
+  const allGoals = showSamples ? SAMPLE_GOALS : userGoals;
   return (
     <div className="screen desktop-content">
-      <PageHead title="My Goals" sub="Your financial targets"
+      <PageHead title="My Goals" sub="Track your financial targets"
         right={<button onClick={()=>setAdd(a=>!a)} className="pill pill-gold press" style={{fontSize:12,fontWeight:700}}>+ Add Goal</button>}/>
       <div className="px">
+        {allGoals.length === 0 && !add && (
+          <EmptyState icon="🎯" title="No goals yet" sub="Set financial goals — pay off debt, boost your credit score, or save points for a trip. Your AI advisor builds a custom action plan for each one." action="Set Your First Goal" onAction={()=>setAdd(true)}/>
+        )}
         {add&&(
           <div className="ap card-surface" style={{border:"1.5px solid var(--accent)",padding:20,marginBottom:20}}>
             <p style={{color:"var(--text)",fontSize:15,fontWeight:600,marginBottom:14}}>Choose a goal type</p>
@@ -1955,14 +2062,14 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
 
         <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Account</p>
         <div className="au d2 card-surface" style={{overflow:"hidden"}}>
-          {["Edit Profile","Notification Preferences","Privacy & Security","Share Feedback","Rate the App","About CardPilot"].map((item,i,arr)=>(
+          {["Edit Profile","Notification Preferences","Privacy & Security","Share Feedback","Rate the App","About WiseCard"].map((item,i,arr)=>(
             <button key={item} className="press" style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:"15px 18px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",textAlign:"left"}}>
               <p style={{color:"var(--text)",fontSize:13,fontWeight:500}}>{item}</p>
               <span style={{color:"var(--text3)",fontSize:16}}>-></span>
             </button>
           ))}
         </div>
-        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:32}}>CardPilot Elite  Prototype v1.0</p>
+        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:32}}>WiseCard  Prototype v1.0</p>
       </div>
     </div>
   );
@@ -2897,7 +3004,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                 {/* Card rewards angle */}
                 {cards.length > 0 && (
                   <div style={{background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",borderRadius:16,padding:"14px 18px",marginBottom:12}}>
-                    <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,marginBottom:6}}>💳 CardPilot tip</p>
+                    <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,marginBottom:6}}>💳 WiseCard tip</p>
                     <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.6}}>
                       If you still buy {savings.coffeeLabel} occasionally, always use {cards[0].name} -- it earns {cards[0].rewardRate}. On ${f2(savings.monthly)} monthly spending that earns roughly ${f2(Math.round(savings.monthly * 0.04))} back per month in rewards.
                     </p>
@@ -2927,16 +3034,41 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
    AUTH SCREENS
    ============================================================ */
 function AuthScreen({onAuth}:{onAuth:()=>void}) {
-  const [mode, setMode] = useState<"login"|"signup">("login");
+  const [mode, setMode] = useState<"login"|"signup"|"forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [pwStrength, setPwStrength] = useState(0);
+
+  const calcStrength = (pw: string) => {
+    let s = 0;
+    if (pw.length >= 8) s++;
+    if (/[A-Z]/.test(pw)) s++;
+    if (/[0-9]/.test(pw)) s++;
+    if (/[^A-Za-z0-9]/.test(pw)) s++;
+    setPwStrength(s);
+  };
 
   const handleAuth = async () => {
+    if (mode === "forgot") {
+      if (!email) { setError("Please enter your email"); return; }
+      setLoading(true); setError(""); setSuccess("");
+      try {
+        const res = await fetch("/api/forgot-password", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (!res.ok) setError(data.error || "Failed to send reset email");
+        else setSuccess("If that email exists, a reset link has been sent. Check your inbox.");
+      } catch(e) { setError("Network error. Please try again."); }
+      setLoading(false); return;
+    }
     if (!email || !password) { setError("Please fill in all fields"); return; }
+    if (mode === "signup" && password.length < 8) { setError("Password must be at least 8 characters"); return; }
     setLoading(true); setError(""); setSuccess("");
     try {
       if (mode === "signup") {
@@ -2946,7 +3078,7 @@ function AuthScreen({onAuth}:{onAuth:()=>void}) {
         else { setSuccess("Account created! Please check your email to verify, then log in."); setMode("login"); }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) setError(error.message);
+        if (error) setError(error.message === "Invalid login credentials" ? "Incorrect email or password" : error.message);
         else onAuth();
       }
     } catch(e) { setError("Something went wrong. Try again."); }
@@ -2964,12 +3096,12 @@ function AuthScreen({onAuth}:{onAuth:()=>void}) {
               <line x1="1" y1="10" x2="23" y2="10"/>
             </svg>
           </div>
-          <div style={{fontSize:11,letterSpacing:2,fontWeight:600,marginBottom:8,color:"var(--accent)",textTransform:"uppercase"}}>CardPilot Elite</div>
+          <div style={{fontSize:11,letterSpacing:2,fontWeight:600,marginBottom:8,color:"var(--accent)",textTransform:"uppercase"}}>WiseCard</div>
           <h1 style={{fontSize:26,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px",color:"var(--text)"}}>
-            {mode==="login"?"Welcome back":"Get started"}
+            {mode==="login"?"Welcome back":mode==="signup"?"Get started":"Reset password"}
           </h1>
           <p style={{color:"var(--text2)",fontSize:14,marginTop:6}}>
-            {mode==="login"?"Sign in to your account":"Start optimizing your cards"}
+            {mode==="login"?"Sign in to your account":mode==="signup"?"Start optimizing your cards":"Enter your email and we'll send a reset link"}
           </p>
         </div>
 
@@ -2985,25 +3117,42 @@ function AuthScreen({onAuth}:{onAuth:()=>void}) {
             <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Email</label>
             <input className="field" type="email" placeholder="your@email.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAuth()} style={{padding:"13px 16px"}}/>
           </div>
-          <div style={{marginBottom:24}}>
-            <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Password</label>
-            <input className="field" type="password" placeholder="" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAuth()} style={{padding:"13px 16px"}}/>
-          </div>
+          {mode!=="forgot" && (
+            <div style={{marginBottom:mode==="signup"?8:24}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <label style={{fontSize:12,color:"var(--text2)",fontWeight:500}}>Password</label>
+                {mode==="login" && <button type="button" onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{background:"none",border:"none",color:"var(--accent)",fontSize:12,cursor:"pointer",padding:0}}>Forgot password?</button>}
+              </div>
+              <input className="field" type="password" placeholder={mode==="signup"?"At least 8 characters":""} value={password}
+                onChange={e=>{setPassword(e.target.value);if(mode==="signup")calcStrength(e.target.value);}}
+                onKeyDown={e=>e.key==="Enter"&&handleAuth()} style={{padding:"13px 16px"}}/>
+            </div>
+          )}
+          {mode==="signup" && password.length>0 && (
+            <div style={{marginBottom:20}}>
+              <div style={{display:"flex",gap:4,marginBottom:4}}>
+                {[1,2,3,4].map(i=>(
+                  <div key={i} style={{flex:1,height:3,borderRadius:2,background:pwStrength>=i?(i<=1?"var(--red)":i<=2?"var(--amber)":i<=3?"var(--accent)":"var(--green)"):"var(--border2)",transition:"background .2s"}}/>
+                ))}
+              </div>
+              <span style={{fontSize:11,color:"var(--text2)"}}>{["","Weak","Fair","Good","Strong"][pwStrength]} password</span>
+            </div>
+          )}
 
-          {error && <div style={{background:"rgba(244,97,122,.1)",border:"1px solid rgba(244,97,122,.3)",borderRadius:10,padding:"10px 14px",marginBottom:16}}><p style={{color:"var(--red)",fontSize:13}}>{error}</p></div>}
-          {success && <div style={{background:"rgba(45,200,160,.1)",border:"1px solid rgba(45,200,160,.3)",borderRadius:10,padding:"10px 14px",marginBottom:16}}><p style={{color:"var(--green)",fontSize:13}}>{success}</p></div>}
+          {error && <div style={{background:"var(--redbg)",border:"1px solid rgba(239,68,68,.2)",borderRadius:10,padding:"10px 14px",marginBottom:16}}><p style={{color:"var(--red)",fontSize:13,margin:0}}>{error}</p></div>}
+          {success && <div style={{background:"var(--greenbg)",border:"1px solid rgba(34,197,94,.2)",borderRadius:10,padding:"10px 14px",marginBottom:16}}><p style={{color:"var(--green)",fontSize:13,margin:0}}>{success}</p></div>}
 
           <button onClick={handleAuth} disabled={loading} className="btn-gold press" style={{width:"100%",opacity:loading?0.7:1}}>
-            {loading ? "Please wait..." : mode==="login" ? "Sign In ->" : "Create Account ->"}
+            {loading ? "Please wait..." : mode==="login" ? "Sign In" : mode==="signup" ? "Create Account" : "Send Reset Link"}
           </button>
 
-          <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setSuccess("");}} style={{width:"100%",marginTop:14,background:"none",border:"none",color:"var(--text2)",fontSize:13,cursor:"pointer",padding:"8px"}}>
-            {mode==="login" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+          <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setSuccess("");setPwStrength(0);setPassword("");}} style={{width:"100%",marginTop:14,background:"none",border:"none",color:"var(--text2)",fontSize:13,cursor:"pointer",padding:"8px"}}>
+            {mode==="login" ? "Don't have an account? Sign up" : mode==="signup" ? "Already have an account? Sign in" : "Back to sign in"}
           </button>
         </div>
 
         <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:16}}>
-          Your data is encrypted and never shared
+          Your data is encrypted with AES-256 and never shared
         </p>
       </div>
     </div>
@@ -3054,8 +3203,8 @@ export default function App() {
   useEffect(()=>{
     try {
       const el = document.createElement("style");
-      el.id = "cardpilot-styles";
-      if (!document.getElementById("cardpilot-styles")) {
+      el.id = "wisecard-styles";
+      if (!document.getElementById("wisecard-styles")) {
         el.textContent = BASE_CSS;
         document.head.appendChild(el);
       }
@@ -3130,6 +3279,7 @@ export default function App() {
   // Save card to Supabase + local state
   const addCard = async (card:CreditCard) => {
     setCards(p=>[...p,card]);
+    showToast(`${card.name} added to your wallet`);
     if(user) {
       await supabase.from("cards").insert({
         user_id:user.id, db_id:card.dbId, name:card.name, issuer:card.issuer,
@@ -3148,6 +3298,7 @@ export default function App() {
   // Save profile to Supabase
   const saveProfile = async (p:UserProfile) => {
     setProfile(p);
+    showToast("Profile saved successfully");
     if(user) {
       await supabase.from("profiles").upsert({
         id:user.id, name:p.name, age:p.age, income:p.income,
@@ -3160,9 +3311,20 @@ export default function App() {
     setScreen("home");
   };
 
+  // Delete a card
+  const deleteCard = async (cardId: string) => {
+    const card = cards.find(c => c.id === cardId);
+    setCards(p => p.filter(c => c.id !== cardId));
+    if (user && card) {
+      await supabase.from("cards").delete().eq("id", cardId);
+    }
+    showToast("Card removed from wallet", "info");
+  };
+
   // Sign out
   const signOut = async () => {
     await supabase.auth.signOut();
+    showToast("Signed out", "info");
     setUser(null); setCards([]); setDataLoaded(false);
     setProfile({name:"",age:"",income:"",lifestyles:[],creditScore:"",spending:{dining:"",groceries:"",travel:"",gas:"",shopping:"",other:""},goal:""});
     setScreen("onboard");
@@ -3173,7 +3335,7 @@ export default function App() {
     <div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--sans)"}}>
       <div style={{textAlign:"center"}}>
           <div style={{width:52,height:52,borderRadius:14,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-        <p style={{color:"var(--text2)",fontSize:14}}>Loading CardPilot...</p>
+        <p style={{color:"var(--text2)",fontSize:14}}>Loading WiseCard...</p>
       </div>
     </div>
   );
@@ -3188,10 +3350,11 @@ export default function App() {
 
   return (
     <div style={{background:"var(--bg)",minHeight:"100vh",fontFamily:"var(--sans)"}}>
+      <ToastContainer/>
       <Sidebar active={screen} go={go} theme={theme} toggleTheme={toggleTheme} profile={profile} onSignOut={signOut}/>
       <div className={isChat?"":"desktop-main"}>
-        {screen==="home"     && <Home     profile={profile} cards={cards} go={go}/>}
-        {screen==="cards"    && <Cards    cards={cards} go={go}/>}
+        {screen==="home"     && <Home     profile={profile} cards={cards} go={go} dataLoaded={dataLoaded}/>}
+        {screen==="cards"    && <Cards    cards={cards} go={go} onDelete={deleteCard}/>}
         {screen==="add-card" && <AddCard  go={go} onAdd={addCard}/>}
         {screen==="chat"     && <Chat     cards={cards} profile={profile}/>}
         {screen==="travel"   && <Travel   cards={cards}/>}
