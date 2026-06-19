@@ -242,6 +242,14 @@ select.field { appearance:none; }
   from { opacity:0; transform:translateY(6px); }
   to   { opacity:1; transform:translateY(0); }
 }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes screenFade {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.screen-enter { animation: screenFade .2s ease both; }
 `;
 
 /* ============================================================
@@ -960,154 +968,346 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
 /* ============================================================
    HOME SCREEN
    ============================================================ */
-function Home({ profile, cards, go, dataLoaded }: { profile:UserProfile; cards:CreditCard[]; go:(s:S)=>void; dataLoaded?:boolean }) {
+function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserProfile; cards:CreditCard[]; go:(s:S)=>void; dataLoaded?:boolean; onUpdateCard?:(id:string,balance:number,points:number)=>void }) {
   const h = new Date().getHours();
-  const greet = h<12?"Good morning" : h<17?"Good afternoon":"Good evening";
+  const greet = h<12?"Good morning":h<17?"Good afternoon":"Good evening";
   const totalPts = cards.reduce((s,c)=>s+c.points,0);
   const totalBal = cards.reduce((s,c)=>s+c.balance,0);
   const totalLim = cards.reduce((s,c)=>s+c.limit,0);
   const util = pct(totalBal, totalLim);
   const ptsVal = Math.round(totalPts*.015);
+  const [selCard, setSelCard] = useState<string|null>(null);
+  const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [editingCard, setEditingCard] = useState<string|null>(null);
+  const [editBal, setEditBal] = useState("");
+  const [editPts, setEditPts] = useState("");
+  const dueSoon = cards.filter(c=>{ const d=daysUntil(c.dueDate); return d>=0&&d<=7; });
+  const highUtil = cards.filter(c=>c.limit>0&&c.balance/c.limit>0.3);
+  const totalSpend = Object.values(profile.spending||{}).reduce((s,v)=>s+Number(v||0),0);
+  const topCat = Object.entries(profile.spending||{}).sort((a,b)=>Number(b[1])-Number(a[1]))[0];
+  const missingRewards = cards.length<3 ? Math.round((3-cards.length)*140) : 0;
+  const COLORS = ["#3B82F6","#22C55E","#F59E0B","#EF4444","#8B5CF6","#EC4899"];
 
-  // Due date alerts
-  const dueSoon = cards.filter(c => {
-    const d = daysUntil(c.dueDate);
-    return d >= 0 && d <= 7;
-  });
+  // Search results
+  const searchResults = search.trim().length>1 ? [
+    ...cards.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.issuer.toLowerCase().includes(search.toLowerCase())).map(c=>({type:"card",label:c.name,sub:c.issuer,action:()=>go("cards")})),
+    ...["Analytics","Compare Cards","Travel & Points","Goals","Split Bills","Perks","AI Advisor","Optimizer","Notifications","Referral"].filter(l=>l.toLowerCase().includes(search.toLowerCase())).map(l=>({type:"screen",label:l,sub:"Go to screen",action:()=>go(l.toLowerCase().replace(/ &.*/,"").replace(/ /g,"-") as S)})),
+  ].slice(0,6) : [];
+
+  // Speedometer gauge
+  const HomeGauge = () => {
+    if(cards.length===0) return null;
+    const W=300,H=168,cx=150,cy=156,R=118,SW=22;
+    const total=totalLim||1;
+    let cum=Math.PI;
+    const segs=cards.map((card,i)=>{
+      const frac=card.limit/total;
+      const sweep=frac*Math.PI;
+      const a1=cum,a2=cum+sweep; cum=a2;
+      const x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);
+      const x2=cx+R*Math.cos(a2),y2=cy+R*Math.sin(a2);
+      return {card,color:COLORS[i%COLORS.length],path:`M ${x1} ${y1} A ${R} ${R} 0 ${sweep>Math.PI?1:0} 1 ${x2} ${y2}`,mid:(a1+a2)/2};
+    });
+    let cum2=Math.PI;
+    const usedSegs=cards.map((card,i)=>{
+      const frac=card.limit/total; const sweep=frac*Math.PI;
+      const a1=cum2; cum2+=sweep;
+      const balFrac=card.limit>0?Math.min(1,card.balance/card.limit):0;
+      const usedSweep=sweep*balFrac;
+      const x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);
+      const x2=cx+R*Math.cos(a1+usedSweep),y2=cy+R*Math.sin(a1+usedSweep);
+      return {path:usedSweep>0.02?`M ${x1} ${y1} A ${R} ${R} 0 ${usedSweep>Math.PI?1:0} 1 ${x2} ${y2}`:"",color:COLORS[i%COLORS.length]};
+    });
+    const sel=segs.find(s=>s.card.id===selCard);
+    const needleAngle=sel?sel.mid:Math.PI+(util/100)*Math.PI;
+    const nl=R-14,nx=cx+nl*Math.cos(needleAngle),ny=cy+nl*Math.sin(needleAngle);
+    const sc=cards.find(c=>c.id===selCard);
+
+    return (
+      <div>
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",maxWidth:320,margin:"0 auto"}}>
+          <path d={`M ${cx-R} ${cy} A ${R} ${R} 0 0 1 ${cx+R} ${cy}`} fill="none" stroke="rgba(255,255,255,.12)" strokeWidth={SW} strokeLinecap="round"/>
+          {segs.map((s,i)=>(
+            <path key={i} d={s.path} fill="none" stroke={s.color}
+              strokeWidth={selCard===s.card.id?SW+7:SW} strokeLinecap="round"
+              opacity={selCard&&selCard!==s.card.id?0.3:1}
+              style={{cursor:"pointer",transition:"all .2s",filter:selCard===s.card.id?`drop-shadow(0 0 8px ${s.color})`:"none"}}
+              onClick={()=>setSelCard(id=>id===s.card.id?null:s.card.id)}/>
+          ))}
+          {usedSegs.map((s,i)=>(
+            s.path?<path key={i} d={s.path} fill="none" stroke="rgba(0,0,0,.3)" strokeWidth={SW*.5} strokeLinecap="round" style={{pointerEvents:"none"}}/>:null
+          ))}
+          <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="white" strokeWidth={2.5} strokeLinecap="round" style={{transition:"all .4s ease"}}/>
+          <circle cx={cx} cy={cy} r={5} fill="white"/>
+          {sc?(
+            <>
+              <text x={cx} y={cy-22} textAnchor="middle" fill="white" fontSize={14} fontWeight="700">{sc.name}</text>
+              <text x={cx} y={cy-6} textAnchor="middle" fill="rgba(255,255,255,.6)" fontSize={10}>${f(sc.balance)} used of ${f(sc.limit)}</text>
+            </>
+          ):(
+            <>
+              <text x={cx} y={cy-22} textAnchor="middle" fill="white" fontSize={22} fontWeight="800">{util}%</text>
+              <text x={cx} y={cy-6} textAnchor="middle" fill="rgba(255,255,255,.55)" fontSize={10}>overall utilization</text>
+            </>
+          )}
+        </svg>
+        {/* Card pills */}
+        <div style={{display:"flex",flexWrap:"wrap",gap:6,justifyContent:"center",marginTop:6}}>
+          {segs.map((s,i)=>(
+            <button key={i} onClick={()=>setSelCard(id=>id===s.card.id?null:s.card.id)} className="press" style={{
+              display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:99,
+              border:`1.5px solid ${selCard===s.card.id?s.color:"rgba(255,255,255,.15)"}`,
+              background:selCard===s.card.id?`${s.color}25`:"rgba(255,255,255,.07)",cursor:"pointer",transition:"all .15s"
+            }}>
+              <span style={{width:7,height:7,borderRadius:"50%",background:s.color,flexShrink:0}}/>
+              <span style={{fontSize:10,fontWeight:600,color:selCard===s.card.id?"white":"rgba(255,255,255,.65)"}}>{s.card.issuer}</span>
+              <span style={{fontSize:10,color:"rgba(255,255,255,.4)"}}>{pct(s.card.balance,s.card.limit)}%</span>
+            </button>
+          ))}
+        </div>
+        {/* Selected card detail */}
+        {sc && (
+          <div className="ai" style={{marginTop:10,background:"rgba(0,0,0,.22)",borderRadius:12,padding:"12px 14px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <p style={{color:"white",fontSize:13,fontWeight:700}}>{sc.name}</p>
+                <p style={{color:"rgba(255,255,255,.5)",fontSize:11,marginTop:1}}>{sc.rewardRate} · {f(sc.points)} pts</p>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <p style={{color:"#F0D080",fontSize:16,fontWeight:700}}>${f(sc.balance)}<span style={{color:"rgba(255,255,255,.35)",fontSize:10,fontWeight:400}}> used</span></p>
+                <p style={{color:"rgba(255,255,255,.45)",fontSize:11}}>${f(sc.limit-sc.balance)} left</p>
+              </div>
+            </div>
+            <div style={{marginTop:8}}>
+              <div style={{height:4,background:"rgba(255,255,255,.12)",borderRadius:99,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${pct(sc.balance,sc.limit)}%`,background:pct(sc.balance,sc.limit)>30?"#EF4444":"#22C55E",borderRadius:99,transition:"width .6s ease"}}/>
+              </div>
+            </div>
+            {/* Quick balance update */}
+            {editingCard===sc.id?(
+              <div style={{marginTop:10,display:"flex",gap:8,alignItems:"center"}}>
+                <input className="field" type="number" placeholder="New balance" value={editBal} onChange={e=>setEditBal(e.target.value)} style={{flex:1,padding:"7px 10px",fontSize:12,background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"white"}}/>
+                <input className="field" type="number" placeholder="Points" value={editPts} onChange={e=>setEditPts(e.target.value)} style={{flex:1,padding:"7px 10px",fontSize:12,background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"white"}}/>
+                <button onClick={()=>{onUpdateCard&&onUpdateCard(sc.id,Number(editBal)||sc.balance,Number(editPts)||sc.points);setEditingCard(null);showToast("Card updated");}} style={{background:"#22C55E",border:"none",borderRadius:7,padding:"7px 12px",color:"white",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Save</button>
+                <button onClick={()=>setEditingCard(null)} style={{background:"rgba(255,255,255,.1)",border:"none",borderRadius:7,padding:"7px 10px",color:"rgba(255,255,255,.6)",fontSize:12,cursor:"pointer"}}>✕</button>
+              </div>
+            ):(
+              <button onClick={()=>{setEditBal(String(sc.balance));setEditPts(String(sc.points));setEditingCard(sc.id);}} style={{marginTop:8,background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.12)",borderRadius:7,padding:"6px 12px",color:"rgba(255,255,255,.6)",fontSize:11,cursor:"pointer",fontFamily:"var(--sans)"}}>
+                Update balance & points
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="screen desktop-content au">
-      {/* Header */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:32}}>
+    <div className="screen desktop-content screen-enter">
+      {/* Header with search */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
         <div>
-          <p style={{color:"var(--text2)",fontSize:13,fontWeight:500,marginBottom:4}}>{greet}</p>
-          <h1 className="serif" style={{fontSize:28,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px"}}>{profile.name || "Welcome"}</h1>
+          <p style={{color:"var(--text2)",fontSize:13,fontWeight:500,marginBottom:3}}>{greet}</p>
+          <h1 style={{fontSize:26,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px",color:"var(--text)"}}>{profile.name||"Welcome"}</h1>
         </div>
-        <button onClick={()=>go("settings")} className="press" style={{
-          width:44,height:44,borderRadius:12,background:"var(--surface)",
-          border:"1px solid var(--border2)",fontSize:18,color:"var(--text2)",
-        }}></button>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <button onClick={()=>setShowSearch(s=>!s)} className="press" style={{width:40,height:40,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",fontSize:16,color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center"}}>🔍</button>
+          <button onClick={()=>go("notifications")} className="press" style={{width:40,height:40,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",fontSize:16,color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+            🔔
+            {dueSoon.length>0&&<span style={{position:"absolute",top:6,right:6,width:7,height:7,borderRadius:"50%",background:"var(--red)"}}/>}
+          </button>
+          <button onClick={()=>go("settings")} className="press" style={{width:40,height:40,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",fontSize:16,color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center"}}>⚙️</button>
+        </div>
       </div>
 
-      {/* Hero -- Portfolio value */}
-      <div className="au d1 hover-lift" style={{
-        background:"var(--accent)",
-        border:"1px solid rgba(201,168,76,.3)",
-        borderRadius:24,padding:"28px 24px",marginBottom:16,
-        position:"relative",overflow:"hidden",
-        boxShadow:"0 8px 48px rgba(201,168,76,.15)",
+      {/* Search bar */}
+      {showSearch && (
+        <div className="ap" style={{marginBottom:16,position:"relative"}}>
+          <input className="field" autoFocus placeholder="Search cards, screens, features..." value={search} onChange={e=>setSearch(e.target.value)}
+            onKeyDown={e=>e.key==="Escape"&&(setShowSearch(false),setSearch(""))}
+            style={{paddingLeft:40,paddingRight:36}}/>
+          <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:15,pointerEvents:"none"}}>🔍</span>
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"var(--text3)",fontSize:18,cursor:"pointer",padding:0}}>✕</button>}
+          {searchResults.length>0&&(
+            <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,right:0,background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,boxShadow:"var(--shadow-lg)",zIndex:100,overflow:"hidden"}}>
+              {searchResults.map((r,i)=>(
+                <button key={i} onClick={()=>{r.action();setShowSearch(false);setSearch("");}} className="press" style={{width:"100%",padding:"12px 16px",background:"none",border:"none",borderBottom:i<searchResults.length-1?"1px solid var(--border)":"none",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:14}}>{r.type==="card"?"💳":"📱"}</span>
+                  <div>
+                    <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{r.label}</p>
+                    <p style={{color:"var(--text2)",fontSize:11}}>{r.sub}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Alerts */}
+      {dueSoon.length>0&&(
+        <div className="au" style={{background:"var(--redbg)",border:"1px solid rgba(220,38,38,.2)",borderRadius:14,padding:"13px 16px",marginBottom:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("cards")}>
+          <span style={{fontSize:18,flexShrink:0}}>⏰</span>
+          <div style={{flex:1}}>
+            <p style={{color:"var(--red)",fontSize:13,fontWeight:600}}>Payment due in {daysUntil(dueSoon[0].dueDate)} days</p>
+            <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{dueSoon[0].name} — minimum ${f(dueSoon[0].minPayment)}</p>
+          </div>
+          <span style={{color:"var(--red)",fontSize:14,fontWeight:600}}>Pay →</span>
+        </div>
+      )}
+      {highUtil.length>0&&!dueSoon.length&&(
+        <div className="au" style={{background:"var(--amberbg)",border:"1px solid rgba(217,119,6,.2)",borderRadius:14,padding:"13px 16px",marginBottom:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("cards")}>
+          <span style={{fontSize:18,flexShrink:0}}>📊</span>
+          <div style={{flex:1}}>
+            <p style={{color:"var(--amber)",fontSize:13,fontWeight:600}}>High utilization on {highUtil[0].name}</p>
+            <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{pct(highUtil[0].balance,highUtil[0].limit)}% used — pay down to protect your score</p>
+          </div>
+          <span style={{color:"var(--amber)",fontSize:14}}>→</span>
+        </div>
+      )}
+      {missingRewards>0&&cards.length>0&&(
+        <div className="au" style={{background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)",borderRadius:14,padding:"13px 16px",marginBottom:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("ai-recommender")}>
+          <span style={{fontSize:18,flexShrink:0}}>💡</span>
+          <div style={{flex:1}}>
+            <p style={{color:"var(--accent)",fontSize:13,fontWeight:600}}>You could earn ~${f(missingRewards)}/year more</p>
+            <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>See which card to add for your spending</p>
+          </div>
+          <span style={{color:"var(--accent)",fontSize:14}}>→</span>
+        </div>
+      )}
+
+      {/* Spending insight */}
+      {totalSpend>0&&topCat&&(
+        <div className="au" style={{background:"var(--greenbg)",border:"1px solid rgba(39,103,73,.15)",borderRadius:14,padding:"13px 16px",marginBottom:16,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("analytics")}>
+          <span style={{fontSize:18,flexShrink:0}}>📈</span>
+          <div style={{flex:1}}>
+            <p style={{color:"var(--green)",fontSize:13,fontWeight:600}}>Your biggest spend: {topCat[0].charAt(0).toUpperCase()+topCat[0].slice(1)}</p>
+            <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>${f(Number(topCat[1]))}/mo · ${f(Number(topCat[1])*12)}/yr — see full breakdown</p>
+          </div>
+          <span style={{color:"var(--green)",fontSize:14}}>→</span>
+        </div>
+      )}
+
+      {/* Hero — Portfolio Speedometer */}
+      <div className="au" style={{
+        background:"linear-gradient(145deg,#0f1e3d 0%,#1a3a72 55%,#0d2045 100%)",
+        borderRadius:22,padding:"22px 18px 18px",marginBottom:16,
+        boxShadow:"0 8px 40px rgba(37,99,235,.3)",position:"relative",overflow:"hidden"
       }}>
-        <div style={{position:"absolute",top:-40,right:-40,width:180,height:180,borderRadius:"50%",background:"rgba(201,168,76,.06)"}}/>
-        <div style={{position:"absolute",bottom:-60,left:20,width:140,height:140,borderRadius:"50%",background:"rgba(201,168,76,.04)"}}/>
-        <p style={{color:"rgba(255,255,255,.6)",fontSize:11,letterSpacing:1.4,textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Total Portfolio Value</p>
-        <h2 style={{fontSize:46,fontWeight:700,color:"#F0D080",letterSpacing:"-1.5px",marginBottom:4,lineHeight:1}}>{f(totalPts)} <span style={{fontSize:18,fontWeight:300,opacity:.6}}>pts</span></h2>
-        <p style={{color:"rgba(255,255,255,.6)",fontSize:14,marginBottom:24}}> <strong style={{color:"#F0D080",fontSize:16}}>${f(ptsVal)}</strong> estimated value</p>
-        <div style={{display:"flex",background:"rgba(0,0,0,.3)",borderRadius:16,padding:"14px 18px",gap:0}}>
+        <div style={{position:"absolute",top:-50,right:-50,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,.02)"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+          <div>
+            <p style={{color:"rgba(255,255,255,.45)",fontSize:10,letterSpacing:1.2,textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Portfolio</p>
+            <h2 style={{fontSize:30,fontWeight:800,color:"#F0D080",letterSpacing:"-1px",lineHeight:1}}>{f(totalPts)}<span style={{fontSize:13,fontWeight:300,opacity:.5}}> pts</span></h2>
+            <p style={{color:"rgba(255,255,255,.45)",fontSize:11,marginTop:2}}>≈ <strong style={{color:"#F0D080"}}>${f(ptsVal)}</strong> value</p>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <p style={{color:"rgba(255,255,255,.4)",fontSize:9,textTransform:"uppercase",letterSpacing:.8,marginBottom:3}}>{cards.length} Card{cards.length!==1?"s":""}</p>
+            <p style={{color:"white",fontSize:11,fontWeight:600}}>${f(totalLim-totalBal)} available</p>
+          </div>
+        </div>
+        {cards.length>0?<HomeGauge/>:(
+          <div style={{textAlign:"center",padding:"16px 0"}}>
+            <p style={{color:"rgba(255,255,255,.3)",fontSize:13}}>Add a card to see your portfolio gauge</p>
+            <button onClick={()=>go("add-card")} style={{marginTop:10,background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",borderRadius:8,padding:"8px 18px",color:"white",fontSize:12,cursor:"pointer",fontFamily:"var(--sans)"}}>+ Add Card</button>
+          </div>
+        )}
+        <div style={{display:"flex",background:"rgba(0,0,0,.2)",borderRadius:12,padding:"11px 14px",gap:0,marginTop:12}}>
           {[
             {l:"Balance",v:`$${f(totalBal)}`,c:"#F0D080"},
-            {l:"Utilization",v:`${util}%`,c:uc(util)},
-            {l:"Cards",v:`${cards.length}`,c:"#F0D080"},
+            {l:"Utilization",v:`${util}%`,c:util<30?"#22C55E":util<50?"#F59E0B":"#EF4444"},
+            {l:"Available",v:`$${f(totalLim-totalBal)}`,c:"rgba(255,255,255,.75)"},
           ].map(({l,v,c},i)=>(
-            <div key={l} style={{flex:1,textAlign:i===1?"center":"left",borderLeft:i>0?"1px solid rgba(201,168,76,.2)":"none",paddingLeft:i>0?16:0}}>
-              <p style={{color:"rgba(255,255,255,.5)",fontSize:10,marginBottom:4,letterSpacing:.6}}>{l}</p>
-              <p style={{color:c,fontSize:18,fontWeight:700}}>{v}</p>
+            <div key={l} style={{flex:1,textAlign:"center",borderLeft:i>0?"1px solid rgba(255,255,255,.08)":"none"}}>
+              <p style={{color:"rgba(255,255,255,.35)",fontSize:9,marginBottom:3,letterSpacing:.6,textTransform:"uppercase"}}>{l}</p>
+              <p style={{color:c,fontSize:14,fontWeight:700}}>{v}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Due date alert */}
-      {dueSoon.length > 0 && (
-        <div className="au d2" style={{
-          background:"var(--redbg)",border:"1px solid rgba(220,38,38,.2)",
-          borderRadius:16,padding:"14px 18px",marginBottom:16,
-          display:"flex",gap:12,alignItems:"center",cursor:"pointer",
-        }} onClick={()=>go("cards")}>
-          <span style={{fontSize:22}}></span>
-          <div style={{flex:1}}>
-            <p style={{color:"var(--red)",fontSize:13,fontWeight:600,marginBottom:2}}>Payment due soon</p>
-            <p style={{color:"var(--text2)",fontSize:12}}>{dueSoon[0].name} -- minimum ${f(dueSoon[0].minPayment)} due in {daysUntil(dueSoon[0].dueDate)} days</p>
-          </div>
-          <span style={{color:"var(--red)",fontSize:16}}>-></span>
-        </div>
-      )}
-
       {/* Quick actions */}
-      <div className="au d2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:24}}>
+      <div className="au" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:20}}>
         {([
-          ["AI","Ask AI","Smart card advice","chat","var(--accent)"],
-          ["Picks","Card Picks","Apply & use AI","ai-recommender","var(--accent)"],
-          ["Travel","Travel","Use your points","travel","var(--accent)"],
-          ["Split","Split Bill","Group expenses","split","var(--green)"],
-          ["Goals","Goals","Track progress","goals","var(--accent)"],
-          ["Save","Optimizer","Save more money","lifestyle","var(--green)"],
-        ] as [string,string,string,S,string][]).map(([icon,label,sub,target,color])=>(
-          <button key={label} onClick={()=>go(target)} className="hover-lift press card-surface" style={{padding:"16px 14px",textAlign:"left",width:"100%",border:"1px solid var(--border2)"}}>
-            <span style={{fontSize:18,color:"var(--accent)",display:"block",marginBottom:8}}>{icon}</span>
-            <p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px"}}>{label}</p>
-            <p style={{color:"var(--text2)",fontSize:11,marginTop:2}}>{sub}</p>
+          ["💬","AI Advisor","chat"],
+          ["📊","Analytics","analytics"],
+          ["✈️","Travel","travel"],
+          ["🎯","Goals","goals"],
+          ["🍽️","Split Bill","split"],
+          ["💡","Optimizer","lifestyle"],
+        ] as [string,string,S][]).map(([icon,label,target])=>(
+          <button key={label} onClick={()=>go(target)} className="hover-lift press card-surface" style={{padding:"14px 10px",textAlign:"center",width:"100%",border:"1px solid var(--border)"}}>
+            <span style={{fontSize:20,display:"block",marginBottom:5}}>{icon}</span>
+            <p style={{color:"var(--text)",fontSize:11,fontWeight:600}}>{label}</p>
           </button>
         ))}
       </div>
 
-      {/* Cards preview or Add card CTA */}
-      <div className="au d3">
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <h3 className="serif" style={{fontSize:22,fontWeight:400}}>My Cards</h3>
-          <button onClick={()=>go("cards")} style={{color:"var(--accent)",fontSize:12,fontWeight:600,background:"none",border:"none"}}>
-            {cards.length > 0 ? "Manage ->" : "Add a card ->"}
+      {/* My Cards */}
+      <div className="au" style={{marginBottom:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <h3 style={{fontSize:17,fontWeight:700,color:"var(--text)"}}>My Cards</h3>
+          <button onClick={()=>go("cards")} style={{color:"var(--accent)",fontSize:12,fontWeight:600,background:"none",border:"none",cursor:"pointer"}}>
+            {cards.length>0?"See all →":"Add a card →"}
           </button>
         </div>
-        {!dataLoaded ? (
+        {!dataLoaded?(
           <><CardSkeleton/><div style={{marginTop:10}}><CardSkeleton/></div></>
-        ) : cards.length === 0 ? (
+        ):cards.length===0?(
           <button onClick={()=>go("add-card")} className="press hover-lift" style={{
-            width:"100%",padding:"32px 24px",background:"var(--surface)",
-            border:"2px dashed var(--accent)",borderRadius:20,textAlign:"center",cursor:"pointer",
+            width:"100%",padding:"28px 20px",background:"var(--surface)",
+            border:"2px dashed var(--accent)",borderRadius:18,textAlign:"center",cursor:"pointer",
           }}>
-            <p style={{fontSize:28,marginBottom:10}}>💳</p>
-            <p className="serif gold-text" style={{fontSize:20,marginBottom:6,fontWeight:400}}>Add your first card</p>
-            <p style={{color:"var(--text2)",fontSize:13}}>Search from 50+ cards. We'll show your balance, points, offers, and payment dates.</p>
+            <p style={{fontSize:26,marginBottom:8}}>💳</p>
+            <p style={{color:"var(--accent)",fontSize:15,fontWeight:700,marginBottom:4}}>Add your first card</p>
+            <p style={{color:"var(--text2)",fontSize:12}}>Search 50+ cards and track everything in one place.</p>
           </button>
-        ) : (
+        ):(
           <>
-            {cards.slice(0,2).map(card => (
-              <button key={card.id} onClick={()=>go("card-detail")} className="hover-lift press" style={{
-                width:"100%",background:"var(--surface)",border:"1px solid var(--border2)",
-                borderRadius:18,padding:"14px 16px",marginBottom:10,
-                display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left",
-              }}>
-                <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <div style={{width:46,height:30,borderRadius:8,background:card.gradient,boxShadow:"0 3px 12px rgba(0,0,0,.5)"}}/>
-                  <div>
-                    <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{card.name}</p>
-                    <p style={{color:"var(--text2)",fontSize:11,marginTop:2}}>{card.issuer}  {card.rewardRate}</p>
+            {cards.slice(0,3).map(card=>{
+              const u=pct(card.balance,card.limit);
+              const days=daysUntil(card.dueDate);
+              return (
+                <div key={card.id} className="hover-lift" style={{
+                  background:"var(--surface)",border:"1px solid var(--border)",
+                  borderRadius:16,padding:"14px 16px",marginBottom:10,
+                }}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <div style={{width:42,height:27,borderRadius:6,background:card.gradient,boxShadow:"0 2px 8px rgba(0,0,0,.4)"}}/>
+                      <div>
+                        <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>{card.name}</p>
+                        <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{card.issuer} · {card.rewardRate}</p>
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <p style={{color:"var(--accent)",fontSize:13,fontWeight:700}}>{f(card.points)} <span style={{fontSize:10,opacity:.6}}>pts</span></p>
+                      {days>=0&&days<=7&&<p style={{color:"var(--red)",fontSize:10,marginTop:1}}>Due in {days}d</p>}
+                    </div>
                   </div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                    <span style={{color:"var(--text2)",fontSize:11}}>${f(card.balance)} of ${f(card.limit)}</span>
+                    <span style={{color:uc(u),fontSize:11,fontWeight:600}}>{u}% used</span>
+                  </div>
+                  <Bar v={card.balance} max={card.limit} color={uc(u)} h={4}/>
                 </div>
-                <div style={{textAlign:"right"}}>
-                  <p className="gold-text" style={{fontSize:14,fontWeight:700}}>{f(card.points)}<span style={{fontSize:10,opacity:.7}}> pts</span></p>
-                  <p style={{color:"var(--text2)",fontSize:11,marginTop:2}}>${f(card.balance)} bal</p>
-                </div>
-              </button>
-            ))}
+              );
+            })}
             <button onClick={()=>go("add-card")} className="press" style={{
-              width:"100%",padding:"14px",background:"none",
-              border:"2px dashed var(--border2)",borderRadius:18,
-              color:"var(--text3)",fontSize:13,transition:"all .2s",marginTop:4,
-            }}
-              onMouseOver={e=>{e.currentTarget.style.borderColor="var(--accent)";e.currentTarget.style.color="var(--accent)"}}
-              onMouseOut={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text3)"}}>
-              + Add another card
-            </button>
+              width:"100%",padding:"12px",background:"none",
+              border:"2px dashed var(--border2)",borderRadius:14,
+              color:"var(--text3)",fontSize:12,fontWeight:500,cursor:"pointer",
+            }}>+ Add another card</button>
           </>
         )}
       </div>
 
-      {/* Approval chances teaser */}
-      <div className="au d4" style={{marginTop:24,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:20,padding:"18px 20px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <h3 className="serif" style={{fontSize:18,fontWeight:400}}>Card Approval Chances</h3>
-          <span className="pill pill-gold">AI</span>
+      {/* Approval chances */}
+      <div className="au card-surface" style={{padding:"18px 20px",marginBottom:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <h3 style={{fontSize:16,fontWeight:700,color:"var(--text)"}}>Approval Chances</h3>
+          <span className="pill pill-gold" style={{fontSize:10}}>AI estimate</span>
         </div>
         {[
           {name:"Chase Sapphire Preferred",chance:89,color:"var(--green)"},
@@ -1122,7 +1322,7 @@ function Home({ profile, cards, go, dataLoaded }: { profile:UserProfile; cards:C
             <Bar v={chance} max={100} color={color} h={5}/>
           </div>
         ))}
-        <p style={{color:"var(--text3)",fontSize:11,marginTop:8}}>Based on your income and credit score profile</p>
+        <button onClick={()=>go("ai-recommender")} style={{marginTop:8,color:"var(--accent)",fontSize:12,fontWeight:600,background:"none",border:"none",cursor:"pointer",padding:0}}>See personalized recommendations →</button>
       </div>
     </div>
   );
@@ -2001,87 +2201,97 @@ function Perks({ cards }: { cards:CreditCard[] }) {
    SETTINGS SCREEN
    ============================================================ */
 function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>void; profile:UserProfile; theme:"dark"|"light"; toggleTheme:()=>void; onSignOut?:()=>void }) {
-  const [t, setT] = useState({ai:true,geo:true,digest:true,split:true,travel:true,perks:true,fraud:true,goals:true,approvals:true});
-  const tog = (k: keyof typeof t) => setT(p=>({...p,[k]:!p[k]}));
-  const FEATS: [keyof typeof t, string, string, string][] = [
-    ["ai","","AI Advisor","Personal financial intelligence"],
-    ["approvals","📊","Approval Chances","AI card approval predictions"],
-    ["geo","📍","Geo Nudges","Card tips when entering stores"],
-    ["digest","📧","Weekly AI Digest","Monday personalized recap"],
-    ["split","🍽","Bill Splitting","Smart group expense splitting"],
-    ["travel","","Travel & Points","Points booking & transfers"],
-    ["perks","💎","Perks Tracker","Credits, offers & benefits"],
-    ["fraud","🛡","Fraud Alerts","Real-time security notifications"],
-    ["goals","🎯","Goal Engine","Financial target tracking"],
-  ];
+  const [feats, setFeats] = useState({ai:true,geo:true,digest:true,split:true,travel:true,perks:true,fraud:true,goals:true,approvals:true});
+  const tog = (k: keyof typeof feats) => setFeats(p=>({...p,[k]:!p[k]}));
   return (
-    <div className="screen desktop-content">
-      <PageHead title="Settings" back={()=>go("home")}/>
+    <div className="screen desktop-content screen-enter">
+      <PageHead title="Settings"/>
       <div className="px">
-        {/* Profile */}
-        <div className="au card-surface" style={{padding:"20px 22px",marginBottom:28,background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:16}}>
-            <div style={{width:56,height:56,borderRadius:18,background:"rgba(201,168,76,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>👤</div>
-            <div>
-              <p style={{color:"var(--text2)",fontSize:12,marginBottom:2}}>Your profile</p>
-              <p style={{color:"var(--text)",fontSize:20,fontWeight:600}}>{profile.name||"User"}</p>
-              {profile.creditScore&&<p style={{color:"var(--green)",fontSize:12,marginTop:2}}>Score: {profile.creditScore}</p>}
+        {/* Profile card */}
+        <div className="au card-surface" style={{padding:"18px 20px",marginBottom:20,background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.12)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:52,height:52,borderRadius:14,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>👤</div>
+            <div style={{flex:1}}>
+              <p style={{color:"var(--text)",fontSize:17,fontWeight:700}}>{profile.name||"Your Account"}</p>
+              {profile.creditScore&&<p style={{color:"var(--green)",fontSize:12,marginTop:2,fontWeight:500}}>{profile.creditScore}</p>}
+              {profile.income&&<p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{profile.income}</p>}
             </div>
+            <button onClick={()=>go("edit-profile")} className="btn-ghost press" style={{padding:"7px 14px",fontSize:12}}>Edit</button>
           </div>
         </div>
 
         {/* Theme */}
-        <div className="au card-surface" style={{padding:"16px 20px",marginBottom:16}}>
+        <div className="au card-surface" style={{padding:"15px 18px",marginBottom:16}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
-              <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>Theme</p>
-              <p style={{color:"var(--text2)",fontSize:12,marginTop:2}}>{theme==="dark"?"Dark mode -- premium obsidian":"Light mode -- cream parchment"}</p>
+              <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>Appearance</p>
+              <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{theme==="dark"?"Dark mode":"Light mode"}</p>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:14,color:theme==="dark"?"var(--accent)":"var(--text3)"}}>🌙</span>
+              <span style={{fontSize:14}}>🌙</span>
               <Toggle on={theme==="light"} set={toggleTheme}/>
-              <span style={{fontSize:14,color:theme==="light"?"var(--accent)":"var(--text3)"}}></span>
+              <span style={{fontSize:14}}>☀️</span>
             </div>
           </div>
         </div>
 
         {/* Feature toggles */}
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Feature Toggles</p>
-        <div className="au card-surface" style={{overflow:"hidden",marginBottom:24}}>
-          {FEATS.map(([key,icon,label,desc],i)=>(
-            <div key={key} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",borderBottom:i<FEATS.length-1?"1px solid var(--border)":"none"}}>
-              <span style={{fontSize:18,width:28,textAlign:"center"}}>{icon}</span>
+        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Features</p>
+        <div className="au card-surface" style={{overflow:"hidden",marginBottom:20}}>
+          {([
+            ["ai","🤖","AI Advisor","Personalized financial intelligence"],
+            ["approvals","📊","Approval Chances","AI card approval predictions"],
+            ["geo","📍","Location Tips","Card suggestions near stores"],
+            ["digest","📧","Weekly Digest","Monday morning financial recap"],
+            ["split","🍽️","Bill Splitting","Smart group expense splitting"],
+            ["travel","✈️","Travel & Points","Points booking and transfers"],
+            ["perks","💎","Perks Tracker","Credits, offers and benefits"],
+            ["fraud","🛡️","Fraud Alerts","Real-time security notifications"],
+            ["goals","🎯","Goal Engine","Financial target tracking"],
+          ] as [keyof typeof feats,string,string,string][]).map(([key,icon,label,desc],i,arr)=>(
+            <div key={key} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
+              <span style={{fontSize:17,width:24,textAlign:"center"}}>{icon}</span>
               <div style={{flex:1}}>
-                <p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px"}}>{label}</p>
+                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
                 <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
               </div>
-              <Toggle on={t[key]} set={()=>tog(key)}/>
+              <Toggle on={feats[key]} set={()=>tog(key)}/>
             </div>
           ))}
         </div>
 
+        {/* Account links */}
         <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Account</p>
-        <div className="au d2 card-surface" style={{overflow:"hidden"}}>
+        <div className="au d2 card-surface" style={{overflow:"hidden",marginBottom:20}}>
           {([
-            ["Edit Profile", ()=>go("edit-profile")],
-            ["Spending Analytics", ()=>go("analytics")],
-            ["Compare Cards", ()=>go("compare")],
-            ["Notifications", ()=>go("notifications")],
-            ["Refer a Friend", ()=>go("referral")],
-            ["Privacy & Security", ()=>go("privacy")],
-            ["About WiseCard", null],
-          ] as [string, (()=>void)|null][]).map(([item,action],i,arr)=>(
-            <button key={item} onClick={action||undefined} className="press" style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:"15px 18px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",textAlign:"left",opacity:action?1:.5}}>
-              <p style={{color:"var(--text)",fontSize:13,fontWeight:500}}>{item}</p>
-              <span style={{color:"var(--text3)",fontSize:16}}>{action?"->":""}</span>
+            ["✏️","Edit Profile","Update your info and spending",()=>go("edit-profile")],
+            ["📊","Spending Analytics","See where your money goes",()=>go("analytics")],
+            ["⚖️","Compare Cards","Side-by-side card comparison",()=>go("compare")],
+            ["🔔","Notifications","Manage alerts and reminders",()=>go("notifications")],
+            ["🎁","Refer a Friend","Give $20, get $20 in rewards",()=>go("referral")],
+            ["🔒","Privacy & Security","Data, security and permissions",()=>go("privacy")],
+            ["ℹ️","About WiseCard","Version info and changelog",()=>go("about")],
+          ] as [string,string,string,()=>void][]).map(([icon,label,desc,action],i,arr)=>(
+            <button key={label} onClick={action} className="press" style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"13px 16px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",textAlign:"left"}}>
+              <span style={{fontSize:18,width:24,textAlign:"center",flexShrink:0}}>{icon}</span>
+              <div style={{flex:1}}>
+                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
+                <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
+              </div>
+              <span style={{color:"var(--text3)",fontSize:13}}>→</span>
             </button>
           ))}
-          <button onClick={onSignOut} className="press" style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:"15px 18px",background:"none",border:"none",borderTop:"1px solid var(--border)",textAlign:"left"}}>
-            <p style={{color:"var(--red)",fontSize:13,fontWeight:600}}>Sign Out</p>
-            <span style={{color:"var(--red)",fontSize:16}}>-></span>
+        </div>
+
+        <div className="card-surface" style={{overflow:"hidden",marginBottom:24}}>
+          <button onClick={onSignOut} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+            <span style={{fontSize:18,width:24,textAlign:"center"}}>🚪</span>
+            <p style={{color:"var(--red)",fontSize:13,fontWeight:600,flex:1}}>Sign Out</p>
+            <span style={{color:"var(--red)",fontSize:13}}>→</span>
           </button>
         </div>
-        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:32}}>WiseCard  Prototype v1.0</p>
+
+        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginBottom:20}}>WiseCard v1.3.0 · Made with care</p>
       </div>
     </div>
   );
@@ -3050,80 +3260,222 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
    SPENDING ANALYTICS SCREEN
    ============================================================ */
 function Analytics({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard[]; profile:UserProfile }) {
-  const cats = [
-    { label:"Dining", key:"dining", color:"#3B82F6", icon:"🍽" },
-    { label:"Groceries", key:"groceries", color:"#22C55E", icon:"🛒" },
-    { label:"Travel", key:"travel", color:"#F59E0B", icon:"✈️" },
-    { label:"Gas", key:"gas", color:"#EF4444", icon:"⛽" },
-    { label:"Shopping", key:"shopping", color:"#8B5CF6", icon:"🛍" },
-    { label:"Other", key:"other", color:"#6B7280", icon:"📦" },
+  const CATS = [
+    {label:"Dining",    key:"dining",    color:"#3B82F6", icon:"🍽️"},
+    {label:"Groceries", key:"groceries", color:"#22C55E", icon:"🛒"},
+    {label:"Travel",    key:"travel",    color:"#F59E0B", icon:"✈️"},
+    {label:"Gas",       key:"gas",       color:"#EF4444", icon:"⛽"},
+    {label:"Shopping",  key:"shopping",  color:"#8B5CF6", icon:"🛍️"},
+    {label:"Other",     key:"other",     color:"#6B7280", icon:"📦"},
   ];
-  const spending = profile.spending || {};
-  const vals = cats.map(c => ({ ...c, val: Number((spending as any)[c.key] || 0) }));
-  const total = vals.reduce((s,c) => s+c.val, 0);
-  const totalPts = cards.reduce((s,c) => s+c.points, 0);
-  const totalBal = cards.reduce((s,c) => s+c.balance, 0);
-  const totalLim = cards.reduce((s,c) => s+c.limit, 0);
-  const util = totalLim > 0 ? Math.round(totalBal/totalLim*100) : 0;
+  const [txns, setTxns] = useState<{id:string;cat:string;amount:number;desc:string;card:string;date:string}[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [amt, setAmt] = useState(""); const [desc, setDesc] = useState(""); const [cat, setCat] = useState("dining"); const [card, setCard] = useState(cards[0]?.name||"");
+  const [sel, setSel] = useState<string|null>(null);
+  const spending = profile.spending||{};
+  const merged = CATS.map(c=>({...c,val:Number((spending as any)[c.key]||0)+txns.filter(t=>t.cat===c.key).reduce((s,t)=>s+t.amount,0),fromTxns:txns.filter(t=>t.cat===c.key).reduce((s,t)=>s+t.amount,0)}));
+  const total = merged.reduce((s,c)=>s+c.val,0);
+  const active = merged.filter(c=>c.val>0).sort((a,b)=>b.val-a.val);
+  const selCat = active.find(c=>c.key===sel)||active[0]||null;
+  const totalPts = cards.reduce((s,c)=>s+c.points,0);
+  const totalBal = cards.reduce((s,c)=>s+c.balance,0);
+  const totalLim = cards.reduce((s,c)=>s+c.limit,0);
+  const util = totalLim>0?Math.round(totalBal/totalLim*100):0;
+
+  const addTxn = () => {
+    if(!amt||isNaN(Number(amt))) return;
+    setTxns(p=>[...p,{id:Math.random().toString(36).slice(2),cat,amount:Number(amt),desc:desc||CATS.find(c=>c.key===cat)?.label||"",card,date:"Today"}]);
+    setAmt(""); setDesc(""); setShowAdd(false); showToast("Transaction added to analytics");
+  };
+
+  const SpeedoGauge = () => {
+    if(total===0) return null;
+    const W=300,H=178,cx=150,cy=164,R=126,SW=26;
+    let cum=Math.PI;
+    const segs=active.map(cat=>{
+      const sweep=(cat.val/total)*Math.PI;
+      const a1=cum,a2=cum+sweep; cum=a2;
+      const x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);
+      const x2=cx+R*Math.cos(a2),y2=cy+R*Math.sin(a2);
+      return {cat,path:`M ${x1} ${y1} A ${R} ${R} 0 ${sweep>Math.PI?1:0} 1 ${x2} ${y2}`,mid:(a1+a2)/2};
+    });
+    const needleSeg=selCat?segs.find(s=>s.cat.key===selCat.key):segs[0];
+    const nAngle=needleSeg?needleSeg.mid:Math.PI*1.5;
+    const nl=R-18,nx=cx+nl*Math.cos(nAngle),ny=cy+nl*Math.sin(nAngle);
+    return (
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",maxWidth:340,margin:"0 auto"}}>
+        <path d={`M ${cx-R} ${cy} A ${R} ${R} 0 0 1 ${cx+R} ${cy}`} fill="none" stroke="var(--border2)" strokeWidth={SW} strokeLinecap="round"/>
+        {segs.map((s,i)=>(
+          <path key={i} d={s.path} fill="none" stroke={s.cat.color} strokeWidth={sel===s.cat.key?SW+7:SW} strokeLinecap="round"
+            opacity={sel&&sel!==s.cat.key?0.3:1} style={{cursor:"pointer",transition:"all .2s",filter:sel===s.cat.key?`drop-shadow(0 0 7px ${s.cat.color})`:"none"}}
+            onClick={()=>setSel(v=>v===s.cat.key?null:s.cat.key)}/>
+        ))}
+        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="var(--text)" strokeWidth={2.5} strokeLinecap="round" style={{transition:"all .4s ease"}}/>
+        <circle cx={cx} cy={cy} r={6} fill="var(--text)"/>
+        <text x={cx} y={cy-22} textAnchor="middle" fill="var(--text)" fontSize={20} fontWeight="800">${f(selCat?.val||total)}</text>
+        <text x={cx} y={cy-6} textAnchor="middle" fill="var(--text2)" fontSize={10}>{selCat?selCat.label:"Total Monthly"}</text>
+      </svg>
+    );
+  };
 
   return (
-    <div className="screen desktop-content">
-      <PageHead title="Analytics" sub="Your spending breakdown" back={()=>go("settings")}/>
+    <div className="screen desktop-content screen-enter">
+      <PageHead title="Analytics" sub="Tap segments to explore spending" back={()=>go("settings")}
+        right={<button onClick={()=>setShowAdd(a=>!a)} className="btn-gold press" style={{padding:"8px 16px",fontSize:13}}>+ Log</button>}/>
       <div className="px">
-        {/* Summary cards */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:24}}>
-          {[
-            { label:"Monthly Spend", value:`$${f(total)}`, sub:"across all categories", color:"var(--accent)" },
-            { label:"Total Points", value:f(totalPts), sub:`~$${f(Math.round(totalPts*0.015))} value`, color:"var(--green)" },
-            { label:"Total Balance", value:`$${f(totalBal)}`, sub:"across all cards", color:totalBal>5000?"var(--red)":"var(--text)" },
-            { label:"Utilization", value:`${util}%`, sub:util<30?"Healthy":"Needs attention", color:util<30?"var(--green)":util<50?"var(--amber)":"var(--red)" },
-          ].map(({label,value,sub,color})=>(
-            <div key={label} className="au card-surface" style={{padding:"16px 14px"}}>
-              <p style={{color:"var(--text2)",fontSize:11,marginBottom:6,fontWeight:500}}>{label}</p>
-              <p style={{color,fontSize:22,fontWeight:700,letterSpacing:"-.5px"}}>{value}</p>
-              <p style={{color:"var(--text3)",fontSize:11,marginTop:3}}>{sub}</p>
+        {showAdd&&(
+          <div className="ap card-surface" style={{padding:20,marginBottom:20,border:"1.5px solid var(--accent)"}}>
+            <p style={{color:"var(--text)",fontSize:15,fontWeight:700,marginBottom:14}}>Log a Transaction</p>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+              <div>
+                <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Amount ($)</label>
+                <input className="field" type="number" placeholder="0.00" value={amt} onChange={e=>setAmt(e.target.value)} style={{padding:"10px 12px"}}/>
+              </div>
+              <div>
+                <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Category</label>
+                <select className="field" value={cat} onChange={e=>setCat(e.target.value)} style={{padding:"10px 12px",fontSize:13}}>
+                  {CATS.map(c=><option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
+                </select>
+              </div>
             </div>
-          ))}
-        </div>
+            <div style={{marginBottom:10}}>
+              <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Description</label>
+              <input className="field" placeholder="e.g. Whole Foods, Starbucks, Delta..." value={desc} onChange={e=>setDesc(e.target.value)} style={{padding:"10px 12px"}}/>
+            </div>
+            {cards.length>0&&(
+              <div style={{marginBottom:14}}>
+                <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Card Used</label>
+                <select className="field" value={card} onChange={e=>setCard(e.target.value)} style={{padding:"10px 12px",fontSize:13}}>
+                  {cards.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
+            )}
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={addTxn} className="btn-gold press" style={{flex:1,padding:"11px"}}>Add</button>
+              <button onClick={()=>setShowAdd(false)} className="btn-ghost press" style={{padding:"11px 16px"}}>Cancel</button>
+            </div>
+          </div>
+        )}
 
-        {/* Spending breakdown */}
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:12}}>Monthly Spending</p>
-        <div className="card-surface" style={{padding:"4px 0",marginBottom:24}}>
-          {total === 0 ? (
-            <EmptyState icon="📊" title="No spending data" sub="Complete your profile to see spending analytics." action="Edit Profile" onAction={()=>go("edit-profile")}/>
-          ) : vals.filter(c=>c.val>0).sort((a,b)=>b.val-a.val).map((cat,i,arr)=>(
-            <div key={cat.key} style={{padding:"14px 18px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{fontSize:18}}>{cat.icon}</span>
-                  <div>
-                    <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{cat.label}</p>
-                    <p style={{color:"var(--text2)",fontSize:11}}>{Math.round(cat.val/total*100)}% of total</p>
+        {total===0?(
+          <div className="card-surface" style={{marginBottom:20}}>
+            <EmptyState icon="📊" title="No spending data yet" sub="Fill in monthly spending in Edit Profile, or tap + Log to add a transaction." action="Edit Profile" onAction={()=>go("edit-profile")}/>
+          </div>
+        ):(
+          <div className="au card-surface" style={{padding:"22px 16px 16px",marginBottom:20}}>
+            <SpeedoGauge/>
+            <div style={{display:"flex",flexWrap:"wrap",gap:7,justifyContent:"center",marginTop:14}}>
+              {active.map(cat=>(
+                <button key={cat.key} onClick={()=>setSel(v=>v===cat.key?null:cat.key)} className="press" style={{
+                  display:"flex",alignItems:"center",gap:6,padding:"5px 11px",borderRadius:99,
+                  border:`1.5px solid ${sel===cat.key?cat.color:"var(--border)"}`,
+                  background:sel===cat.key?`${cat.color}15`:"var(--surface2)",cursor:"pointer",transition:"all .15s"
+                }}>
+                  <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,flexShrink:0}}/>
+                  <span style={{fontSize:11,fontWeight:600,color:sel===cat.key?cat.color:"var(--text2)"}}>{cat.label}</span>
+                  <span style={{fontSize:11,color:"var(--text3)"}}>${f(cat.val)}</span>
+                </button>
+              ))}
+            </div>
+            {selCat&&(
+              <div className="ai" style={{marginTop:14,background:"var(--surface2)",borderRadius:10,padding:"13px 15px",border:`1px solid ${selCat.color}25`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:20}}>{selCat.icon}</span>
+                    <div>
+                      <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{selCat.label}</p>
+                      <p style={{color:"var(--text2)",fontSize:11}}>{Math.round(selCat.val/total*100)}% of monthly spend</p>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <p style={{color:selCat.color,fontSize:20,fontWeight:800}}>${f(selCat.val)}</p>
+                    <p style={{color:"var(--text3)",fontSize:10}}>per month · ${f(selCat.val*12)}/yr</p>
                   </div>
                 </div>
-                <p style={{color:"var(--text)",fontSize:15,fontWeight:700}}>${f(cat.val)}<span style={{color:"var(--text3)",fontSize:11,fontWeight:400}}>/mo</span></p>
+                {selCat.fromTxns>0&&<p style={{color:"var(--text2)",fontSize:11,marginTop:8}}>+${f(selCat.fromTxns)} from logged transactions</p>}
               </div>
-              <div className="track" style={{height:6}}>
-                <div className="fill" style={{width:`${Math.round(cat.val/total*100)}%`,background:cat.color,height:6}}/>
-              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
+          {[
+            {l:"Utilization",v:`${util}%`,c:util<30?"var(--green)":util<50?"var(--amber)":"var(--red)"},
+            {l:"Total Points",v:f(totalPts),c:"var(--accent)"},
+            {l:"Rewards Value",v:`$${f(Math.round(totalPts*0.015))}`,c:"var(--green)"},
+          ].map(({l,v,c})=>(
+            <div key={l} className="card-surface" style={{padding:"12px 10px",textAlign:"center"}}>
+              <p style={{color:c,fontSize:17,fontWeight:800}}>{v}</p>
+              <p style={{color:"var(--text3)",fontSize:10,marginTop:3}}>{l}</p>
             </div>
           ))}
         </div>
 
-        {/* Yearly projection */}
-        {total > 0 && (
+        {total>0&&(
           <>
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:12}}>Yearly Projection</p>
+            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Breakdown</p>
+            <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
+              {active.map((cat,i,arr)=>(
+                <button key={cat.key} onClick={()=>setSel(v=>v===cat.key?null:cat.key)} className="press" style={{
+                  width:"100%",padding:"13px 16px",background:sel===cat.key?`${cat.color}08`:"none",
+                  border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",textAlign:"left",
+                  borderLeft:`3px solid ${sel===cat.key?cat.color:"transparent"}`,transition:"all .15s"
+                }}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+                    <div style={{display:"flex",alignItems:"center",gap:9}}>
+                      <span style={{fontSize:16}}>{cat.icon}</span>
+                      <span style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{cat.label}</span>
+                    </div>
+                    <span style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${f(cat.val)}<span style={{color:"var(--text3)",fontSize:10,fontWeight:400}}>/mo</span></span>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div className="track" style={{flex:1,height:5}}>
+                      <div className="fill" style={{width:`${Math.round(cat.val/total*100)}%`,background:cat.color,height:5}}/>
+                    </div>
+                    <span style={{color:"var(--text3)",fontSize:10,width:28,textAlign:"right"}}>{Math.round(cat.val/total*100)}%</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {txns.length>0&&(
+          <>
+            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Logged Transactions</p>
+            <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
+              {[...txns].reverse().map((t,i,arr)=>{
+                const c=CATS.find(x=>x.key===t.cat);
+                return (
+                  <div key={t.id} style={{padding:"12px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:16,width:26,textAlign:"center"}}>{c?.icon}</span>
+                      <div>
+                        <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{t.desc}</p>
+                        <p style={{color:"var(--text2)",fontSize:11}}>{t.card} · {t.date}</p>
+                      </div>
+                    </div>
+                    <p style={{color:c?.color||"var(--text)",fontSize:14,fontWeight:700}}>-${f(t.amount)}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {total>0&&(
+          <>
+            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Yearly Projection</p>
             <div className="card-surface" style={{padding:"20px"}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,textAlign:"center"}}>
                 {[
-                  { label:"Annual Spend", value:`$${f(total*12)}` },
-                  { label:"Points Earned", value:f(Math.round(total*12*1.5)) },
-                  { label:"Rewards Value", value:`$${f(Math.round(total*12*1.5*0.015))}` },
-                ].map(({label,value})=>(
-                  <div key={label}>
-                    <p style={{color:"var(--accent)",fontSize:18,fontWeight:700}}>{value}</p>
-                    <p style={{color:"var(--text2)",fontSize:11,marginTop:4}}>{label}</p>
+                  {l:"Annual Spend",v:`$${f(total*12)}`},
+                  {l:"Points Earned",v:f(Math.round(total*12*1.5))},
+                  {l:"Rewards Value",v:`$${f(Math.round(total*12*1.5*0.015))}`},
+                ].map(({l,v})=>(
+                  <div key={l}>
+                    <p style={{color:"var(--accent)",fontSize:18,fontWeight:700}}>{v}</p>
+                    <p style={{color:"var(--text2)",fontSize:11,marginTop:4}}>{l}</p>
                   </div>
                 ))}
               </div>
@@ -3139,58 +3491,49 @@ function Analytics({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard[];
    NOTIFICATIONS SCREEN
    ============================================================ */
 function Notifications({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
-  const [prefs, setPrefs] = useState({ paymentDue:true, utilizationHigh:true, perkExpiring:true, scoreChange:true, newOffer:true, weeklyDigest:true, appUpdates:false });
+  const [prefs, setPrefs] = useState({paymentDue:true,utilizationHigh:true,perkExpiring:true,scoreChange:true,newOffer:true,weeklyDigest:true,appUpdates:false});
   const tog = (k: keyof typeof prefs) => setPrefs(p=>({...p,[k]:!p[k]}));
-
   const alerts = [
-    ...cards.filter(c=>daysUntil(c.dueDate)<=7 && daysUntil(c.dueDate)>=0).map(c=>({
-      type:"warning" as const, title:`Payment due in ${daysUntil(c.dueDate)} days`, desc:`${c.name} — $${f(c.minPayment)} minimum`, time:"Now"
-    })),
-    ...cards.filter(c=>c.balance/c.limit>0.3).map(c=>({
-      type:"error" as const, title:"High utilization alert", desc:`${c.name} is at ${Math.round(c.balance/c.limit*100)}% — pay down to protect your score`, time:"Today"
-    })),
-    { type:"info" as const, title:"Weekly digest ready", desc:"Your WiseCard financial recap for this week", time:"Mon" },
-    { type:"success" as const, title:"New offer activated", desc:"5% back on gas through your Chase card", time:"Yesterday" },
+    ...cards.filter(c=>daysUntil(c.dueDate)<=7&&daysUntil(c.dueDate)>=0).map(c=>({type:"warning" as const,title:`Payment due in ${daysUntil(c.dueDate)} days`,desc:`${c.name} — $${f(c.minPayment)} minimum due`,time:"Now"})),
+    ...cards.filter(c=>c.balance/c.limit>0.3).map(c=>({type:"error" as const,title:"High utilization alert",desc:`${c.name} is at ${Math.round(c.balance/c.limit*100)}% — pay down to protect your score`,time:"Today"})),
+    {type:"info" as const,title:"Weekly digest ready",desc:"Your WiseCard financial recap for this week is ready",time:"Mon"},
+    {type:"success" as const,title:"New cashback offer",desc:"5% back on gas activated on your Chase card",time:"Yesterday"},
   ];
-
-  const col = (t:string) => t==="warning"?"var(--amber)":t==="error"?"var(--red)":t==="success"?"var(--green)":"var(--accent)";
-  const ico = (t:string) => t==="warning"?"⚠️":t==="error"?"🔴":t==="success"?"✅":"ℹ️";
-
+  const ico=(t:string)=>t==="warning"?"⚠️":t==="error"?"🔴":t==="success"?"✅":"ℹ️";
   return (
-    <div className="screen desktop-content">
+    <div className="screen desktop-content screen-enter">
       <PageHead title="Notifications" back={()=>go("settings")}/>
       <div className="px">
-        {alerts.length > 0 && (
+        {alerts.length>0&&(
           <>
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:12}}>Recent Alerts</p>
+            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Recent</p>
             <div className="card-surface" style={{marginBottom:24,overflow:"hidden"}}>
               {alerts.map((a,i)=>(
-                <div key={i} style={{padding:"14px 18px",borderBottom:i<alerts.length-1?"1px solid var(--border)":"none",display:"flex",gap:12,alignItems:"flex-start"}}>
+                <div key={i} style={{padding:"14px 16px",borderBottom:i<alerts.length-1?"1px solid var(--border)":"none",display:"flex",gap:12,alignItems:"flex-start"}}>
                   <span style={{fontSize:18,flexShrink:0}}>{ico(a.type)}</span>
                   <div style={{flex:1}}>
                     <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{a.title}</p>
                     <p style={{color:"var(--text2)",fontSize:12,marginTop:2,lineHeight:1.4}}>{a.desc}</p>
                   </div>
-                  <span style={{color:"var(--text3)",fontSize:11,flexShrink:0}}>{a.time}</span>
+                  <span style={{color:"var(--text3)",fontSize:11,flexShrink:0,marginTop:1}}>{a.time}</span>
                 </div>
               ))}
             </div>
           </>
         )}
-
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:12}}>Notification Settings</p>
+        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Preferences</p>
         <div className="card-surface" style={{overflow:"hidden"}}>
           {([
-            ["paymentDue","💳","Payment Due Reminders","Get alerted 7 and 3 days before due dates"],
-            ["utilizationHigh","📊","Utilization Warnings","Alert when any card exceeds 30%"],
-            ["perkExpiring","💎","Perk Expiry Alerts","Remind before credits and offers expire"],
-            ["scoreChange","📈","Credit Score Changes","Notify when your score changes"],
-            ["newOffer","🎁","New Offers & Cashback","Alert when new card offers activate"],
-            ["weeklyDigest","📧","Weekly AI Digest","Monday morning financial recap"],
+            ["paymentDue","💳","Payment Reminders","7 and 3 days before due dates"],
+            ["utilizationHigh","📊","Utilization Warnings","When any card exceeds 30%"],
+            ["perkExpiring","💎","Perk Expiry Alerts","Before credits and offers expire"],
+            ["scoreChange","📈","Score Changes","When your credit score changes"],
+            ["newOffer","🎁","New Offers","When new cashback offers activate"],
+            ["weeklyDigest","📧","Weekly Digest","Monday morning financial recap"],
             ["appUpdates","🔔","App Updates","New features and improvements"],
-          ] as [keyof typeof prefs, string, string, string][]).map(([key,icon,label,desc],i,arr)=>(
-            <div key={key} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
-              <span style={{fontSize:18,width:28,textAlign:"center"}}>{icon}</span>
+          ] as [keyof typeof prefs,string,string,string][]).map(([key,icon,label,desc],i,arr)=>(
+            <div key={key} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
+              <span style={{fontSize:18,width:26,textAlign:"center"}}>{icon}</span>
               <div style={{flex:1}}>
                 <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
                 <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
@@ -3205,73 +3548,66 @@ function Notifications({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
 }
 
 /* ============================================================
-   CARD COMPARISON SCREEN
+   COMPARE CARDS SCREEN
    ============================================================ */
 function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
-  const allCards = [...cards, ...CARD_DB.filter(d=>!cards.find(c=>c.dbId===d.id)).map(d=>({
-    id:d.id, dbId:d.id, name:d.name, issuer:d.issuer, gradient:d.gradient, accentColor:d.accentColor,
-    balance:0, limit:0, minPayment:0, dueDate:"", points:0, apr:"",
-    rewardRate:d.rewardRate, annualFee:d.annualFee, perksValue:d.perksValue,
-    offers:[], cashback:d.cashback, category:d.category,
-    signupBonus:d.signupBonus, bestFor:d.bestFor, keyBenefits:d.keyBenefits,
-    bestPlaces:d.bestPlaces, notGoodFor:d.notGoodFor,
+  const allCards = [...cards,...CARD_DB.filter(d=>!cards.find(c=>c.dbId===d.id)).map(d=>({
+    id:d.id,dbId:d.id,name:d.name,issuer:d.issuer,gradient:d.gradient,accentColor:d.accentColor,
+    balance:0,limit:0,minPayment:0,dueDate:"",points:0,apr:"",
+    rewardRate:d.rewardRate,annualFee:d.annualFee,perksValue:d.perksValue,
+    offers:[],cashback:d.cashback,category:d.category,
+    signupBonus:d.signupBonus,bestFor:d.bestFor,keyBenefits:d.keyBenefits,bestPlaces:d.bestPlaces,notGoodFor:d.notGoodFor,
   }))];
-  const [a, setA] = useState(allCards[0]?.dbId||"");
-  const [b, setB] = useState(allCards[1]?.dbId||"");
-  const cardA = allCards.find(c=>c.dbId===a);
-  const cardB = allCards.find(c=>c.dbId===b);
-
-  const rows = [
-    ["Annual Fee", (c:any)=>`$${c.annualFee}`, (a:any,b:any)=>a.annualFee<b.annualFee?"a":a.annualFee>b.annualFee?"b":"tie"],
-    ["Perks Value", (c:any)=>`$${c.perksValue}/yr`, (a:any,b:any)=>a.perksValue>b.perksValue?"a":a.perksValue<b.perksValue?"b":"tie"],
-    ["Net Value", (c:any)=>`$${c.perksValue-c.annualFee}/yr`, (a:any,b:any)=>(a.perksValue-a.annualFee)>(b.perksValue-b.annualFee)?"a":(a.perksValue-a.annualFee)<(b.perksValue-b.annualFee)?"b":"tie"],
-    ["Rewards", (c:any)=>c.rewardRate, ()=>"tie"],
-    ["Category", (c:any)=>c.category, ()=>"tie"],
-    ["Cashback Type", (c:any)=>c.cashback, ()=>"tie"],
+  const [a,setA]=useState(allCards[0]?.dbId||"");
+  const [b,setB]=useState(allCards[1]?.dbId||"");
+  const cA=allCards.find(c=>c.dbId===a); const cB=allCards.find(c=>c.dbId===b);
+  const rows:[string,(c:any)=>string,(a:any,b:any)=>string][]=[
+    ["Annual Fee",c=>`$${c.annualFee}`,(a,b)=>a.annualFee<b.annualFee?"a":a.annualFee>b.annualFee?"b":"tie"],
+    ["Perks Value",c=>`$${c.perksValue}/yr`,(a,b)=>a.perksValue>b.perksValue?"a":a.perksValue<b.perksValue?"b":"tie"],
+    ["Net Value",c=>`$${c.perksValue-c.annualFee}/yr`,(a,b)=>(a.perksValue-a.annualFee)>(b.perksValue-b.annualFee)?"a":(a.perksValue-a.annualFee)<(b.perksValue-b.annualFee)?"b":"tie"],
+    ["Rewards",c=>c.rewardRate,()=>"tie"],
+    ["Type",c=>c.cashback,()=>"tie"],
+    ["Category",c=>c.category,()=>"tie"],
   ];
-
   return (
-    <div className="screen desktop-content">
-      <PageHead title="Compare Cards" sub="Side-by-side card comparison" back={()=>go("settings")}/>
+    <div className="screen desktop-content screen-enter">
+      <PageHead title="Compare Cards" sub="Side-by-side comparison" back={()=>go("settings")}/>
       <div className="px">
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:24}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
           {[{val:a,set:setA,label:"Card A"},{val:b,set:setB,label:"Card B"}].map(({val,set,label})=>(
             <div key={label}>
-              <p style={{color:"var(--text3)",fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>{label}</p>
+              <p style={{color:"var(--text3)",fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:.8,marginBottom:7}}>{label}</p>
               <select className="field" value={val} onChange={e=>set(e.target.value)} style={{fontSize:12,padding:"10px 12px"}}>
                 {allCards.map(c=><option key={c.dbId} value={c.dbId}>{c.name} ({c.issuer})</option>)}
               </select>
             </div>
           ))}
         </div>
-
-        {cardA && cardB && (
+        {cA&&cB&&(
           <>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
-              {[cardA,cardB].map(c=>(
-                <div key={c.dbId} style={{background:c.gradient,borderRadius:14,padding:"18px 16px"}}>
-                  <p style={{color:"rgba(255,255,255,.6)",fontSize:10,letterSpacing:1,textTransform:"uppercase"}}>{c.issuer}</p>
-                  <p style={{color:"#fff",fontSize:16,fontWeight:700,marginTop:4}}>{c.name}</p>
-                  <p style={{color:"rgba(255,255,255,.7)",fontSize:11,marginTop:6}}>{c.rewardRate}</p>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18}}>
+              {[cA,cB].map(c=>(
+                <div key={c.dbId} style={{background:c.gradient,borderRadius:14,padding:"16px 14px"}}>
+                  <p style={{color:"rgba(255,255,255,.55)",fontSize:10,letterSpacing:1,textTransform:"uppercase"}}>{c.issuer}</p>
+                  <p style={{color:"#fff",fontSize:15,fontWeight:700,marginTop:3}}>{c.name}</p>
+                  <p style={{color:"rgba(255,255,255,.6)",fontSize:11,marginTop:5}}>{c.rewardRate}</p>
                 </div>
               ))}
             </div>
-
-            <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
+            <div className="card-surface" style={{overflow:"hidden",marginBottom:18}}>
               {rows.map(([label,fmt,winner],i,arr)=>{
-                const w = (winner as Function)(cardA,cardB);
+                const w=winner(cA,cB);
                 return (
-                  <div key={label as string} style={{display:"grid",gridTemplateColumns:"1fr 120px 1fr",padding:"13px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",alignItems:"center"}}>
-                    <p style={{color:w==="a"?"var(--green)":"var(--text)",fontSize:13,fontWeight:w==="a"?700:400}}>{(fmt as Function)(cardA)}</p>
-                    <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",fontWeight:600,textTransform:"uppercase",letterSpacing:.6}}>{label as string}</p>
-                    <p style={{color:w==="b"?"var(--green)":"var(--text)",fontSize:13,fontWeight:w==="b"?700:400,textAlign:"right"}}>{(fmt as Function)(cardB)}</p>
+                  <div key={label} style={{display:"grid",gridTemplateColumns:"1fr 100px 1fr",padding:"12px 14px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",alignItems:"center",gap:6}}>
+                    <p style={{color:w==="a"?"var(--green)":"var(--text)",fontSize:12,fontWeight:w==="a"?700:400}}>{fmt(cA)}</p>
+                    <p style={{color:"var(--text3)",fontSize:10,textAlign:"center",fontWeight:600,textTransform:"uppercase",letterSpacing:.5}}>{label}</p>
+                    <p style={{color:w==="b"?"var(--green)":"var(--text)",fontSize:12,fontWeight:w==="b"?700:400,textAlign:"right"}}>{fmt(cB)}</p>
                   </div>
                 );
               })}
             </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              {[cardA,cardB].map(c=>(
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[cA,cB].map(c=>(
                 <div key={c.dbId} className="card-surface" style={{padding:"14px"}}>
                   <p style={{color:"var(--green)",fontSize:11,fontWeight:700,marginBottom:8}}>Best for</p>
                   {(c.bestFor||[]).slice(0,3).map((b:string,i:number)=>(
@@ -3291,19 +3627,18 @@ function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
    EDIT PROFILE SCREEN
    ============================================================ */
 function EditProfile({ go, profile, onSave }: { go:(s:S)=>void; profile:UserProfile; onSave:(p:UserProfile)=>void }) {
-  const [p, setP] = useState({...profile});
-  const set = (k: keyof UserProfile, v: any) => setP(prev=>({...prev,[k]:v}));
-  const setSp = (k: keyof typeof p.spending, v: string) => set("spending",{...p.spending,[k]:v});
-  const INCOMES = ["Under $30,000","$30,000-$60,000","$60,000-$100,000","$100,000-$150,000","$150,000-$250,000","$250,000+"];
-  const SCORES = ["300-579 (Poor)","580-669 (Fair)","670-739 (Good)","740-799 (Very Good)","800+ (Exceptional)"];
-
+  const [p,setP]=useState({...profile});
+  const set=(k:keyof UserProfile,v:any)=>setP(prev=>({...prev,[k]:v}));
+  const setSp=(k:keyof typeof p.spending,v:string)=>set("spending",{...p.spending,[k]:v});
+  const INCOMES=["Under $30,000","$30,000-$60,000","$60,000-$100,000","$100,000-$150,000","$150,000-$250,000","$250,000+"];
+  const SCORES=["300-579 (Poor)","580-669 (Fair)","670-739 (Good)","740-799 (Very Good)","800+ (Exceptional)"];
   return (
-    <div className="screen desktop-content">
+    <div className="screen desktop-content screen-enter">
       <PageHead title="Edit Profile" back={()=>go("settings")}/>
       <div className="px">
-        <div style={{display:"flex",flexDirection:"column",gap:16,marginBottom:24}}>
-          <div className="card-surface" style={{padding:"20px",display:"flex",flexDirection:"column",gap:14}}>
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8}}>Personal Info</p>
+        <div className="card-surface" style={{padding:"20px",marginBottom:16}}>
+          <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>Personal Info</p>
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
             <div>
               <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:6}}>Full Name</label>
               <input className="field" value={p.name} onChange={e=>set("name",e.target.value)} placeholder="Your name"/>
@@ -3323,21 +3658,19 @@ function EditProfile({ go, profile, onSave }: { go:(s:S)=>void; profile:UserProf
               </select>
             </div>
           </div>
-
-          <div className="card-surface" style={{padding:"20px",display:"flex",flexDirection:"column",gap:14}}>
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8}}>Monthly Spending</p>
-            {([["dining","🍽 Dining"],["groceries","🛒 Groceries"],["travel","✈️ Travel"],["gas","⛽ Gas"],["shopping","🛍 Shopping"],["other","📦 Other"]] as [keyof typeof p.spending, string][]).map(([k,label])=>(
+        </div>
+        <div className="card-surface" style={{padding:"20px",marginBottom:20}}>
+          <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>Monthly Spending</p>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            {([["dining","🍽️ Dining"],["groceries","🛒 Groceries"],["travel","✈️ Travel"],["gas","⛽ Gas"],["shopping","🛍️ Shopping"],["other","📦 Other"]] as [keyof typeof p.spending,string][]).map(([k,label])=>(
               <div key={k}>
-                <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:6}}>{label} / month</label>
+                <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:5}}>{label} / month</label>
                 <input className="field" type="number" placeholder="$0" value={p.spending[k]} onChange={e=>setSp(k,e.target.value)}/>
               </div>
             ))}
           </div>
         </div>
-
-        <button onClick={()=>{onSave(p);go("settings");}} className="btn-gold press" style={{width:"100%",padding:"14px"}}>
-          Save Changes
-        </button>
+        <button onClick={()=>{onSave(p);go("settings");}} className="btn-gold press" style={{width:"100%",padding:"14px",fontSize:15}}>Save Changes</button>
       </div>
     </div>
   );
@@ -3347,49 +3680,35 @@ function EditProfile({ go, profile, onSave }: { go:(s:S)=>void; profile:UserProf
    REFERRAL SCREEN
    ============================================================ */
 function Referral({ go }: { go:(s:S)=>void }) {
-  const [copied, setCopied] = useState(false);
-  const code = "WISE" + Math.random().toString(36).slice(2,7).toUpperCase();
-  const copy = () => {
-    navigator.clipboard.writeText(code).then(()=>{ setCopied(true); setTimeout(()=>setCopied(false),2000); });
-  };
-
+  const [copied,setCopied]=useState(false);
+  const [code]=useState("WISE"+Math.random().toString(36).slice(2,7).toUpperCase());
+  const copy=()=>{navigator.clipboard.writeText(code).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);showToast("Referral code copied!");});};
   return (
-    <div className="screen desktop-content">
+    <div className="screen desktop-content screen-enter">
       <PageHead title="Refer a Friend" back={()=>go("settings")}/>
       <div className="px">
-        <div className="card-surface au" style={{padding:"28px 24px",textAlign:"center",marginBottom:20,background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)"}}>
-          <div style={{fontSize:48,marginBottom:12}}>🎁</div>
+        <div className="card-surface au" style={{padding:"28px 22px",textAlign:"center",marginBottom:16,background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)"}}>
+          <div style={{fontSize:46,marginBottom:12}}>🎁</div>
           <h2 style={{fontSize:22,fontWeight:700,color:"var(--text)",marginBottom:8}}>Give $20, Get $20</h2>
-          <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.6,maxWidth:280,margin:"0 auto 24px"}}>Share WiseCard with a friend. When they sign up and add their first card, you both get $20 in rewards.</p>
-          <div style={{background:"var(--surface)",border:"2px dashed var(--accent)",borderRadius:12,padding:"16px",marginBottom:16}}>
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Your referral code</p>
+          <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.6,maxWidth:280,margin:"0 auto 22px"}}>Share WiseCard with a friend. When they sign up and add their first card, you both get $20 in rewards.</p>
+          <div style={{background:"var(--surface)",border:"2px dashed var(--accent)",borderRadius:12,padding:"16px",marginBottom:14}}>
+            <p style={{color:"var(--text3)",fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Your referral code</p>
             <p style={{color:"var(--accent)",fontSize:28,fontWeight:800,letterSpacing:4}}>{code}</p>
           </div>
-          <button onClick={copy} className="btn-gold press" style={{width:"100%",padding:"14px"}}>
-            {copied ? "✓ Copied!" : "Copy Code"}
-          </button>
+          <button onClick={copy} className="btn-gold press" style={{width:"100%",padding:"13px",fontSize:14}}>{copied?"✓ Copied!":"Copy Code"}</button>
         </div>
-
-        <div className="card-surface" style={{padding:"20px",marginBottom:20}}>
+        <div className="card-surface" style={{padding:"20px",marginBottom:16}}>
           <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>How It Works</p>
-          {[
-            ["1","Share your code","Send your unique code to friends via text, email, or social media"],
-            ["2","They sign up","Your friend creates a WiseCard account using your referral code"],
-            ["3","Both get rewarded","Once they add their first card, you both earn $20 in rewards"],
-          ].map(([num,title,desc])=>(
-            <div key={num} style={{display:"flex",gap:14,marginBottom:16,alignItems:"flex-start"}}>
-              <div style={{width:28,height:28,borderRadius:"50%",background:"var(--accent)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,flexShrink:0}}>{num}</div>
-              <div>
-                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{title}</p>
-                <p style={{color:"var(--text2)",fontSize:12,marginTop:2,lineHeight:1.4}}>{desc}</p>
-              </div>
+          {[["1","Share your code","Send it via text, email, or social media"],["2","Friend signs up","They create a WiseCard account with your code"],["3","Both get rewarded","After they add their first card, you both earn $20"]].map(([n,t,d])=>(
+            <div key={n} style={{display:"flex",gap:12,marginBottom:14,alignItems:"flex-start"}}>
+              <div style={{width:26,height:26,borderRadius:"50%",background:"var(--accent)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,flexShrink:0}}>{n}</div>
+              <div><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{t}</p><p style={{color:"var(--text2)",fontSize:12,marginTop:2,lineHeight:1.4}}>{d}</p></div>
             </div>
           ))}
         </div>
-
         <div className="card-surface" style={{padding:"16px 20px"}}>
-          <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Your Referrals</p>
-          <EmptyState icon="👥" title="No referrals yet" sub="Share your code to start earning rewards when friends join WiseCard."/>
+          <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>Your Referrals</p>
+          <EmptyState icon="👥" title="No referrals yet" sub="Share your code to start earning when friends join WiseCard."/>
         </div>
       </div>
     </div>
@@ -3400,87 +3719,122 @@ function Referral({ go }: { go:(s:S)=>void }) {
    PRIVACY & SECURITY SCREEN
    ============================================================ */
 function Privacy({ go }: { go:(s:S)=>void }) {
-  const [biometric, setBiometric] = useState(false);
-  const [dataSharing, setDataSharing] = useState(false);
-  const [analytics, setAnalytics] = useState(true);
-
+  const [biometric,setBiometric]=useState(false);
+  const [dataSharing,setDataSharing]=useState(false);
+  const [analytics,setAnalytics]=useState(true);
   return (
-    <div className="screen desktop-content">
+    <div className="screen desktop-content screen-enter">
       <PageHead title="Privacy & Security" back={()=>go("settings")}/>
       <div className="px">
-        <div className="card-surface au" style={{padding:"16px 20px",marginBottom:16,background:"var(--greenbg)",border:"1px solid rgba(34,197,94,.2)"}}>
-          <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-            <span style={{fontSize:20}}>🔒</span>
+        <div className="card-surface au" style={{padding:"15px 18px",marginBottom:16,background:"var(--greenbg)",border:"1px solid rgba(39,103,73,.2)"}}>
+          <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+            <span style={{fontSize:18,flexShrink:0}}>🔒</span>
             <div>
               <p style={{color:"var(--green)",fontSize:13,fontWeight:700}}>Your data is secure</p>
-              <p style={{color:"var(--text2)",fontSize:12,marginTop:2,lineHeight:1.5}}>WiseCard uses AES-256 encryption. We never store your card numbers. Your data is never sold to third parties.</p>
+              <p style={{color:"var(--text2)",fontSize:12,marginTop:2,lineHeight:1.5}}>WiseCard uses AES-256 encryption. We never store card numbers. Your data is never sold.</p>
             </div>
           </div>
         </div>
-
         <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Security</p>
-        <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
-          {([
-            ["biometric",biometric,setBiometric,"🔑","Biometric Login","Use Face ID or fingerprint to sign in"],
-          ] as [string,boolean,any,string,string,string][]).map(([key,val,setVal,icon,label,desc])=>(
-            <div key={key} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px"}}>
-              <span style={{fontSize:18,width:28,textAlign:"center"}}>{icon}</span>
-              <div style={{flex:1}}>
-                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
-                <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
-              </div>
-              <Toggle on={val} set={()=>setVal((v:boolean)=>!v)}/>
-            </div>
-          ))}
-          <div style={{borderTop:"1px solid var(--border)"}}>
-            <button className="press" style={{width:"100%",padding:"14px 18px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
-              <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Change Password</p>
-              <span style={{color:"var(--text3)",fontSize:16}}>-></span>
-            </button>
+        <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)"}}>
+            <span style={{fontSize:18,width:26,textAlign:"center"}}>🔑</span>
+            <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Biometric Login</p><p style={{color:"var(--text2)",fontSize:11}}>Face ID or fingerprint sign-in</p></div>
+            <Toggle on={biometric} set={()=>setBiometric(v=>!v)}/>
           </div>
-        </div>
-
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Data & Privacy</p>
-        <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
-          {([
-            ["dataSharing",dataSharing,setDataSharing,"📤","Share Anonymous Data","Help improve WiseCard with anonymized usage data"],
-            ["analytics",analytics,setAnalytics,"📊","Usage Analytics","Allow analytics to improve your experience"],
-          ] as [string,boolean,any,string,string,string][]).map(([key,val,setVal,icon,label,desc],i)=>(
-            <div key={key} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",borderBottom:i===0?"1px solid var(--border)":"none"}}>
-              <span style={{fontSize:18,width:28,textAlign:"center"}}>{icon}</span>
-              <div style={{flex:1}}>
-                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
-                <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
-              </div>
-              <Toggle on={val} set={()=>setVal((v:boolean)=>!v)}/>
-            </div>
-          ))}
-          <div style={{borderTop:"1px solid var(--border)"}}>
-            <button className="press" style={{width:"100%",padding:"14px 18px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
-              <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Download My Data</p>
-              <span style={{color:"var(--text3)",fontSize:16}}>-></span>
-            </button>
-          </div>
-        </div>
-
-        <div className="card-surface" style={{overflow:"hidden"}}>
-          <button className="press" style={{width:"100%",padding:"14px 18px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
-            <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Privacy Policy</p>
-            <span style={{color:"var(--text3)",fontSize:16}}>-></span>
+          <button className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
+            <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Change Password</p>
+            <span style={{color:"var(--text3)",fontSize:14}}>→</span>
           </button>
-          <div style={{borderTop:"1px solid var(--border)"}}>
-            <button className="press" style={{width:"100%",padding:"14px 18px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
-              <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Terms of Service</p>
-              <span style={{color:"var(--text3)",fontSize:16}}>-></span>
-            </button>
-          </div>
-          <div style={{borderTop:"1px solid var(--border)"}}>
-            <button className="press" style={{width:"100%",padding:"14px 18px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
-              <p style={{color:"var(--red)",fontSize:13,fontWeight:600}}>Delete Account</p>
-              <span style={{color:"var(--red)",fontSize:16}}>-></span>
-            </button>
-          </div>
         </div>
+        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Data & Privacy</p>
+        <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
+          {([[dataSharing,setDataSharing,"📤","Share Anonymous Data","Help improve WiseCard with anonymized usage data"],[analytics,setAnalytics,"📊","Usage Analytics","Allow analytics to improve your experience"]] as [boolean,any,string,string,string][]).map(([val,setVal,icon,label,desc],i)=>(
+            <div key={label} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:i===0?"1px solid var(--border)":"none"}}>
+              <span style={{fontSize:18,width:26,textAlign:"center"}}>{icon}</span>
+              <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p><p style={{color:"var(--text2)",fontSize:11}}>{desc}</p></div>
+              <Toggle on={val} set={()=>setVal((v:boolean)=>!v)}/>
+            </div>
+          ))}
+          <button className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid var(--border)",textAlign:"left"}}>
+            <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Download My Data</p>
+            <span style={{color:"var(--text3)",fontSize:14}}>→</span>
+          </button>
+        </div>
+        <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
+          {["Privacy Policy","Terms of Service"].map((item,i,arr)=>(
+            <button key={item} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
+              <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{item}</p>
+              <span style={{color:"var(--text3)",fontSize:14}}>→</span>
+            </button>
+          ))}
+        </div>
+        <div className="card-surface" style={{overflow:"hidden"}}>
+          <button className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
+            <p style={{color:"var(--red)",fontSize:13,fontWeight:600}}>Delete Account</p>
+            <span style={{color:"var(--red)",fontSize:14}}>→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   ABOUT WISECARD SCREEN
+   ============================================================ */
+function About({ go }: { go:(s:S)=>void }) {
+  const changes = [
+    {v:"v1.3",date:"Jun 2026",items:["Speedometer analytics on home and analytics screens","Transaction logging — track your spending in real time","Search bar with instant results","Card balance quick-update from dashboard","Spending insights and utilization alerts"]},
+    {v:"v1.2",date:"May 2026",items:["Analytics screen with category breakdown","Card comparison tool","Notification preferences","Referral program — give $20, get $20","Privacy & security controls"]},
+    {v:"v1.1",date:"Apr 2026",items:["Forgot password flow","Password strength indicator","Delete card with confirmation","Loading skeletons and empty states","Toast notifications for all actions"]},
+    {v:"v1.0",date:"Mar 2026",items:["Initial launch — 8 screens, 54 features","AI chatbot with full user context","50+ card database","Supabase auth and data sync","Travel, Goals, Split Bills, Perks screens"]},
+  ];
+  return (
+    <div className="screen desktop-content screen-enter">
+      <PageHead title="About WiseCard" back={()=>go("settings")}/>
+      <div className="px">
+        <div className="au card-surface" style={{padding:"28px 22px",textAlign:"center",marginBottom:20,background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.12)"}}>
+          <div style={{width:60,height:60,borderRadius:16,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px"}}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+          <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>WiseCard</p>
+          <p style={{color:"var(--text)",fontSize:26,fontWeight:800,marginBottom:4}}>Version 1.3.0</p>
+          <p style={{color:"var(--text2)",fontSize:13}}>Save more on every card spend</p>
+        </div>
+
+        <div className="card-surface" style={{padding:"18px 20px",marginBottom:16}}>
+          <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>App Info</p>
+          {[
+            ["Version","1.3.0"],["Build","2026.06.18"],["Platform","Web / PWA"],
+            ["Cards in Database","50+"],["Features","54 across 9 modules"],["AI Model","Claude Sonnet"],
+          ].map(([k,v],i,arr)=>(
+            <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:i<arr.length-1?12:0,marginBottom:i<arr.length-1?12:0,borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
+              <span style={{color:"var(--text2)",fontSize:13}}>{k}</span>
+              <span style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Changelog</p>
+        {changes.map(({v,date,items})=>(
+          <div key={v} className="card-surface" style={{padding:"16px 18px",marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <span style={{color:"var(--accent)",fontSize:14,fontWeight:700}}>{v}</span>
+              <span style={{color:"var(--text3)",fontSize:12}}>{date}</span>
+            </div>
+            {items.map((item,i)=>(
+              <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<items.length-1?7:0}}>
+                <span style={{color:"var(--accent)",fontSize:12,marginTop:1,flexShrink:0}}>+</span>
+                <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{item}</p>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:20,lineHeight:1.6}}>
+          Made with care. Your data is encrypted and never sold.
+        </p>
       </div>
     </div>
   );
@@ -3596,7 +3950,7 @@ function AuthScreen({onAuth}:{onAuth:()=>void}) {
           {success && <div style={{background:"var(--greenbg)",border:"1px solid rgba(34,197,94,.2)",borderRadius:10,padding:"10px 14px",marginBottom:16}}><p style={{color:"var(--green)",fontSize:13,margin:0}}>{success}</p></div>}
 
           <button onClick={handleAuth} disabled={loading} className="btn-gold press" style={{width:"100%",opacity:loading?0.7:1}}>
-            {loading ? "Please wait..." : mode==="login" ? "Sign In" : mode==="signup" ? "Create Account" : "Send Reset Link"}
+            {loading&&<span style={{width:15,height:15,borderRadius:"50%",border:"2px solid rgba(255,255,255,.3)",borderTopColor:"white",animation:"spin .7s linear infinite",display:"inline-block",flexShrink:0,marginRight:8}}/>}{loading?(mode==="login"?"Signing in...":mode==="signup"?"Creating account...":"Sending..."):mode==="login"?"Sign In":mode==="signup"?"Create Account":"Send Reset Link"}
           </button>
 
           <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setSuccess("");setPwStrength(0);setPassword("");}} style={{width:"100%",marginTop:14,background:"none",border:"none",color:"var(--text2)",fontSize:13,cursor:"pointer",padding:"8px"}}>
@@ -3764,6 +4118,14 @@ export default function App() {
     setScreen("home");
   };
 
+  // Update card balance and points
+  const updateCard = async (cardId: string, balance: number, points: number) => {
+    setCards(p => p.map(c => c.id===cardId ? {...c, balance, points} : c));
+    if(user) {
+      await supabase.from("cards").update({balance, points}).eq("id", cardId);
+    }
+  };
+
   // Delete a card
   const deleteCard = async (cardId: string) => {
     const card = cards.find(c => c.id === cardId);
@@ -3806,7 +4168,7 @@ export default function App() {
       <ToastContainer/>
       <Sidebar active={screen} go={go} theme={theme} toggleTheme={toggleTheme} profile={profile} onSignOut={signOut}/>
       <div className={isChat?"":"desktop-main"}>
-        {screen==="home"     && <Home     profile={profile} cards={cards} go={go} dataLoaded={dataLoaded}/>}
+        {screen==="home"     && <Home     profile={profile} cards={cards} go={go} dataLoaded={dataLoaded} onUpdateCard={updateCard}/>}
         {screen==="cards"    && <Cards    cards={cards} go={go} onDelete={deleteCard}/>}
         {screen==="add-card" && <AddCard  go={go} onAdd={addCard}/>}
         {screen==="chat"     && <Chat     cards={cards} profile={profile}/>}
@@ -3823,6 +4185,7 @@ export default function App() {
         {screen==="edit-profile"   && <EditProfile go={go} profile={profile} onSave={saveProfile}/>}
         {screen==="referral"       && <Referral go={go}/>}
         {screen==="privacy"        && <Privacy go={go}/>}
+        {screen==="about"          && <About go={go}/>}
       </div>
       {!isChat && <MobileNav active={screen} go={go}/>}
     </div>
