@@ -264,7 +264,7 @@ select.field { appearance:none; }
 /* ============================================================
    TYPES
    ============================================================ */
-type S = "onboard"|"home"|"cards"|"add-card"|"card-detail"|"chat"|"travel"|"goals"|"split"|"perks"|"settings"|"lifestyle"|"ai-recommender"|"analytics"|"notifications"|"compare"|"edit-profile"|"privacy"|"referral"|"about"|"card-strategy"|"debt-planner"|"net-worth"|"achievements"|"help";
+type S = "onboard"|"home"|"cards"|"add-card"|"card-detail"|"chat"|"travel"|"goals"|"split"|"perks"|"settings"|"lifestyle"|"ai-recommender"|"analytics"|"notifications"|"compare"|"edit-profile"|"privacy"|"referral"|"about"|"card-strategy"|"debt-planner"|"net-worth"|"achievements"|"help"|"privacy-policy"|"terms";
 type ToastType = "success"|"error"|"info"|"warning";
 interface Toast { id: string; message: string; type: ToastType; }
 
@@ -273,6 +273,7 @@ interface UserProfile {
   lifestyles: string[]; creditScore: string;
   spending: { dining:string; groceries:string; travel:string; gas:string; shopping:string; other:string; };
   goal: string;
+  budgetCaps?: { dining:string; groceries:string; travel:string; gas:string; shopping:string; other:string; };
 }
 
 interface CreditCard {
@@ -292,6 +293,7 @@ interface CreditCard {
   bonusTarget?: number;
   bonusDeadline?: string;
   bonusProgress?: number;
+  isFrozen?: boolean;
 }
 
 
@@ -918,6 +920,33 @@ const aprMidpoint = (aprStr: string): number => {
   return (parseFloat(nums[0]) + parseFloat(nums[1])) / 2;
 };
 
+// Real card network (Visa/Mastercard/Amex/Discover) based on issuer -- matches actual issuer-network partnerships
+const cardNetwork = (issuer: string): "Visa"|"Mastercard"|"Amex"|"Discover" => {
+  if (issuer === "Amex") return "Amex";
+  if (issuer === "Discover") return "Discover";
+  if (issuer === "Citi" || issuer === "Capital One") return "Mastercard"; // most common for these issuers
+  return "Visa"; // Chase, BoA, Wells Fargo, US Bank default to Visa for most consumer cards
+};
+
+function NetworkBadge({ issuer, size=22 }: { issuer:string; size?:number }) {
+  const network = cardNetwork(issuer);
+  if (network === "Visa") return (
+    <svg width={size*1.8} height={size} viewBox="0 0 48 24" fill="none"><text x="0" y="18" fontFamily="Arial,sans-serif" fontSize="18" fontWeight="900" fontStyle="italic" fill="white">VISA</text></svg>
+  );
+  if (network === "Mastercard") return (
+    <svg width={size*1.6} height={size} viewBox="0 0 40 24">
+      <circle cx="15" cy="12" r="11" fill="#EB001B" opacity="0.92"/>
+      <circle cx="25" cy="12" r="11" fill="#F79E1B" opacity="0.92"/>
+    </svg>
+  );
+  if (network === "Amex") return (
+    <svg width={size*2} height={size} viewBox="0 0 52 24" fill="none"><rect x="0" y="2" width="52" height="20" rx="3" fill="#1F72CD"/><text x="6" y="16" fontFamily="Arial,sans-serif" fontSize="10" fontWeight="800" fill="white">AMEX</text></svg>
+  );
+  return (
+    <svg width={size*2.1} height={size} viewBox="0 0 54 24" fill="none"><text x="0" y="18" fontFamily="Arial,sans-serif" fontSize="15" fontWeight="800" fill="#FF6000">DISCOVER</text></svg>
+  );
+}
+
 /* ============================================================
    TOAST NOTIFICATION SYSTEM
    ============================================================ */
@@ -1000,7 +1029,7 @@ function Ring({ v, max, r=26, sw=4, color="var(--accent)" }: { v:number; max:num
   const sz=(r+sw)*2, c=sz/2, circ=2*Math.PI*r, off=circ*(1-pct(v,max)/100);
   return (
     <svg width={sz} height={sz} style={{transform:"rotate(-90deg)"}}>
-      <circle cx={c} cy={c} r={r} fill="none" stroke="var(--border2)" strokeWidth={sw}/>
+      <circle cx={c} cy={c} r={r} fill="none" style={{stroke:"var(--border2)"}} strokeWidth={sw}/>
       <circle cx={c} cy={c} r={r} fill="none" stroke={color} strokeWidth={sw}
         strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="round"
         style={{transition:"stroke-dashoffset .9s cubic-bezier(.22,.68,0,1.2)"}}/>
@@ -1337,22 +1366,27 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
   ].slice(0,6) : [];
 
   // Speedometer gauge
+  // Luxury ring gauge -- 270° gradient arc, no needle. A soft glowing marker sits ON the
+  // arc at the selected card instead of a center-pivoting pointer.
   const HomeGauge = () => {
     if(cards.length===0) return null;
-    const W=300,H=168,cx=150,cy=156,R=118,SW=22;
+    const W=300,H=260,cx=150,cy=130,R=100,SW=16;
     const total=totalLim||1;
-    let cum=Math.PI;
+    const startAngle = Math.PI*0.75; // 135°
+    const totalSweep = Math.PI*1.5;  // 270°
+    let cum=startAngle;
     const segs=cards.map((card,i)=>{
       const frac=card.limit/total;
-      const sweep=frac*Math.PI;
+      const sweep=frac*totalSweep;
       const a1=cum,a2=cum+sweep; cum=a2;
       const x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);
       const x2=cx+R*Math.cos(a2),y2=cy+R*Math.sin(a2);
-      return {card,color:COLORS[i%COLORS.length],path:`M ${x1} ${y1} A ${R} ${R} 0 ${sweep>Math.PI?1:0} 1 ${x2} ${y2}`,mid:(a1+a2)/2};
+      const large = sweep>Math.PI?1:0;
+      return {card,color:COLORS[i%COLORS.length],path:`M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2}`,mid:(a1+a2)/2};
     });
-    let cum2=Math.PI;
+    let cum2=startAngle;
     const usedSegs=cards.map((card,i)=>{
-      const frac=card.limit/total; const sweep=frac*Math.PI;
+      const frac=card.limit/total; const sweep=frac*totalSweep;
       const a1=cum2; cum2+=sweep;
       const balFrac=card.limit>0?Math.min(1,card.balance/card.limit):0;
       const usedSweep=sweep*balFrac;
@@ -1360,36 +1394,54 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
       const x2=cx+R*Math.cos(a1+usedSweep),y2=cy+R*Math.sin(a1+usedSweep);
       return {path:usedSweep>0.02?`M ${x1} ${y1} A ${R} ${R} 0 ${usedSweep>Math.PI?1:0} 1 ${x2} ${y2}`:"",color:COLORS[i%COLORS.length]};
     });
+    const trackEndX = cx+R*Math.cos(startAngle+totalSweep), trackEndY = cy+R*Math.sin(startAngle+totalSweep);
+    const trackStartX = cx+R*Math.cos(startAngle), trackStartY = cy+R*Math.sin(startAngle);
     const sel=segs.find(s=>s.card.id===selCard);
-    const needleAngle=sel?sel.mid:Math.PI+(util/100)*Math.PI;
-    const nl=R-14,nx=cx+nl*Math.cos(needleAngle),ny=cy+nl*Math.sin(needleAngle);
+    const markerX = sel ? cx+R*Math.cos(sel.mid) : null;
+    const markerY = sel ? cy+R*Math.sin(sel.mid) : null;
     const sc=cards.find(c=>c.id===selCard);
 
     return (
       <div>
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",maxWidth:320,margin:"0 auto"}}>
-          <path d={`M ${cx-R} ${cy} A ${R} ${R} 0 0 1 ${cx+R} ${cy}`} fill="none" stroke="rgba(255,255,255,.12)" strokeWidth={SW} strokeLinecap="round"/>
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",maxWidth:280,margin:"0 auto"}}>
+          <defs>
+            {segs.map((s,i)=>(
+              <linearGradient key={i} id={`hgrad-${s.card.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={s.color} stopOpacity="0.75"/>
+                <stop offset="100%" stopColor={s.color} stopOpacity="1"/>
+              </linearGradient>
+            ))}
+          </defs>
+          <path d={`M ${trackStartX} ${trackStartY} A ${R} ${R} 0 1 1 ${trackEndX} ${trackEndY}`} fill="none" stroke="rgba(255,255,255,.1)" strokeWidth={SW} strokeLinecap="round"/>
           {segs.map((s,i)=>(
-            <path key={i} d={s.path} fill="none" stroke={s.color}
-              strokeWidth={selCard===s.card.id?SW+7:SW} strokeLinecap="round"
-              opacity={selCard&&selCard!==s.card.id?0.3:1}
-              style={{cursor:"pointer",transition:"all .2s",filter:selCard===s.card.id?`drop-shadow(0 0 8px ${s.color})`:"none"}}
+            <path key={i} d={s.path} fill="none" stroke={`url(#hgrad-${s.card.id})`}
+              strokeWidth={selCard===s.card.id?SW+6:SW} strokeLinecap="round"
+              opacity={selCard&&selCard!==s.card.id?0.35:1}
+              style={{cursor:"pointer",transition:"all .25s ease",filter:selCard===s.card.id?`drop-shadow(0 2px 8px ${s.color}90)`:"none"}}
               onClick={()=>setSelCard(id=>id===s.card.id?null:s.card.id)}/>
           ))}
           {usedSegs.map((s,i)=>(
-            s.path?<path key={i} d={s.path} fill="none" stroke="rgba(0,0,0,.3)" strokeWidth={SW*.5} strokeLinecap="round" style={{pointerEvents:"none"}}/>:null
+            s.path?<path key={i} d={s.path} fill="none" stroke="rgba(0,0,0,.35)" strokeWidth={SW*.45} strokeLinecap="round" style={{pointerEvents:"none"}}/>:null
           ))}
-          <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="white" strokeWidth={2.5} strokeLinecap="round" style={{transition:"all .4s ease"}}/>
-          <circle cx={cx} cy={cy} r={5} fill="white"/>
+          {markerX!==null && markerY!==null && sel && (
+            <>
+              <circle cx={markerX} cy={markerY} r={11} fill={sel.color} opacity={0.3}>
+                <animate attributeName="r" values="9;14;9" dur="2s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.35;0.08;0.35" dur="2s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx={markerX} cy={markerY} r={6} fill="white" style={{filter:`drop-shadow(0 1px 4px ${sel.color})`}}/>
+              <circle cx={markerX} cy={markerY} r={3.2} fill={sel.color}/>
+            </>
+          )}
           {sc?(
             <>
-              <text x={cx} y={cy-22} textAnchor="middle" fill="white" fontSize={14} fontWeight="700">{sc.name}</text>
-              <text x={cx} y={cy-6} textAnchor="middle" fill="rgba(255,255,255,.6)" fontSize={10}>${f(sc.balance)} used of ${f(sc.limit)}</text>
+              <text x={cx} y={cy-6} textAnchor="middle" fill="white" fontSize={17} fontWeight="700">{sc.name}</text>
+              <text x={cx} y={cy+16} textAnchor="middle" fill="rgba(255,255,255,.55)" fontSize={10} fontWeight="600" letterSpacing="1">${f(sc.balance)} OF ${f(sc.limit)}</text>
             </>
           ):(
             <>
-              <text x={cx} y={cy-22} textAnchor="middle" fill="white" fontSize={22} fontWeight="800">{util}%</text>
-              <text x={cx} y={cy-6} textAnchor="middle" fill="rgba(255,255,255,.55)" fontSize={10}>overall utilization</text>
+              <text x={cx} y={cy-6} textAnchor="middle" fill="white" fontSize={28} fontWeight="700" letterSpacing="-0.5">{util}%</text>
+              <text x={cx} y={cy+16} textAnchor="middle" fill="rgba(255,255,255,.5)" fontSize={10} fontWeight="600" letterSpacing="1.2">OVERALL UTILIZATION</text>
             </>
           )}
         </svg>
@@ -1585,6 +1637,50 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         ))}
       </div>
 
+      {/* Quick Pick widget -- "what card should I use right now?" */}
+      {cards.length > 0 && (
+        <div className="au card-surface" style={{padding:"16px 18px",marginBottom:20,border:"1.5px solid var(--accent)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+            <span style={{fontSize:16}}>⚡</span>
+            <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>What card should I use right now?</p>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
+            {([
+              ["🍽️","Dining","dining"],["🛒","Groceries","groceries"],
+              ["⛽","Gas","gas"],["✈️","Travel","travel"],
+              ["🛍️","Shopping","shopping"],["📱","Streaming","streaming"],
+              ["💊","Drugstore","drugstore"],["📦","Other","other"],
+            ] as [string,string,string][]).map(([icon,label,cat])=>{
+              // Score each owned card for this category based on its rewardRate text
+              const scored = cards.map(c=>{
+                const rr = c.rewardRate.toLowerCase();
+                let mult = 1;
+                if(cat==="dining"&&rr.includes("dining")) mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"3");
+                else if(cat==="groceries"&&rr.includes("grocer")) mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"3");
+                else if(cat==="gas"&&rr.includes("gas")) mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"3");
+                else if(cat==="travel"&&rr.includes("travel")) mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"3");
+                else if(cat==="streaming"&&rr.includes("stream")) mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"3");
+                else if(cat==="shopping"&&(rr.includes("everything")||rr.includes("all"))) mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"1.5");
+                else mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"1");
+                return {card:c, mult};
+              }).sort((a,b)=>b.mult-a.mult);
+              const best = scored[0];
+              return (
+                <button key={cat} onClick={()=>{
+                  if(best) showToast(`Use ${best.card.name} -- ${best.mult}x rewards on ${label.toLowerCase()}`);
+                }} className="press hover-lift" style={{
+                  padding:"10px 6px",borderRadius:10,background:"var(--surface2)",border:"1px solid var(--border)",
+                  textAlign:"center",cursor:"pointer",
+                }}>
+                  <span style={{fontSize:16,display:"block",marginBottom:3}}>{icon}</span>
+                  <span style={{color:"var(--text2)",fontSize:9,fontWeight:600}}>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* My Cards */}
       <div className="au" style={{marginBottom:20}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
@@ -1616,7 +1712,9 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
                 }}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <div style={{width:42,height:27,borderRadius:6,background:card.gradient,boxShadow:"0 2px 8px rgba(0,0,0,.4)"}}/>
+                      <div style={{width:42,height:27,borderRadius:6,background:card.gradient,boxShadow:"0 2px 8px rgba(0,0,0,.4)",display:"flex",alignItems:"flex-end",justifyContent:"flex-end",padding:"2px 3px"}}>
+                        <NetworkBadge issuer={card.issuer} size={9}/>
+                      </div>
                       <div>
                         <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>{card.name}</p>
                         <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{card.issuer} · {card.rewardRate}</p>
@@ -1778,7 +1876,10 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
             {/* Card preview */}
             <div style={{background:selected.gradient,borderRadius:20,padding:"24px",marginBottom:24,position:"relative",overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.5)"}}>
               <div style={{position:"absolute",top:-20,right:-20,width:100,height:100,borderRadius:"50%",background:"rgba(255,255,255,.06)"}}/>
-              <p style={{color:"rgba(255,255,255,.5)",fontSize:11,letterSpacing:1.2,textTransform:"uppercase",marginBottom:4}}>{selected.issuer}</p>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <p style={{color:"rgba(255,255,255,.5)",fontSize:11,letterSpacing:1.2,textTransform:"uppercase",marginBottom:4}}>{selected.issuer}</p>
+                <NetworkBadge issuer={selected.issuer} size={20}/>
+              </div>
               <p style={{color:"#fff",fontSize:20,fontWeight:700,marginBottom:12}}>{selected.name}</p>
               <p style={{color:selected.accentColor,fontSize:13}}>{selected.rewardRate}</p>
               <div style={{display:"flex",gap:12,marginTop:16}}>
@@ -1885,7 +1986,7 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
 /* ============================================================
    CARDS SCREEN
    ============================================================ */
-function Cards({ cards, go, onDelete }: { cards:CreditCard[]; go:(s:S)=>void; onDelete?:(id:string)=>void }) {
+function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go:(s:S)=>void; onDelete?:(id:string)=>void; onToggleFreeze?:(id:string)=>void }) {
   const [open, setOpen] = useState<string|null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string|null>(null);
   return (
@@ -1907,8 +2008,14 @@ function Cards({ cards, go, onDelete }: { cards:CreditCard[]; go:(s:S)=>void; on
               }} onClick={()=>setOpen(isOpen?null:card.id)}>
 
                 {/* Card face */}
-                <div style={{background:card.gradient,padding:"22px 20px",position:"relative",overflow:"hidden"}}>
+                <div style={{background:card.gradient,padding:"22px 20px",position:"relative",overflow:"hidden",filter:card.isFrozen?"grayscale(.6) brightness(.7)":"none",transition:"filter .3s"}}>
                   <div style={{position:"absolute",top:-25,right:-25,width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,.07)"}}/>
+                  {card.isFrozen && (
+                    <div style={{position:"absolute",top:14,left:14,background:"rgba(0,0,0,.5)",borderRadius:99,padding:"4px 10px",display:"flex",alignItems:"center",gap:5,zIndex:2}}>
+                      <span style={{fontSize:11}}>🔒</span>
+                      <span style={{color:"#fff",fontSize:10,fontWeight:700,letterSpacing:.5}}>FROZEN</span>
+                    </div>
+                  )}
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18}}>
                     <div>
                       <p style={{color:"rgba(255,255,255,.5)",fontSize:11,letterSpacing:1.2,textTransform:"uppercase",marginBottom:3}}>{card.issuer}</p>
@@ -1916,13 +2023,16 @@ function Cards({ cards, go, onDelete }: { cards:CreditCard[]; go:(s:S)=>void; on
                     </div>
                     <span className="pill" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:11}}>{card.cashback}</span>
                   </div>
-                  <div style={{display:"flex",gap:22}}>
+                  <div style={{display:"flex",gap:22,marginBottom:14}}>
                     {[{l:"Balance",v:`$${f(card.balance)}`},{l:"Available",v:`$${f(card.limit-card.balance)}`},{l:"Points",v:f(card.points)}].map(({l,v})=>(
                       <div key={l}>
                         <p style={{color:"rgba(255,255,255,.4)",fontSize:10,textTransform:"uppercase",letterSpacing:.8,marginBottom:2}}>{l}</p>
                         <p style={{color:"#fff",fontSize:16,fontWeight:700}}>{v}</p>
                       </div>
                     ))}
+                  </div>
+                  <div style={{display:"flex",justifyContent:"flex-end"}}>
+                    <NetworkBadge issuer={card.issuer} size={16}/>
                   </div>
                 </div>
 
@@ -2037,6 +2147,23 @@ function Cards({ cards, go, onDelete }: { cards:CreditCard[]; go:(s:S)=>void; on
                             <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.4}}>{b}</p>
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Freeze card button */}
+                    {onToggleFreeze && (
+                      <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--border)"}}>
+                        <button onClick={e=>{e.stopPropagation();onToggleFreeze(card.id);}} className="press" style={{
+                          width:"100%",padding:"11px",borderRadius:10,fontSize:13,fontWeight:600,cursor:"pointer",
+                          background:card.isFrozen?"var(--greenbg)":"var(--surface2)",
+                          border:`1px solid ${card.isFrozen?"rgba(34,197,94,.25)":"var(--border)"}`,
+                          color:card.isFrozen?"var(--green)":"var(--text)",
+                          display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+                        }}>
+                          <span>{card.isFrozen?"🔓":"🔒"}</span>
+                          {card.isFrozen ? "Unfreeze Card" : "Freeze Card"}
+                        </button>
+                        <p style={{color:"var(--text3)",fontSize:10,marginTop:6,textAlign:"center"}}>{card.isFrozen?"New purchases would be blocked while frozen":"Instantly block new purchases if your card is lost or stolen"}</p>
                       </div>
                     )}
 
@@ -2155,7 +2282,7 @@ PORTFOLIO: ${f(totalPts)} total points worth ~$${f(Math.round(totalPts*0.015))} 
       <div style={{padding:"56px 20px 14px",borderBottom:"1px solid var(--border2)",background:"var(--surface)"}}>
         <div style={{display:"flex",alignItems:"center",gap:12,maxWidth:800,margin:"0 auto"}}>
           <button onClick={()=>go("home")} className="press" style={{width:38,height:38,borderRadius:11,background:"var(--surface2)",border:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{stroke:"var(--text)"}} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
           <div style={{width:44,height:44,borderRadius:13,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 16px rgba(37,99,235,.15)",flexShrink:0}}></div>
           <div>
@@ -3756,7 +3883,12 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
   const [amt, setAmt] = useState(""); const [desc, setDesc] = useState(""); const [cat, setCat] = useState("dining"); const [card, setCard] = useState(cards[0]?.name||"");
   const [sel, setSel] = useState<string|null>(null);
   const spending = profile.spending||{};
-  const merged = CATS.map(c=>({...c,val:Number((spending as any)[c.key]||0)+txns.filter(t=>t.cat===c.key).reduce((s,t)=>s+t.amount,0),fromTxns:txns.filter(t=>t.cat===c.key).reduce((s,t)=>s+t.amount,0)}));
+  const caps = profile.budgetCaps||{};
+  const merged = CATS.map(c=>{
+    const val = Number((spending as any)[c.key]||0)+txns.filter(t=>t.cat===c.key).reduce((s,t)=>s+t.amount,0);
+    const cap = Number((caps as any)[c.key]||0);
+    return {...c,val,fromTxns:txns.filter(t=>t.cat===c.key).reduce((s,t)=>s+t.amount,0),cap,capPct:cap>0?Math.round(val/cap*100):0};
+  });
   const total = merged.reduce((s,c)=>s+c.val,0);
   const active = merged.filter(c=>c.val>0).sort((a,b)=>b.val-a.val);
   const selCat = active.find(c=>c.key===sel)||active[0]||null;
@@ -3797,32 +3929,62 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
     showToast("Analytics exported as CSV");
   };
 
+  // Luxury ring gauge -- 270° gradient arc, no needle. A soft glowing marker sits ON the
+  // arc at the selected segment instead of a center-pivoting pointer.
   const SpeedoGauge = () => {
     if(total===0) return null;
-    const W=300,H=178,cx=150,cy=164,R=126,SW=26;
-    let cum=Math.PI;
-    const segs=active.map(cat=>{
-      const sweep=(cat.val/total)*Math.PI;
-      const a1=cum,a2=cum+sweep; cum=a2;
-      const x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);
-      const x2=cx+R*Math.cos(a2),y2=cy+R*Math.sin(a2);
-      return {cat,path:`M ${x1} ${y1} A ${R} ${R} 0 ${sweep>Math.PI?1:0} 1 ${x2} ${y2}`,mid:(a1+a2)/2};
+    const W=300,H=270,cx=150,cy=140,R=104,SW=18;
+    const startAngle = Math.PI*0.75; // 135°
+    const totalSweep = Math.PI*1.5;  // 270°
+    let cum = startAngle;
+    const segs = active.map(cat=>{
+      const sweep=(cat.val/total)*totalSweep;
+      const a1=cum, a2=cum+sweep; cum=a2;
+      const x1=cx+R*Math.cos(a1), y1=cy+R*Math.sin(a1);
+      const x2=cx+R*Math.cos(a2), y2=cy+R*Math.sin(a2);
+      const large = sweep>Math.PI ? 1 : 0;
+      return {cat, path:`M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2}`, mid:(a1+a2)/2};
     });
-    const needleSeg=selCat?segs.find(s=>s.cat.key===selCat.key):segs[0];
-    const nAngle=needleSeg?needleSeg.mid:Math.PI*1.5;
-    const nl=R-18,nx=cx+nl*Math.cos(nAngle),ny=cy+nl*Math.sin(nAngle);
+    const trackEndX = cx+R*Math.cos(startAngle+totalSweep), trackEndY = cy+R*Math.sin(startAngle+totalSweep);
+    const trackStartX = cx+R*Math.cos(startAngle), trackStartY = cy+R*Math.sin(startAngle);
+    const markerSeg = selCat ? segs.find(s=>s.cat.key===selCat.key) : null;
+    const markerX = markerSeg ? cx+R*Math.cos(markerSeg.mid) : null;
+    const markerY = markerSeg ? cy+R*Math.sin(markerSeg.mid) : null;
+
     return (
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",maxWidth:340,margin:"0 auto"}}>
-        <path d={`M ${cx-R} ${cy} A ${R} ${R} 0 0 1 ${cx+R} ${cy}`} fill="none" stroke="var(--border2)" strokeWidth={SW} strokeLinecap="round"/>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",maxWidth:300,margin:"0 auto"}}>
+        <defs>
+          {active.map(cat=>(
+            <linearGradient key={cat.key} id={`grad-${cat.key}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={cat.color} stopOpacity="0.75"/>
+              <stop offset="100%" stopColor={cat.color} stopOpacity="1"/>
+            </linearGradient>
+          ))}
+        </defs>
+        {/* Background track */}
+        <path d={`M ${trackStartX} ${trackStartY} A ${R} ${R} 0 1 1 ${trackEndX} ${trackEndY}`} fill="none" style={{stroke:"var(--border2)"}} strokeWidth={SW} strokeLinecap="round" opacity={0.5}/>
+        {/* Gradient segments */}
         {segs.map((s,i)=>(
-          <path key={i} d={s.path} fill="none" stroke={s.cat.color} strokeWidth={sel===s.cat.key?SW+7:SW} strokeLinecap="round"
-            opacity={sel&&sel!==s.cat.key?0.3:1} style={{cursor:"pointer",transition:"all .2s",filter:sel===s.cat.key?`drop-shadow(0 0 7px ${s.cat.color})`:"none"}}
+          <path key={i} d={s.path} fill="none" stroke={`url(#grad-${s.cat.key})`}
+            strokeWidth={sel===s.cat.key?SW+6:SW} strokeLinecap="round"
+            opacity={sel&&sel!==s.cat.key?0.35:1}
+            style={{cursor:"pointer",transition:"all .25s ease",filter:sel===s.cat.key?`drop-shadow(0 2px 10px ${s.cat.color}90)`:"none"}}
             onClick={()=>setSel(v=>v===s.cat.key?null:s.cat.key)}/>
         ))}
-        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="var(--text)" strokeWidth={2.5} strokeLinecap="round" style={{transition:"all .4s ease"}}/>
-        <circle cx={cx} cy={cy} r={6} fill="var(--text)"/>
-        <text x={cx} y={cy-22} textAnchor="middle" fill="var(--text)" fontSize={20} fontWeight="800">${f(selCat?.val||total)}</text>
-        <text x={cx} y={cy-6} textAnchor="middle" fill="var(--text2)" fontSize={10}>{selCat?selCat.label:"Total Monthly"}</text>
+        {/* Glowing marker dot on the arc -- replaces the needle */}
+        {markerX!==null && markerY!==null && (
+          <>
+            <circle cx={markerX} cy={markerY} r={11} fill={selCat!.color} opacity={0.25}>
+              <animate attributeName="r" values="9;14;9" dur="2s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.3;0.05;0.3" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx={markerX} cy={markerY} r={6} fill="white" style={{filter:`drop-shadow(0 1px 4px ${selCat!.color})`}}/>
+            <circle cx={markerX} cy={markerY} r={3.2} fill={selCat!.color}/>
+          </>
+        )}
+        {/* Center content */}
+        <text x={cx} y={cy-6} textAnchor="middle" style={{fill:"var(--text)"}} fontSize={26} fontWeight="700" letterSpacing="-0.5">${f(selCat?.val||total)}</text>
+        <text x={cx} y={cy+16} textAnchor="middle" style={{fill:"var(--text3)"}} fontSize={10} fontWeight="600" letterSpacing="1.2">{(selCat?selCat.label:"TOTAL MONTHLY").toUpperCase()}</text>
       </svg>
     );
   };
@@ -3835,6 +3997,14 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
           <button onClick={()=>setShowAdd(a=>!a)} className="btn-gold press" style={{padding:"8px 16px",fontSize:13}}>+ Log</button>
         </div>}/>
       <div className="px">
+        {merged.filter(c=>c.cap>0&&c.capPct>=80).map(c=>(
+          <div key={c.key} className="au" style={{background:c.capPct>=100?"var(--redbg)":"var(--amberbg)",border:`1px solid ${c.capPct>=100?"rgba(220,38,38,.2)":"rgba(217,119,6,.2)"}`,borderRadius:12,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:15}}>{c.capPct>=100?"🚨":"⚠️"}</span>
+            <p style={{color:c.capPct>=100?"var(--red)":"var(--amber)",fontSize:12,fontWeight:600,flex:1}}>
+              {c.capPct>=100 ? `Over budget on ${c.label}` : `Close to your ${c.label} cap`} — ${f(c.val)} of ${f(c.cap)} ({c.capPct}%)
+            </p>
+          </div>
+        ))}
         {showAdd&&(
           <div className="ap card-surface" style={{padding:20,marginBottom:20,border:"1.5px solid var(--accent)"}}>
             <p style={{color:"var(--text)",fontSize:15,fontWeight:700,marginBottom:14}}>Log a Transaction</p>
@@ -3946,6 +4116,15 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
                     </div>
                     <span style={{color:"var(--text3)",fontSize:10,width:28,textAlign:"right"}}>{Math.round(cat.val/total*100)}%</span>
                   </div>
+                  {cat.cap>0 && (
+                    <div style={{marginTop:6,display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:9,color:cat.capPct>=100?"var(--red)":cat.capPct>=80?"var(--amber)":"var(--text3)"}}>Budget: ${f(cat.cap)}</span>
+                      <div style={{flex:1,height:3,background:"var(--border2)",borderRadius:99,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:`${Math.min(100,cat.capPct)}%`,background:cat.capPct>=100?"var(--red)":cat.capPct>=80?"var(--amber)":"var(--green)",borderRadius:99}}/>
+                      </div>
+                      <span style={{fontSize:9,fontWeight:700,color:cat.capPct>=100?"var(--red)":cat.capPct>=80?"var(--amber)":"var(--green)"}}>{cat.capPct}%</span>
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -4181,6 +4360,7 @@ function EditProfile({ go, profile, onSave }: { go:(s:S)=>void; profile:UserProf
   const [p,setP]=useState({...profile});
   const set=(k:keyof UserProfile,v:any)=>setP(prev=>({...prev,[k]:v}));
   const setSp=(k:keyof typeof p.spending,v:string)=>set("spending",{...p.spending,[k]:v});
+  const setCap=(k:keyof typeof p.spending,v:string)=>set("budgetCaps",{...(p.budgetCaps||{dining:"",groceries:"",travel:"",gas:"",shopping:"",other:""}),[k]:v});
   const INCOMES=["Under $30,000","$30,000-$60,000","$60,000-$100,000","$100,000-$150,000","$150,000-$250,000","$250,000+"];
   const SCORES=["300-579 (Poor)","580-669 (Fair)","670-739 (Good)","740-799 (Very Good)","800+ (Exceptional)"];
   return (
@@ -4221,6 +4401,20 @@ function EditProfile({ go, profile, onSave }: { go:(s:S)=>void; profile:UserProf
             ))}
           </div>
         </div>
+
+        <div className="card-surface" style={{padding:"20px",marginBottom:20}}>
+          <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Budget Caps</p>
+          <p style={{color:"var(--text2)",fontSize:12,marginBottom:14,lineHeight:1.5}}>Set a monthly limit per category. We'll warn you in Analytics when you're close to going over.</p>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            {([["dining","🍽️ Dining"],["groceries","🛒 Groceries"],["travel","✈️ Travel"],["gas","⛽ Gas"],["shopping","🛍️ Shopping"],["other","📦 Other"]] as [keyof typeof p.spending,string][]).map(([k,label])=>(
+              <div key={k}>
+                <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:5}}>{label} cap / month</label>
+                <input className="field" type="number" placeholder="No cap set" value={p.budgetCaps?.[k]||""} onChange={e=>setCap(k,e.target.value)}/>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <button onClick={()=>{onSave(p);go("settings");}} className="btn-gold press" style={{width:"100%",padding:"14px",fontSize:15}}>Save Changes</button>
       </div>
     </div>
@@ -4325,8 +4519,8 @@ function Privacy({ go }: { go:(s:S)=>void }) {
           </button>
         </div>
         <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
-          {["Privacy Policy","Terms of Service"].map((item,i,arr)=>(
-            <button key={item} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
+          {([["Privacy Policy",()=>go("privacy-policy")],["Terms of Service",()=>go("terms")]] as [string,()=>void][]).map(([item,action],i,arr)=>(
+            <button key={item} onClick={action} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
               <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{item}</p>
               <span style={{color:"var(--text3)",fontSize:14}}>→</span>
             </button>
@@ -4943,7 +5137,203 @@ function Landing({ onGetStarted, onSignIn }: { onGetStarted:()=>void; onSignIn:(
   );
 }
 
-function AuthScreen({onAuth}:{onAuth:()=>void}) {
+
+/* ============================================================
+   PRIVACY POLICY SCREEN
+   ============================================================ */
+function PrivacyPolicy({ go }: { go:(s:S)=>void }) {
+  const sections = [
+    {
+      title: "1. Information We Collect",
+      body: [
+        "Account information: your name, email address, and password (encrypted) when you create an account.",
+        "Financial profile: income range, self-reported credit score range, and monthly spending estimates you choose to enter.",
+        "Card data you enter manually: card name, issuer, balance, credit limit, points, and due dates. We do not collect, store, or have access to your full card number, CVV, or any data that would let us make charges.",
+        "Transactions you log: amounts, categories, and descriptions you manually enter into the Analytics feature.",
+        "Goals, assets, and budget data: any financial goals, net worth assets, or budget caps you choose to set.",
+        "Usage data: pages visited and features used within the app, used only to improve the product.",
+      ],
+    },
+    {
+      title: "2. How We Use Your Information",
+      body: [
+        "To provide the core features of WiseCard: card tracking, spending analytics, AI-powered recommendations, and goal tracking.",
+        "To personalize the AI Advisor's responses using your card and spending data, processed via Anthropic's Claude API.",
+        "To send you in-app notifications about payment due dates, budget caps, and annual fee renewals, based on data you've entered.",
+        "To improve WiseCard's features, fix bugs, and understand which features are used most.",
+        "We do not sell your personal or financial data to third parties, and we do not use your data to show you third-party advertising.",
+      ],
+    },
+    {
+      title: "3. How We Protect Your Data",
+      body: [
+        "All data is encrypted in transit using TLS and at rest using AES-256 encryption, provided by our database infrastructure (Supabase, built on PostgreSQL).",
+        "Row-level security policies ensure your data is only ever accessible to your own authenticated account -- not to other users.",
+        "We never ask for or store your full card number, expiration date, or CVV. WiseCard cannot move money, open new accounts, or make charges on your behalf.",
+        "Passwords are hashed and never stored or visible in plain text, including to WiseCard's own team.",
+      ],
+    },
+    {
+      title: "4. Third-Party Services We Use",
+      body: [
+        "Supabase -- our database and authentication provider, which stores your account and financial data securely.",
+        "Anthropic (Claude API) -- powers the AI Advisor chat feature. Messages you send to the AI Advisor, along with relevant profile context, are sent to Anthropic's API to generate responses. See Anthropic's own privacy policy for how they handle API data.",
+        "Vercel -- hosts the WiseCard application and may log standard web request metadata (e.g. IP address, browser type) for security and performance purposes.",
+      ],
+    },
+    {
+      title: "5. Your Rights and Choices",
+      body: [
+        "You can edit or delete any data you've entered (cards, goals, transactions, assets) at any time within the app.",
+        "You can request a full export of your data in machine-readable form via Settings -> Privacy & Security -> Download My Data.",
+        "You can permanently delete your account and all associated data via Settings -> Privacy & Security -> Delete Account. This action is irreversible.",
+        "You can opt out of anonymized usage analytics at any time via the toggle in Privacy & Security.",
+      ],
+    },
+    {
+      title: "6. Data Retention",
+      body: [
+        "We retain your data for as long as your account is active. If you delete your account, your data is permanently removed from our active database, though backups may persist for a limited period before being purged.",
+      ],
+    },
+    {
+      title: "7. Children's Privacy",
+      body: [
+        "WiseCard is not directed at, and is not intended for use by, anyone under the age of 18. We do not knowingly collect information from minors.",
+      ],
+    },
+    {
+      title: "8. Changes to This Policy",
+      body: [
+        "We may update this Privacy Policy from time to time. Material changes will be communicated within the app. Continued use of WiseCard after changes take effect constitutes acceptance of the updated policy.",
+      ],
+    },
+    {
+      title: "9. Contact Us",
+      body: [
+        "Questions about this policy or your data can be sent to support@wisecard.app.",
+      ],
+    },
+  ];
+  return (
+    <div className="screen desktop-content screen-enter">
+      <PageHead title="Privacy Policy" back={()=>go("privacy")}/>
+      <div className="px">
+        <div className="card-surface au" style={{padding:"14px 16px",marginBottom:20,background:"var(--amberbg)",border:"1px solid rgba(217,119,6,.2)"}}>
+          <p style={{color:"var(--amber)",fontSize:12,fontWeight:600,marginBottom:3}}>⚠️ Student project notice</p>
+          <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.5}}>This policy accurately describes how WiseCard's current prototype handles data. It has not been reviewed by a lawyer and should be professionally reviewed before any commercial launch with real users.</p>
+        </div>
+        <p style={{color:"var(--text2)",fontSize:12,marginBottom:20}}>Last updated: June 2026</p>
+        {sections.map(sec=>(
+          <div key={sec.title} style={{marginBottom:22}}>
+            <h3 style={{color:"var(--text)",fontSize:15,fontWeight:700,marginBottom:10}}>{sec.title}</h3>
+            {sec.body.map((p,i)=>(
+              <p key={i} style={{color:"var(--text2)",fontSize:13,lineHeight:1.7,marginBottom:8}}>{p}</p>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   TERMS OF SERVICE SCREEN
+   ============================================================ */
+function TermsOfService({ go }: { go:(s:S)=>void }) {
+  const sections = [
+    {
+      title: "1. Acceptance of Terms",
+      body: [
+        "By creating an account or using WiseCard, you agree to these Terms of Service and our Privacy Policy. If you do not agree, please do not use the app.",
+      ],
+    },
+    {
+      title: "2. Description of Service",
+      body: [
+        "WiseCard is a personal finance tracking and education tool. It helps you track credit cards you manually add, log spending, set goals, and receive AI-generated suggestions about card usage and rewards optimization.",
+        "WiseCard is NOT a bank, lender, or financial institution. We do not issue credit cards, extend credit, move money, or have any access to your real bank or card accounts.",
+        "WiseCard does not connect to your real bank or card accounts. All balances, limits, and points are entered manually by you and may not reflect your real-time, actual account status.",
+      ],
+    },
+    {
+      title: "3. Not Financial or Legal Advice",
+      body: [
+        "Information and suggestions provided by WiseCard's AI Advisor, approval-chance estimates, and recommendation tools are for general informational and educational purposes only.",
+        "They do not constitute professional financial, legal, tax, or credit advice, and should not be relied upon as the sole basis for any financial decision. Always verify current rates, fees, and terms directly with the card issuer before applying for or using any financial product.",
+        "Approval-chance percentages are rough estimates based on self-reported income and credit score ranges. They are not guarantees of approval and do not reflect the issuer's actual underwriting criteria.",
+      ],
+    },
+    {
+      title: "4. Your Account",
+      body: [
+        "You are responsible for maintaining the confidentiality of your password and for all activity that occurs under your account.",
+        "You must provide accurate information when creating your account. You may not impersonate another person or entity.",
+        "You must be at least 18 years old to create an account.",
+      ],
+    },
+    {
+      title: "5. Acceptable Use",
+      body: [
+        "You agree not to use WiseCard to: violate any law; attempt to gain unauthorized access to other users' data or to WiseCard's systems; introduce malware or attempt to disrupt the service; or scrape, resell, or redistribute WiseCard's content or card database without permission.",
+      ],
+    },
+    {
+      title: "6. Disclaimers and Limitation of Liability",
+      body: [
+        "WiseCard is provided \"as is\" and \"as available\" without warranties of any kind, express or implied, including but not limited to accuracy, reliability, or fitness for a particular purpose.",
+        "To the fullest extent permitted by law, WiseCard and its creators are not liable for any direct, indirect, incidental, or consequential damages arising from your use of the app, including but not limited to financial loss resulting from card application decisions, missed payments, or reliance on AI-generated suggestions.",
+        "Sign-up bonus values, transfer ratios, APRs, and fees displayed in the app are believed accurate as of the date shown but can change at any time at the issuer's discretion. Always confirm current terms directly with the issuer.",
+      ],
+    },
+    {
+      title: "7. Intellectual Property",
+      body: [
+        "The WiseCard name, design, and original content are the property of WiseCard. Card names, issuer names, and trademarks referenced in the app belong to their respective owners and are used for identification and comparison purposes only. WiseCard is not affiliated with, endorsed by, or sponsored by any card issuer mentioned in the app.",
+      ],
+    },
+    {
+      title: "8. Termination",
+      body: [
+        "You may stop using WiseCard and delete your account at any time via Settings. We reserve the right to suspend or terminate accounts that violate these terms.",
+      ],
+    },
+    {
+      title: "9. Changes to These Terms",
+      body: [
+        "We may update these Terms from time to time. Continued use of WiseCard after changes take effect constitutes acceptance of the revised Terms.",
+      ],
+    },
+    {
+      title: "10. Contact Us",
+      body: [
+        "Questions about these Terms can be sent to support@wisecard.app.",
+      ],
+    },
+  ];
+  return (
+    <div className="screen desktop-content screen-enter">
+      <PageHead title="Terms of Service" back={()=>go("privacy")}/>
+      <div className="px">
+        <div className="card-surface au" style={{padding:"14px 16px",marginBottom:20,background:"var(--amberbg)",border:"1px solid rgba(217,119,6,.2)"}}>
+          <p style={{color:"var(--amber)",fontSize:12,fontWeight:600,marginBottom:3}}>⚠️ Student project notice</p>
+          <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.5}}>These terms accurately describe WiseCard's current prototype. They have not been reviewed by a lawyer and should be professionally reviewed before any commercial launch with real users.</p>
+        </div>
+        <p style={{color:"var(--text2)",fontSize:12,marginBottom:20}}>Last updated: June 2026</p>
+        {sections.map(sec=>(
+          <div key={sec.title} style={{marginBottom:22}}>
+            <h3 style={{color:"var(--text)",fontSize:15,fontWeight:700,marginBottom:10}}>{sec.title}</h3>
+            {sec.body.map((p,i)=>(
+              <p key={i} style={{color:"var(--text2)",fontSize:13,lineHeight:1.7,marginBottom:8}}>{p}</p>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AuthScreen({onAuth}:{onAuth:(user:any)=>void}) {
   const [mode, setMode] = useState<"login"|"signup"|"forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -4987,9 +5377,9 @@ function AuthScreen({onAuth}:{onAuth:()=>void}) {
         if (error) setError(error.message);
         else { setSuccess("Account created! Please check your email to verify, then log in."); setMode("login"); }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) setError(error.message === "Invalid login credentials" ? "Incorrect email or password" : error.message);
-        else onAuth();
+        else onAuth(data.user); // pass the user we already have -- don't wait on a separate event
       }
     } catch(e) { setError("Something went wrong. Try again."); }
     setLoading(false);
@@ -5061,8 +5451,8 @@ function AuthScreen({onAuth}:{onAuth:()=>void}) {
           </button>
         </div>
 
-        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:16}}>
-          Your data is encrypted with AES-256 and never shared
+        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:16,lineHeight:1.6}}>
+          {mode==="signup" ? "By creating an account, you agree to our Terms of Service and Privacy Policy. " : ""}Your data is encrypted with AES-256 and never shared
         </p>
       </div>
     </div>
@@ -5158,7 +5548,8 @@ export default function App() {
             dining:prof.spending_dining||"", groceries:prof.spending_groceries||"",
             travel:prof.spending_travel||"", gas:prof.spending_gas||"",
             shopping:prof.spending_shopping||"", other:prof.spending_other||"",
-          }
+          },
+          budgetCaps: prof.budget_caps || undefined,
         });
         setScreen("home");
       }
@@ -5262,6 +5653,7 @@ export default function App() {
         spending_dining:p.spending.dining, spending_groceries:p.spending.groceries,
         spending_travel:p.spending.travel, spending_gas:p.spending.gas,
         spending_shopping:p.spending.shopping, spending_other:p.spending.other,
+        budget_caps: p.budgetCaps || null,
       });
     }
     setScreen("home");
@@ -5276,6 +5668,13 @@ export default function App() {
   };
 
   // Update a card's sign-up bonus tracking
+  // Freeze/unfreeze a card (local state only -- simulates a security lock, no real bank action)
+  const toggleCardFreeze = (cardId: string) => {
+    setCards(p => p.map(c => c.id===cardId ? {...c, isFrozen: !c.isFrozen} : c));
+    const card = cards.find(c=>c.id===cardId);
+    showToast(card?.isFrozen ? `${card.name} unfrozen` : `${card?.name} frozen`, card?.isFrozen ? "success" : "warning");
+  };
+
   const updateCardBonus = async (cardId: string, bonusTarget: number, bonusDeadline: string, bonusProgress: number) => {
     setCards(p => p.map(c => c.id===cardId ? {...c, bonusTarget, bonusDeadline, bonusProgress} : c));
     if(user) {
@@ -5405,7 +5804,7 @@ export default function App() {
 
   // Show landing page first, then auth screen if not logged in
   if(!user && !showAuthForm) return <Landing onGetStarted={()=>setShowAuthForm(true)} onSignIn={()=>setShowAuthForm(true)}/>;
-  if(!user) return <AuthScreen onAuth={()=>{setUser(null);setDataLoaded(false);}}/>;
+  if(!user) return <AuthScreen onAuth={(authedUser)=>{setUser(authedUser);setDataLoaded(false);}}/>;
 
   // Show onboarding if logged in but no profile yet
   if(screen==="onboard") return <Onboard done={saveProfile}/>;
@@ -5418,7 +5817,7 @@ export default function App() {
       <Sidebar active={screen} go={go} theme={theme} toggleTheme={toggleTheme} profile={profile} onSignOut={signOut}/>
       <div className={isChat?"":"desktop-main"}>
         {screen==="home"     && <Home     profile={profile} cards={cards} go={go} dataLoaded={dataLoaded} onUpdateCard={updateCard}/>}
-        {screen==="cards"    && <Cards    cards={cards} go={go} onDelete={deleteCard}/>}
+        {screen==="cards"    && <Cards    cards={cards} go={go} onDelete={deleteCard} onToggleFreeze={toggleCardFreeze}/>}
         {screen==="add-card" && <AddCard  go={go} onAdd={addCard}/>}
         {screen==="chat"     && <Chat     cards={cards} profile={profile} go={go}/>}
         {screen==="travel"   && <Travel   cards={cards}/>}
@@ -5434,6 +5833,8 @@ export default function App() {
         {screen==="edit-profile"   && <EditProfile go={go} profile={profile} onSave={saveProfile}/>}
         {screen==="referral"       && <Referral go={go}/>}
         {screen==="privacy"        && <Privacy go={go}/>}
+        {screen==="privacy-policy" && <PrivacyPolicy go={go}/>}
+        {screen==="terms"          && <TermsOfService go={go}/>}
         {screen==="about"          && <About go={go}/>}
         {screen==="card-strategy"  && <CardStrategy go={go} cards={cards} applications={cardApplications} onAddApplication={addCardApplication} onDeleteApplication={deleteCardApplication} onUpdateBonus={updateCardBonus}/>}
         {screen==="debt-planner"   && <DebtPlanner go={go} cards={cards}/>}
