@@ -995,19 +995,27 @@ function Icon({ name, size=18, color="currentColor", strokeWidth=1.8 }: { name:s
 function NetworkBadge({ issuer, size=22 }: { issuer:string; size?:number }) {
   const network = cardNetwork(issuer);
   if (network === "Visa") return (
-    <svg width={size*1.8} height={size} viewBox="0 0 48 24" fill="none"><text x="0" y="18" fontFamily="Arial,sans-serif" fontSize="18" fontWeight="900" fontStyle="italic" fill="white">VISA</text></svg>
+    <svg width={size*1.7} height={size} viewBox="0 0 44 24" fill="none">
+      <text x="0" y="18" fontFamily="Arial,Helvetica,sans-serif" fontSize="17" fontWeight="900" fontStyle="italic" letterSpacing="-0.5" fill="white" style={{filter:"drop-shadow(0 1px 1px rgba(0,0,0,.25))"}}>VISA</text>
+    </svg>
   );
   if (network === "Mastercard") return (
-    <svg width={size*1.6} height={size} viewBox="0 0 40 24">
-      <circle cx="15" cy="12" r="11" fill="#EB001B" opacity="0.92"/>
-      <circle cx="25" cy="12" r="11" fill="#F79E1B" opacity="0.92"/>
+    <svg width={size*1.55} height={size} viewBox="0 0 38 24">
+      <circle cx="14" cy="12" r="10.5" fill="#EB001B"/>
+      <circle cx="24" cy="12" r="10.5" fill="#F79E1B"/>
+      <path d="M19 4.2a10.5 10.5 0 0 1 0 15.6 10.5 10.5 0 0 1 0-15.6z" fill="#FF5F00"/>
     </svg>
   );
   if (network === "Amex") return (
-    <svg width={size*2} height={size} viewBox="0 0 52 24" fill="none"><rect x="0" y="2" width="52" height="20" rx="3" fill="#1F72CD"/><text x="6" y="16" fontFamily="Arial,sans-serif" fontSize="10" fontWeight="800" fill="white">AMEX</text></svg>
+    <svg width={size*1.9} height={size} viewBox="0 0 48 22" fill="none">
+      <rect x="0" y="1" width="48" height="20" rx="3" fill="#006FCF"/>
+      <text x="24" y="15" textAnchor="middle" fontFamily="Arial,Helvetica,sans-serif" fontSize="9.5" fontWeight="700" letterSpacing="0.5" fill="white">AMEX</text>
+    </svg>
   );
   return (
-    <svg width={size*2.1} height={size} viewBox="0 0 54 24" fill="none"><text x="0" y="18" fontFamily="Arial,sans-serif" fontSize="15" fontWeight="800" fill="#FF6000">DISCOVER</text></svg>
+    <svg width={size*2.3} height={size} viewBox="0 0 58 24" fill="none">
+      <text x="0" y="17" fontFamily="Georgia,'Times New Roman',serif" fontSize="15" fontWeight="700" fontStyle="italic" fill="#FF6000">Discover</text>
+    </svg>
   );
 }
 
@@ -3973,6 +3981,68 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
     showToast("Analytics exported as CSV");
   };
 
+  // Import transactions from CSV -- expects columns: Date,Description,Category,Card,Amount
+  // (same shape as what Export produces, so round-tripping works)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = String(ev.target?.result || "");
+        const rows = text.split("\n").map(r=>r.trim()).filter(r=>r.length>0);
+        let imported = 0;
+        // Simple CSV parser handling quoted fields with commas inside
+        const parseRow = (row: string): string[] => {
+          const fields: string[] = []; let cur = ""; let inQuotes = false;
+          for (let i=0;i<row.length;i++) {
+            const ch = row[i];
+            if (ch === '"') { inQuotes = !inQuotes; }
+            else if (ch === "," && !inQuotes) { fields.push(cur); cur = ""; }
+            else { cur += ch; }
+          }
+          fields.push(cur);
+          return fields.map(f=>f.replace(/^"|"$/g,"").trim());
+        };
+        rows.slice(1).forEach(row => { // skip header row
+          const fields = parseRow(row);
+          if (fields.length < 5) return;
+          const [date, description, category, cardName, amountStr] = fields;
+          if (description === "Monthly Budget") return; // skip the budget summary rows our own export adds
+          const amount = parseFloat(amountStr);
+          if (isNaN(amount) || amount <= 0) return;
+          const catKey = CATS.find(c=>c.label.toLowerCase()===category.toLowerCase())?.key || "other";
+          onAddTxn(catKey, amount, description||"Imported transaction", cardName||"", date||new Date().toISOString().slice(0,10));
+          imported++;
+        });
+        showToast(imported>0 ? `Imported ${imported} transaction${imported!==1?"s":""}` : "No valid transactions found in file", imported>0?"success":"warning");
+      } catch {
+        showToast("Could not read that file -- make sure it's a CSV export from WiseCard", "error");
+      }
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+    reader.readAsText(file);
+  };
+
+  // Round-up savings simulator -- if every logged transaction were rounded up to the nearest dollar
+  const roundUpTotal = txns.reduce((s,t)=>s+(Math.ceil(t.amount)-t.amount), 0);
+  const roundUpMonthly = roundUpTotal; // based on what's actually logged so far this period
+  const roundUpYearly = txns.length>0 ? (roundUpTotal / txns.length) * 30 * 12 : 0; // rough daily-rate extrapolation
+
+  // Spending pace tracker -- compares logged-transaction spend so far against your typical
+  // full monthly budget (the static profile estimate), vs how far into the calendar month we are.
+  const dayOfMonth = new Date().getDate();
+  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
+  const monthPct = Math.round((dayOfMonth/daysInMonth)*100);
+  const baselineMonthlyBudget = CATS.reduce((s,c)=>s+Number((spending as any)[c.key]||0),0);
+  const loggedThisMonth = merged.reduce((s,c)=>s+c.fromTxns,0);
+  const spendPct = baselineMonthlyBudget>0 ? Math.round((loggedThisMonth/baselineMonthlyBudget)*100) : 0;
+  const pace = spendPct - monthPct; // positive = spending faster than the month is progressing
+
   // Luxury ring gauge -- 270° gradient arc, no needle. A soft glowing marker sits ON the
   // arc at the selected segment instead of a center-pivoting pointer.
   const SpeedoGauge = () => {
@@ -4037,7 +4107,11 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
     <div className="screen desktop-content screen-enter">
       <PageHead title="Analytics" sub="Tap segments to explore spending" back={()=>go("settings")}
         right={<div style={{display:"flex",gap:8}}>
-          {txns.length>0 && <button onClick={exportCSV} className="btn-ghost press" style={{padding:"8px 14px",fontSize:13}}>⬇ Export</button>}
+          <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCSVImport} style={{display:"none"}}/>
+          <button onClick={()=>fileInputRef.current?.click()} disabled={importing} className="btn-ghost press" style={{padding:"8px 12px",fontSize:13,display:"flex",alignItems:"center",gap:6}}>
+            <Icon name="download" size={13} color="var(--text2)"/>{importing?"...":"Import"}
+          </button>
+          {txns.length>0 && <button onClick={exportCSV} className="btn-ghost press" style={{padding:"8px 12px",fontSize:13}}>Export</button>}
           <button onClick={()=>setShowAdd(a=>!a)} className="btn-gold press" style={{padding:"8px 16px",fontSize:13}}>+ Log</button>
         </div>}/>
       <div className="px">
@@ -4049,6 +4123,26 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
             </p>
           </div>
         ))}
+
+        {txns.length>=3 && baselineMonthlyBudget>0 && (
+          <div className="au card-surface" style={{padding:"16px 18px",marginBottom:16,border:`1px solid ${pace>15?"rgba(220,38,38,.2)":"var(--border)"}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>Spending Pace</p>
+              <span style={{fontSize:11,color:pace>15?"var(--red)":pace>0?"var(--amber)":"var(--green)",fontWeight:700}}>
+                {pace>15?"Spending fast":pace>0?"Slightly ahead":"On pace"}
+              </span>
+            </div>
+            <div style={{position:"relative",height:8,background:"var(--border2)",borderRadius:99,overflow:"hidden",marginBottom:8}}>
+              <div style={{position:"absolute",left:0,top:0,height:"100%",width:`${Math.min(100,spendPct)}%`,background:pace>15?"var(--red)":pace>0?"var(--amber)":"var(--green)",borderRadius:99,transition:"width .5s ease"}}/>
+              <div style={{position:"absolute",left:`${monthPct}%`,top:0,height:"100%",width:2,background:"var(--text)"}}/>
+            </div>
+            <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.5}}>
+              You've logged {spendPct}% of your typical monthly spend, and we're {monthPct}% through the month.
+              {pace>15 ? " You're spending faster than usual — worth checking what's driving it." : pace<-15 ? " You're spending less than usual this month." : " That's roughly on track."}
+            </p>
+          </div>
+        )}
+
         {showAdd&&(
           <div className="ap card-surface" style={{padding:20,marginBottom:20,border:"1.5px solid var(--accent)"}}>
             <p style={{color:"var(--text)",fontSize:15,fontWeight:700,marginBottom:14}}>Log a Transaction</p>
@@ -4227,7 +4321,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
         {total>0&&(
           <>
             <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Yearly Projection</p>
-            <div className="card-surface" style={{padding:"20px"}}>
+            <div className="card-surface" style={{padding:"20px",marginBottom:20}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,textAlign:"center"}}>
                 {[
                   {l:"Annual Spend",v:`$${f(total*12)}`},
@@ -4239,6 +4333,25 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
                     <p style={{color:"var(--text2)",fontSize:11,marginTop:4}}>{l}</p>
                   </div>
                 ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {txns.length>0&&(
+          <>
+            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Round-Up Savings</p>
+            <div className="card-surface au" style={{padding:"18px 20px",marginBottom:20,background:"var(--greenbg)",border:"1px solid rgba(39,103,73,.15)"}}>
+              <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5,marginBottom:12}}>If every logged purchase were rounded up to the nearest dollar and the difference saved automatically:</p>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,textAlign:"center"}}>
+                <div>
+                  <p style={{color:"var(--green)",fontSize:22,fontWeight:800}}>${roundUpMonthly.toFixed(2)}</p>
+                  <p style={{color:"var(--text2)",fontSize:11,marginTop:3}}>From {txns.length} logged purchase{txns.length!==1?"s":""}</p>
+                </div>
+                <div>
+                  <p style={{color:"var(--green)",fontSize:22,fontWeight:800}}>~${f(Math.round(roundUpYearly))}</p>
+                  <p style={{color:"var(--text2)",fontSize:11,marginTop:3}}>Projected per year</p>
+                </div>
               </div>
             </div>
           </>
@@ -4508,17 +4621,46 @@ function Referral({ go }: { go:(s:S)=>void }) {
 /* ============================================================
    PRIVACY & SECURITY SCREEN
    ============================================================ */
-function Privacy({ go, profile, cards, goals, assets, txns, cardApplications }: { go:(s:S)=>void; profile:UserProfile; cards:CreditCard[]; goals:Goal[]; assets:Asset[]; txns:Txn[]; cardApplications:CardApplication[] }) {
-  const [biometric,setBiometric]=useState(false);
-  const [twoFA,setTwoFA]=useState(false);
-  const [autoLogout,setAutoLogout]=useState(true);
+function Privacy({ go, profile, cards, goals, assets, txns, cardApplications, autoLogoutEnabled, setAutoLogoutEnabled }: { go:(s:S)=>void; profile:UserProfile; cards:CreditCard[]; goals:Goal[]; assets:Asset[]; txns:Txn[]; cardApplications:CardApplication[]; autoLogoutEnabled:boolean; setAutoLogoutEnabled:(v:boolean)=>void }) {
   const [dataSharing,setDataSharing]=useState(false);
   const [analytics,setAnalytics]=useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const deleteAccount = async () => {
+    setDeleteLoading(true); setDeleteError("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setDeleteError("Session expired. Please sign in again."); setDeleteLoading(false); return; }
+      const res = await fetch("/api/delete-account", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) { setDeleteError(data.error || "Failed to delete account"); setDeleteLoading(false); return; }
+      await supabase.auth.signOut();
+      window.location.reload();
+    } catch (e) {
+      setDeleteError("Network error. Please try again.");
+      setDeleteLoading(false);
+    }
+  };
   const [showPwForm, setShowPwForm] = useState(false);
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [pwLoading, setPwLoading] = useState(false);
   const [pwError, setPwError] = useState("");
+  const [pwStrength, setPwStrength] = useState(0);
+
+  const calcPwStrength = (pw: string) => {
+    let s = 0;
+    if (pw.length >= 8) s++;
+    if (/[A-Z]/.test(pw)) s++;
+    if (/[0-9]/.test(pw)) s++;
+    if (/[^A-Za-z0-9]/.test(pw)) s++;
+    setPwStrength(s);
+  };
 
   const changePassword = async () => {
     setPwError("");
@@ -4532,20 +4674,84 @@ function Privacy({ go, profile, cards, goals, assets, txns, cardApplications }: 
     setShowPwForm(false); setNewPw(""); setConfirmPw("");
   };
 
-  const downloadMyData = () => {
+  const [showExportFormats, setShowExportFormats] = useState(false);
+
+  const triggerDownload = (content: string, filename: string, mime: string) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadAsJSON = () => {
     const exportData = {
       exportedAt: new Date().toISOString(),
       profile,
       cards: cards.map(c=>({...c})),
       goals, assets, transactions: txns, cardApplications,
     };
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `wisecard-data-export-${new Date().toISOString().slice(0,10)}.json`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast("Your data export has downloaded");
+    triggerDownload(JSON.stringify(exportData, null, 2), `wisecard-data-export-${new Date().toISOString().slice(0,10)}.json`, "application/json");
+    showToast("JSON export downloaded");
+    setShowExportFormats(false);
+  };
+
+  const downloadAsText = () => {
+    const date = new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
+    const lines: string[] = [];
+    lines.push("WISECARD -- YOUR DATA EXPORT");
+    lines.push(`Generated: ${date}`);
+    lines.push("=".repeat(50));
+
+    lines.push("\nPROFILE");
+    lines.push("-".repeat(50));
+    lines.push(`Name: ${profile.name||"Not set"}`);
+    lines.push(`Income range: ${profile.income||"Not set"}`);
+    lines.push(`Credit score range: ${profile.creditScore||"Not set"}`);
+    lines.push(`Primary goal: ${profile.goal||"Not set"}`);
+    lines.push(`Lifestyle tags: ${(profile.lifestyles||[]).join(", ")||"None"}`);
+    lines.push(`Monthly spending -- Dining: $${profile.spending?.dining||0}, Groceries: $${profile.spending?.groceries||0}, Travel: $${profile.spending?.travel||0}, Gas: $${profile.spending?.gas||0}, Shopping: $${profile.spending?.shopping||0}, Other: $${profile.spending?.other||0}`);
+
+    lines.push(`\nCARDS (${cards.length})`);
+    lines.push("-".repeat(50));
+    if (cards.length===0) lines.push("No cards added.");
+    cards.forEach((c,i)=>{
+      lines.push(`${i+1}. ${c.name} (${c.issuer})`);
+      lines.push(`   Balance: $${c.balance} of $${c.limit} limit | Points: ${c.points} | APR: ${c.apr}`);
+      lines.push(`   Due date: ${c.dueDate||"Not set"} | Minimum payment: $${c.minPayment}`);
+      lines.push(`   Opened: ${c.openedDate||"Not set"} | Annual fee: $${c.annualFee}`);
+    });
+
+    lines.push(`\nGOALS (${goals.length})`);
+    lines.push("-".repeat(50));
+    if (goals.length===0) lines.push("No goals set.");
+    goals.forEach((g,i)=>{
+      lines.push(`${i+1}. ${g.title} -- ${g.current}${g.unit} of ${g.target}${g.unit} (Due: ${g.due})`);
+    });
+
+    lines.push(`\nASSETS (${assets.length})`);
+    lines.push("-".repeat(50));
+    if (assets.length===0) lines.push("No assets added.");
+    assets.forEach((a,i)=>{ lines.push(`${i+1}. ${a.name}: $${a.value}`); });
+
+    lines.push(`\nLOGGED TRANSACTIONS (${txns.length})`);
+    lines.push("-".repeat(50));
+    if (txns.length===0) lines.push("No transactions logged.");
+    txns.forEach((t,i)=>{ lines.push(`${i+1}. ${t.date} -- ${t.desc} -- $${t.amount} (${t.cat}, ${t.card})`); });
+
+    lines.push(`\nCARD APPLICATIONS LOGGED (${cardApplications.length})`);
+    lines.push("-".repeat(50));
+    if (cardApplications.length===0) lines.push("No applications logged.");
+    cardApplications.forEach((a,i)=>{ lines.push(`${i+1}. ${a.issuer} -- opened ${a.date}`); });
+
+    lines.push("\n" + "=".repeat(50));
+    lines.push("This export contains all data you've entered into WiseCard.");
+    lines.push("Questions? Contact support@wisecard.app");
+
+    triggerDownload(lines.join("\n"), `wisecard-data-summary-${new Date().toISOString().slice(0,10)}.txt`, "text/plain");
+    showToast("Readable summary downloaded");
+    setShowExportFormats(false);
   };
   return (
     <div className="screen desktop-content screen-enter">
@@ -4562,20 +4768,26 @@ function Privacy({ go, profile, cards, goals, assets, txns, cardApplications }: 
         </div>
         <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Security</p>
         <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)"}}>
-            <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name="key" size={16}/></span>
-            <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Biometric Login</p><p style={{color:"var(--text2)",fontSize:11}}>Face ID or fingerprint sign-in</p></div>
-            <Toggle on={biometric} set={()=>setBiometric(v=>!v)}/>
+          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)",opacity:0.55}}>
+            <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text3)"}}><Icon name="key" size={16}/></span>
+            <div style={{flex:1}}>
+              <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Biometric Login</p>
+              <p style={{color:"var(--text2)",fontSize:11}}>Face ID or fingerprint sign-in</p>
+            </div>
+            <span className="pill pill-gray" style={{fontSize:9,fontWeight:700}}>COMING SOON</span>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)"}}>
-            <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name="shield" size={16}/></span>
-            <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Two-Factor Authentication</p><p style={{color:"var(--text2)",fontSize:11}}>Require a code from your phone at sign-in</p></div>
-            <Toggle on={twoFA} set={()=>{setTwoFA(v=>!v);showToast(twoFA?"Two-factor authentication disabled":"Two-factor authentication enabled");}}/>
+          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)",opacity:0.55}}>
+            <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text3)"}}><Icon name="shield" size={16}/></span>
+            <div style={{flex:1}}>
+              <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Two-Factor Authentication</p>
+              <p style={{color:"var(--text2)",fontSize:11}}>Require a code from your phone at sign-in</p>
+            </div>
+            <span className="pill pill-gray" style={{fontSize:9,fontWeight:700}}>COMING SOON</span>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)"}}>
             <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name="clock" size={16}/></span>
             <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Auto Sign-Out</p><p style={{color:"var(--text2)",fontSize:11}}>Sign out automatically after 15 minutes idle</p></div>
-            <Toggle on={autoLogout} set={()=>setAutoLogout(v=>!v)}/>
+            <Toggle on={autoLogoutEnabled} set={()=>{setAutoLogoutEnabled(!autoLogoutEnabled);showToast(autoLogoutEnabled?"Auto sign-out disabled":"Auto sign-out enabled -- you'll be signed out after 15 minutes idle");}}/>
           </div>
           <button onClick={()=>setShowPwForm(s=>!s)} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
             <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Change Password</p>
@@ -4585,7 +4797,17 @@ function Privacy({ go, profile, cards, goals, assets, txns, cardApplications }: 
             <div style={{padding:"4px 16px 16px",borderTop:"1px solid var(--border)"}}>
               <div style={{marginTop:12,marginBottom:10}}>
                 <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>New Password</label>
-                <input className="field" type="password" placeholder="At least 8 characters" value={newPw} onChange={e=>setNewPw(e.target.value)} style={{padding:"10px 12px"}}/>
+                <input className="field" type="password" placeholder="At least 8 characters" value={newPw} onChange={e=>{setNewPw(e.target.value);calcPwStrength(e.target.value);}} style={{padding:"10px 12px"}}/>
+                {newPw.length>0 && (
+                  <div style={{marginTop:8}}>
+                    <div style={{display:"flex",gap:4,marginBottom:4}}>
+                      {[1,2,3,4].map(i=>(
+                        <div key={i} style={{flex:1,height:3,borderRadius:2,background:pwStrength>=i?(i<=1?"var(--red)":i<=2?"var(--amber)":i<=3?"var(--accent)":"var(--green)"):"var(--border2)",transition:"background .2s"}}/>
+                      ))}
+                    </div>
+                    <span style={{fontSize:10,color:"var(--text3)"}}>{["","Weak","Fair","Good","Strong"][pwStrength]} password</span>
+                  </div>
+                )}
               </div>
               <div style={{marginBottom:12}}>
                 <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Confirm New Password</label>
@@ -4598,7 +4820,8 @@ function Privacy({ go, profile, cards, goals, assets, txns, cardApplications }: 
             </div>
           )}
         </div>
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Data & Privacy</p>
+        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Data & Privacy</p>
+        <p style={{color:"var(--text3)",fontSize:10,marginBottom:10,lineHeight:1.5}}>No usage analytics are collected yet -- these preferences will take effect once that's built, so your choice is saved and ready.</p>
         <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
           {([[dataSharing,setDataSharing,"download","Share Anonymous Data","Help improve WiseCard with anonymized usage data"],[analytics,setAnalytics,"analytics","Usage Analytics","Allow analytics to improve your experience"]] as [boolean,any,string,string,string][]).map(([val,setVal,icon,label,desc],i)=>(
             <div key={label} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:i===0?"1px solid var(--border)":"none"}}>
@@ -4607,10 +4830,25 @@ function Privacy({ go, profile, cards, goals, assets, txns, cardApplications }: 
               <Toggle on={val} set={()=>setVal((v:boolean)=>!v)}/>
             </div>
           ))}
-          <button onClick={downloadMyData} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid var(--border)",textAlign:"left"}}>
+          <button onClick={()=>setShowExportFormats(s=>!s)} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid var(--border)",textAlign:"left"}}>
             <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Download My Data</p>
             <span style={{color:"var(--text3)",display:"flex"}}><Icon name="download" size={15}/></span>
           </button>
+          {showExportFormats && (
+            <div style={{padding:"4px 16px 16px",borderTop:"1px solid var(--border)"}}>
+              <p style={{color:"var(--text2)",fontSize:11,marginBottom:10,marginTop:10}}>Choose a format:</p>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={downloadAsText} className="press" style={{flex:1,padding:"12px 10px",borderRadius:10,border:"1px solid var(--border2)",background:"var(--surface2)",textAlign:"left"}}>
+                  <p style={{color:"var(--text)",fontSize:12,fontWeight:700,marginBottom:2}}>Readable Summary</p>
+                  <p style={{color:"var(--text2)",fontSize:10}}>Plain text, easy to read (.txt)</p>
+                </button>
+                <button onClick={downloadAsJSON} className="press" style={{flex:1,padding:"12px 10px",borderRadius:10,border:"1px solid var(--border2)",background:"var(--surface2)",textAlign:"left"}}>
+                  <p style={{color:"var(--text)",fontSize:12,fontWeight:700,marginBottom:2}}>Full Data Export</p>
+                  <p style={{color:"var(--text2)",fontSize:10}}>Complete, portable format (.json)</p>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
           {([["Privacy Policy",()=>go("privacy-policy")],["Terms of Service",()=>go("terms")]] as [string,()=>void][]).map(([item,action],i,arr)=>(
@@ -4621,11 +4859,30 @@ function Privacy({ go, profile, cards, goals, assets, txns, cardApplications }: 
           ))}
         </div>
         <div className="card-surface" style={{overflow:"hidden"}}>
-          <button className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
+          <button onClick={()=>setShowDeleteConfirm(true)} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
             <p style={{color:"var(--red)",fontSize:13,fontWeight:600}}>Delete Account</p>
             <span style={{color:"var(--red)",fontSize:14}}>→</span>
           </button>
         </div>
+
+        {showDeleteConfirm && (
+          <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:24}} onClick={()=>!deleteLoading&&setShowDeleteConfirm(false)}>
+            <div className="card-surface" style={{maxWidth:380,width:"100%",padding:24}} onClick={e=>e.stopPropagation()}>
+              <div style={{display:"flex",justifyContent:"center",marginBottom:16,color:"var(--red)"}}><Icon name="alert" size={36}/></div>
+              <h3 style={{color:"var(--text)",fontSize:17,fontWeight:700,textAlign:"center",marginBottom:8}}>Delete your account?</h3>
+              <p style={{color:"var(--text2)",fontSize:13,textAlign:"center",lineHeight:1.6,marginBottom:20}}>
+                This permanently deletes your account and all data -- cards, goals, transactions, assets, and applications logged. <strong>This cannot be undone.</strong>
+              </p>
+              {deleteError && <p style={{color:"var(--red)",fontSize:12,textAlign:"center",marginBottom:14}}>{deleteError}</p>}
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={()=>setShowDeleteConfirm(false)} disabled={deleteLoading} className="btn-ghost press" style={{flex:1,padding:"12px"}}>Cancel</button>
+                <button onClick={deleteAccount} disabled={deleteLoading} style={{flex:1,padding:"12px",borderRadius:8,background:"var(--red)",color:"#fff",border:"none",fontWeight:600,fontSize:14,cursor:"pointer",opacity:deleteLoading?0.7:1,fontFamily:"var(--sans)"}}>
+                  {deleteLoading?"Deleting...":"Yes, delete everything"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -5619,6 +5876,7 @@ export default function App() {
   const [screen, setScreen] = useState<S>("onboard");
   const [profile, setProfile] = useState<UserProfile>({name:"",age:"",income:"",lifestyles:[],creditScore:"",spending:{dining:"",groceries:"",travel:"",gas:"",shopping:"",other:""},goal:""});
   const [cards, setCards] = useState<CreditCard[]>([]);
+  const [autoLogoutEnabled, setAutoLogoutEnabled] = useState(true);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [txns, setTxns] = useState<Txn[]>([]);
@@ -5896,9 +6154,10 @@ export default function App() {
     setScreen("onboard");
   };
 
-  // Real session auto-logout — signs out after 15 minutes of no mouse/keyboard activity
+  // Real session auto-logout — signs out after 15 minutes of no mouse/keyboard activity.
+  // Respects the actual toggle in Privacy & Security instead of always running regardless of it.
   useEffect(()=>{
-    if(!user) return;
+    if(!user || !autoLogoutEnabled) return;
     const TIMEOUT_MS = 15*60*1000;
     let timer: ReturnType<typeof setTimeout>;
     const reset = () => {
@@ -5915,7 +6174,7 @@ export default function App() {
       clearTimeout(timer);
       events.forEach(e=>window.removeEventListener(e, reset));
     };
-  },[user]);
+  },[user, autoLogoutEnabled]);
 
   // Loading spinner while checking auth
   if(authLoading) return (
@@ -5957,7 +6216,7 @@ export default function App() {
         {screen==="compare"        && <Compare go={go} cards={cards}/>}
         {screen==="edit-profile"   && <EditProfile go={go} profile={profile} onSave={saveProfile}/>}
         {screen==="referral"       && <Referral go={go}/>}
-        {screen==="privacy"        && <Privacy go={go} profile={profile} cards={cards} goals={goals} assets={assets} txns={txns} cardApplications={cardApplications}/>}
+        {screen==="privacy"        && <Privacy go={go} profile={profile} cards={cards} goals={goals} assets={assets} txns={txns} cardApplications={cardApplications} autoLogoutEnabled={autoLogoutEnabled} setAutoLogoutEnabled={setAutoLogoutEnabled}/>}
         {screen==="privacy-policy" && <PrivacyPolicy go={go}/>}
         {screen==="terms"          && <TermsOfService go={go}/>}
         {screen==="tools"          && <ToolsHub go={go}/>}
