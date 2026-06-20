@@ -4,7 +4,16 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   "https://xlizcyyuadwnmdqbkjfg.supabase.co",
-  "sb_publishable_3BnSyxM0zyXudw2OZXF3wA_I0cuODRG"
+  "sb_publishable_3BnSyxM0zyXudw2OZXF3wA_I0cuODRG",
+  {
+    auth: {
+      // Bypass the Web Locks API used internally for multi-tab session refresh coordination.
+      // In some environments (sandboxed iframes, certain browsers/extensions) that lock can hang
+      // indefinitely and only release on a visibility change -- causing sign-in to appear stuck
+      // until the user switches tabs and back. This app doesn't need multi-tab lock coordination.
+      lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => fn(),
+    },
+  }
 );
 
 /* ============================================================
@@ -2062,7 +2071,7 @@ function Cards({ cards, go, onDelete }: { cards:CreditCard[]; go:(s:S)=>void; on
 /* ============================================================
    CHAT SCREEN
    ============================================================ */
-function Chat({ cards, profile }: { cards:CreditCard[]; profile:UserProfile }) {
+function Chat({ cards, profile, go }: { cards:CreditCard[]; profile:UserProfile; go:(s:S)=>void }) {
   const [msgs, setMsgs] = useState<Msg[]>([
     {role:"ai",text:`Hi ${profile.name||"there"}! I'm your WiseCard AI advisor. I know your complete profile -- your cards, balances, spending habits, and goals. I can help you with: which card to use anywhere, how to maximize rewards and cashback, improving your credit score, paying off debt faster, applying for new cards, using any feature in the app, or any financial question. I can also search the web for current bonus offers and APRs if those have changed. What would you like to know?`,id:0},
   ]);
@@ -2145,7 +2154,10 @@ PORTFOLIO: ${f(totalPts)} total points worth ~$${f(Math.round(totalPts*0.015))} 
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"var(--bg)"}}>
       <div style={{padding:"56px 20px 14px",borderBottom:"1px solid var(--border2)",background:"var(--surface)"}}>
         <div style={{display:"flex",alignItems:"center",gap:12,maxWidth:800,margin:"0 auto"}}>
-          <div style={{width:44,height:44,borderRadius:13,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 16px rgba(37,99,235,.15)"}}></div>
+          <button onClick={()=>go("home")} className="press" style={{width:38,height:38,borderRadius:11,background:"var(--surface2)",border:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div style={{width:44,height:44,borderRadius:13,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 16px rgba(37,99,235,.15)",flexShrink:0}}></div>
           <div>
             <h2 style={{fontSize:17,fontWeight:600}}>AI Financial Advisor</h2>
             <div style={{display:"flex",alignItems:"center",gap:5,marginTop:2}}>
@@ -5408,7 +5420,7 @@ export default function App() {
         {screen==="home"     && <Home     profile={profile} cards={cards} go={go} dataLoaded={dataLoaded} onUpdateCard={updateCard}/>}
         {screen==="cards"    && <Cards    cards={cards} go={go} onDelete={deleteCard}/>}
         {screen==="add-card" && <AddCard  go={go} onAdd={addCard}/>}
-        {screen==="chat"     && <Chat     cards={cards} profile={profile}/>}
+        {screen==="chat"     && <Chat     cards={cards} profile={profile} go={go}/>}
         {screen==="travel"   && <Travel   cards={cards}/>}
         {screen==="goals"    && <Goals goals={goals} onAdd={addGoal} onUpdateProgress={updateGoalProgress} onDelete={deleteGoal}/>}
         {screen==="split"    && <Split    cards={cards}/>}
