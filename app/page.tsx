@@ -255,7 +255,7 @@ select.field { appearance:none; }
 /* ============================================================
    TYPES
    ============================================================ */
-type S = "onboard"|"home"|"cards"|"add-card"|"card-detail"|"chat"|"travel"|"goals"|"split"|"perks"|"settings"|"lifestyle"|"ai-recommender"|"analytics"|"notifications"|"compare"|"edit-profile"|"privacy"|"referral";
+type S = "onboard"|"home"|"cards"|"add-card"|"card-detail"|"chat"|"travel"|"goals"|"split"|"perks"|"settings"|"lifestyle"|"ai-recommender"|"analytics"|"notifications"|"compare"|"edit-profile"|"privacy"|"referral"|"about"|"card-strategy"|"debt-planner"|"net-worth"|"achievements"|"help";
 type ToastType = "success"|"error"|"info"|"warning";
 interface Toast { id: string; message: string; type: ToastType; }
 
@@ -279,38 +279,140 @@ interface CreditCard {
   keyBenefits: string[];
   bestPlaces: string[];
   notGoodFor: string[];
+  openedDate?: string;
+  bonusTarget?: number;
+  bonusDeadline?: string;
+  bonusProgress?: number;
 }
 
-interface Msg { role:"user"|"ai"; text:string; id:number; }
-interface Goal { id:number; emoji:string; title:string; target:number; current:number; unit:"$"|"%"|"pts"; color:string; due:string; tips:string[]; }
+
+/* ============================================================
+   TRANSFER PARTNERS -- real airline/hotel transfer data
+   ============================================================ */
+const TRANSFER_PROGRAMS = [
+  {
+    id:"chase", name:"Chase Ultimate Rewards", issuer:"Chase", color:"#2563EB",
+    note:"Southwest only partners with Chase -- if you fly Southwest, this is the only program that gets you there.",
+    airlines:[
+      {name:"United MileagePlus", ratio:"1:1", best:"Domestic flights & Star Alliance partners"},
+      {name:"Southwest Rapid Rewards", ratio:"1:1", best:"Companion Pass pursuers, no blackout dates"},
+      {name:"JetBlue TrueBlue", ratio:"1:1", best:"Northeast & Caribbean routes"},
+      {name:"British Airways Avios", ratio:"1:1", best:"Short-haul partner flights, distance-based pricing"},
+      {name:"Air France/KLM Flying Blue", ratio:"1:1", best:"Transatlantic Business Class to Europe"},
+      {name:"Virgin Atlantic Flying Club", ratio:"1:1", best:"ANA & Delta partner awards"},
+      {name:"Iberia Avios", ratio:"1:1", best:"Spain & South America routes"},
+      {name:"Aer Lingus Avios", ratio:"1:1", best:"Ireland & transatlantic"},
+      {name:"Emirates Skywards", ratio:"1:1", best:"First/Business Class to Middle East & Asia"},
+      {name:"Singapore Airlines KrisFlyer", ratio:"1:1", best:"Premium cabin to Asia"},
+    ],
+    hotels:[
+      {name:"World of Hyatt", ratio:"1:1*", best:"Best hotel redemption value of any program", flag:"*Sapphire Reserve keeps 1:1. New Sapphire Preferred/Ink Business Preferred applicants (since June 15, 2026) get a worse 4:3 ratio -- existing cardholders keep 1:1 until Sept 30, 2026."},
+      {name:"Marriott Bonvoy", ratio:"1:1", best:"Largest hotel footprint worldwide"},
+      {name:"IHG One Rewards", ratio:"1:1", best:"Rarely the best value -- usually better to book via portal or transfer elsewhere"},
+      {name:"World of Wyndham", ratio:"1:1", best:"Added Feb 2026 -- budget-friendly stays"},
+    ],
+  },
+  {
+    id:"amex", name:"Amex Membership Rewards", issuer:"Amex", color:"#C9A24C",
+    note:"Most partners of any program (20 total). Amex charges a 60-cent-per-1,000-point fee (capped ~$99) when transferring to U.S. airline partners -- factor this into your math.",
+    airlines:[
+      {name:"Delta SkyMiles", ratio:"1:1", best:"Only way to transfer MR points to Delta"},
+      {name:"Air France/KLM Flying Blue", ratio:"1:1", best:"Frequent promo transfer bonuses (25-30%)"},
+      {name:"ANA Mileage Club", ratio:"1:1", best:"First Class to Japan -- legendary value"},
+      {name:"British Airways Avios", ratio:"1:1", best:"Short-haul & distance-based awards"},
+      {name:"Cathay Pacific Asia Miles", ratio:"1:1", best:"Business/First to Asia"},
+      {name:"Emirates Skywards", ratio:"1:1", best:"Emirates First Class suites"},
+      {name:"Singapore Airlines KrisFlyer", ratio:"1:1", best:"Suites Class -- one of aviation's best products"},
+      {name:"Virgin Atlantic Flying Club", ratio:"1:1", best:"ANA & Delta partner bookings, 25-30% transfer bonuses"},
+      {name:"Air Canada Aeroplan", ratio:"1:1", best:"Star Alliance flexibility, no fuel surcharges"},
+      {name:"Avianca LifeMiles", ratio:"1:1", best:"Star Alliance awards, mixed-cabin pricing"},
+      {name:"Hawaiian Airlines", ratio:"1:1", best:"Hawaii routes"},
+      {name:"JetBlue TrueBlue", ratio:"1:1", best:"Northeast U.S. routes"},
+      {name:"Qantas Frequent Flyer", ratio:"1:1", best:"Australia & South Pacific"},
+      {name:"Etihad Guest", ratio:"1:1", best:"Transfers end permanently June 30, 2026", flag:"This partnership is being discontinued -- transfer before the deadline if planning to use it."},
+    ],
+    hotels:[
+      {name:"Marriott Bonvoy", ratio:"1:1", best:"Largest hotel network"},
+      {name:"Hilton Honors", ratio:"1:2", best:"Double points on transfer -- decent for mid-tier Hilton stays"},
+      {name:"Choice Privileges", ratio:"1:1", best:"Budget hotel stays"},
+    ],
+  },
+  {
+    id:"citi", name:"Citi ThankYou Points", issuer:"Citi", color:"#56CCF2",
+    note:"Smaller partner list (11 airlines, no hotels) but strong for Asia and Europe routes via Cathay Pacific and Air France/KLM.",
+    airlines:[
+      {name:"JetBlue TrueBlue", ratio:"1:1", best:"Northeast & Caribbean"},
+      {name:"Virgin Atlantic Flying Club", ratio:"1:1", best:"ANA & Delta partner awards"},
+      {name:"Air France/KLM Flying Blue", ratio:"1:1", best:"Europe routes, promo bonuses"},
+      {name:"Cathay Pacific Asia Miles", ratio:"1:1", best:"Business/First to Asia"},
+      {name:"Emirates Skywards", ratio:"1:1", best:"Middle East & luxury cabins"},
+      {name:"EVA Air Infinity MileageLands", ratio:"1:1", best:"Taiwan & Asia routes"},
+      {name:"Qantas Frequent Flyer", ratio:"1:1", best:"Australia routes"},
+      {name:"Singapore Airlines KrisFlyer", ratio:"1:1", best:"Premium cabins to Asia"},
+      {name:"Thai Airways Royal Orchid Plus", ratio:"1:1", best:"Southeast Asia"},
+      {name:"Turkish Airlines Miles&Smiles", ratio:"1:1", best:"Sweet-spot pricing to Europe/Africa"},
+      {name:"Avianca LifeMiles", ratio:"1:1", best:"Star Alliance flexibility"},
+    ],
+    hotels:[],
+  },
+  {
+    id:"capone", name:"Capital One Miles", issuer:"Capital One", color:"#E43F5A",
+    note:"No hotel partners, but a strong airline list with several partners not found in Chase or Amex (TAP Portugal, Finnair, Virgin Red).",
+    airlines:[
+      {name:"Air Canada Aeroplan", ratio:"1:1", best:"Star Alliance, no fuel surcharges"},
+      {name:"Air France/KLM Flying Blue", ratio:"1:1", best:"Europe routes, promo bonuses"},
+      {name:"British Airways Avios", ratio:"1:1", best:"Short-haul distance-based pricing"},
+      {name:"Cathay Pacific Asia Miles", ratio:"1:1", best:"Asia premium cabins"},
+      {name:"Emirates Skywards", ratio:"1:1", best:"Middle East & luxury cabins"},
+      {name:"Etihad Guest", ratio:"1:1", best:"Abu Dhabi routes"},
+      {name:"EVA Air Infinity MileageLands", ratio:"1:1", best:"Taiwan & Asia"},
+      {name:"Finnair Plus", ratio:"1:1", best:"Nordic & Asia via Helsinki"},
+      {name:"Qantas Frequent Flyer", ratio:"1:1", best:"Australia routes"},
+      {name:"Singapore Airlines KrisFlyer", ratio:"1:1", best:"Premium cabins to Asia"},
+      {name:"TAP Air Portugal Miles&Go", ratio:"1:1", best:"Portugal & Europe stopover routes"},
+      {name:"Turkish Airlines Miles&Smiles", ratio:"1:1", best:"Sweet-spot Europe/Africa pricing"},
+      {name:"Avianca LifeMiles", ratio:"1:1", best:"Star Alliance, mixed-cabin awards"},
+      {name:"Virgin Red", ratio:"1:1", best:"Virgin Atlantic flights"},
+    ],
+    hotels:[],
+  },
+];
+// Map a card's issuer to its transfer program (only true for points/miles cards, not cash back)
+const issuerToProgram = (issuer:string) => TRANSFER_PROGRAMS.find(p=>p.issuer===issuer);
+
+interface Msg { role:"user"|"ai"; text:string; id:number; searched?:boolean; }
+interface Goal { id:string; emoji:string; title:string; target:number; current:number; unit:"$"|"%"|"pts"; color:string; due:string; tips:string[]; }
 interface Bill { id:number; name:string; emoji:string; amount:number; people:string[]; date:string; done:boolean; card:string; pts:number; }
+interface Asset { id:string; name:string; value:number; }
+interface Txn { id:string; cat:string; amount:number; desc:string; card:string; date:string; }
+interface CardApplication { id:string; issuer:string; date:string; }
 
 /* ============================================================
    CARD DATABASE -- 50+ real US cards
    ============================================================ */
 const CARD_DB = [
   {
-    id:"csr", name:"Sapphire Reserve", issuer:"Chase",
+    id:"csr", name:"Sapphire Reserve", issuer:"Chase", apr:"19.49%-27.99% Variable",
     gradient:"linear-gradient(135deg,#0F1832 0%,#1E3A6E 50%,#0D2347 100%)",
     accentColor:"#4F9BF5", rewardRate:"3x Travel & Dining", annualFee:550, perksValue:620, cashback:"Points", category:"travel",
-    signupBonus:"60,000 points after spending $4,000 in first 3 months -- worth $900 toward travel",
+    signupBonus:"100,000 points after spending $6,000 in first 3 months -- worth $1,500+ toward travel (current elevated offer)",
     bestFor:["Restaurants & dining worldwide","Flights, hotels, car rentals","Airport lounge access (Priority Pass)","Luxury hotel collection benefits","Travel insurance & trip protection"],
     keyBenefits:["$300 annual travel credit (auto-applied)","Priority Pass Select lounge access (1,300+ lounges)","Global Entry / TSA PreCheck credit ($100)","10x on Chase Dining & hotels through portal","Primary rental car insurance","Trip cancellation & interruption insurance"],
     bestPlaces:["Any restaurant or cafe","Airlines & hotel bookings","Uber & Lyft rides","Chase Ultimate Rewards travel portal","Partner hotels: Hyatt, IHG, Marriott"],
     notGoodFor:["Groceries (only 1x)","Gas stations (only 1x)","Bills and subscriptions (only 1x)"],
   },
   {
-    id:"csp", name:"Sapphire Preferred", issuer:"Chase",
+    id:"csp", name:"Sapphire Preferred", issuer:"Chase", apr:"19.24%-27.49% Variable",
     gradient:"linear-gradient(135deg,#0A2240 0%,#1A4A80 50%,#0A2240 100%)",
-    accentColor:"#5BA8F7", rewardRate:"3x Dining, 2x Travel", annualFee:95, perksValue:180, cashback:"Points", category:"travel",
-    signupBonus:"60,000 points after spending $4,000 in first 3 months -- worth $750 toward travel",
+    accentColor:"#5BA8F7", rewardRate:"3x Dining, 2x Travel", annualFee:95, perksValue:220, cashback:"Points", category:"travel",
+    signupBonus:"75,000 points after spending $5,000 in first 3 months -- worth $935+ toward travel (refreshed card as of June 2026)",
     bestFor:["Dining and restaurants","Travel bookings","Streaming services (2x)","Online grocery (3x)"],
     keyBenefits:["$50 annual hotel credit through Chase portal","25% more value redeeming through Chase portal","Trip delay & cancellation insurance","No foreign transaction fees","Secondary rental car insurance"],
     bestPlaces:["Restaurants and takeout","Hotel and flight bookings","Streaming: Netflix, Spotify, Hulu","Grocery delivery: DoorDash, Instacart"],
     notGoodFor:["In-store grocery shopping (1x)","Gas (1x)","General merchandise (1x)"],
   },
   {
-    id:"cff", name:"Freedom Flex", issuer:"Chase",
+    id:"cff", name:"Freedom Flex", issuer:"Chase", apr:"19.99%-28.74% Variable",
     gradient:"linear-gradient(135deg,#1A1A2E 0%,#16213E 50%,#0F3460 100%)",
     accentColor:"#E94560", rewardRate:"5x Rotating categories", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
     signupBonus:"$200 cash bonus after spending $500 in first 3 months",
@@ -320,7 +422,7 @@ const CARD_DB = [
     notGoodFor:["Everything else (only 1x)","Must activate quarterly bonuses manually"],
   },
   {
-    id:"cfu", name:"Freedom Unlimited", issuer:"Chase",
+    id:"cfu", name:"Freedom Unlimited", issuer:"Chase", apr:"19.99%-28.74% Variable",
     gradient:"linear-gradient(135deg,#1C1C2E 0%,#2C2C5E 50%,#1C1C2E 100%)",
     accentColor:"#A78BFA", rewardRate:"1.5x Everything", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
     signupBonus:"Additional 1.5% on everything for first year (total 3% on all purchases up to $20,000)",
@@ -330,27 +432,27 @@ const CARD_DB = [
     notGoodFor:["Anywhere you have a category card -- always use the better card first"],
   },
   {
-    id:"amg", name:"Gold Card", issuer:"Amex",
+    id:"amg", name:"Gold Card", issuer:"Amex", apr:"21.49%-29.49% Variable",
     gradient:"linear-gradient(135deg,#2C1A00 0%,#8B6010 35%,#C9920A 65%,#8B6010 100%)",
-    accentColor:"#F0B429", rewardRate:"4x Dining & Groceries", annualFee:250, perksValue:340, cashback:"Points", category:"dining",
-    signupBonus:"60,000 Membership Rewards points after spending $6,000 in first 6 months",
+    accentColor:"#F0B429", rewardRate:"4x Dining & Groceries", annualFee:325, perksValue:430, cashback:"Points", category:"dining",
+    signupBonus:"Up to 100,000 Membership Rewards points after spending $6,000 in first 6 months (offers vary by applicant)",
     bestFor:["Restaurants and dining worldwide","US supermarkets (up to $25k/year)","Flights booked directly with airlines","All other travel (2x)"],
     keyBenefits:["$120 Uber Cash credit annually ($10/month)","$120 dining credit at Grubhub, Cheesecake Factory, Goldbelly, Wine.com","4x at US supermarkets -- best grocery card in US","4x at restaurants worldwide -- including food delivery","No foreign transaction fees","Trip delay insurance"],
     bestPlaces:["Every restaurant, cafe, and food delivery app","Whole Foods, Kroger, Safeway, Trader Joes, Costco","Grubhub, DoorDash, Seamless, Uber Eats","Direct airline bookings (2x)","Amex Travel portal"],
     notGoodFor:["Hotels (only 1x unless booked via Amex)","Gas stations (only 1x)","Drug stores (only 1x)"],
   },
   {
-    id:"amp", name:"Platinum Card", issuer:"Amex",
+    id:"amp", name:"Platinum Card", issuer:"Amex", apr:"20.99%-29.99% Variable",
     gradient:"linear-gradient(135deg,#1A1A1A 0%,#3D3D3D 50%,#1A1A1A 100%)",
-    accentColor:"#C0C0C0", rewardRate:"5x Flights & Hotels", annualFee:695, perksValue:1500, cashback:"Points", category:"travel",
-    signupBonus:"80,000 Membership Rewards points after spending $8,000 in first 6 months",
+    accentColor:"#C0C0C0", rewardRate:"5x Flights & Hotels", annualFee:895, perksValue:3500, cashback:"Points", category:"travel",
+    signupBonus:"Up to 175,000 Membership Rewards points after spending $12,000 in first 6 months (offers vary by applicant) -- fee increased to $895 in Jan 2026",
     bestFor:["Frequent flyers -- 5x on all flights","Luxury hotel stays","Lounge access worldwide","Premium travel benefits"],
     keyBenefits:["$200 airline fee credit annually","$200 hotel credit (Fine Hotels + Resorts)","$240 digital entertainment credit","$155 Walmart+ credit","$100 Saks Fifth Avenue credit","Centurion Lounge + Priority Pass access","Global Entry / TSA PreCheck credit","Hotel status: Marriott Gold, Hilton Gold"],
     bestPlaces:["Direct airline ticket purchases (5x)","Fine Hotels and Resorts collection","Centurion Lounges at major airports","Amex Travel portal","Saks Fifth Avenue"],
     notGoodFor:["Dining (only 1x -- use Amex Gold instead)","Groceries (only 1x)","Everyday spending -- fee is only worth it for heavy travelers"],
   },
   {
-    id:"ambc", name:"Blue Cash Preferred", issuer:"Amex",
+    id:"ambc", name:"Blue Cash Preferred", issuer:"Amex", apr:"19.24%-29.99% Variable",
     gradient:"linear-gradient(135deg,#001B5E 0%,#0038A8 50%,#001B5E 100%)",
     accentColor:"#60A5FA", rewardRate:"6x Groceries, 6x Streaming", annualFee:95, perksValue:240, cashback:"Cash Back", category:"groceries",
     signupBonus:"$250 back after spending $3,000 in first 6 months",
@@ -360,7 +462,7 @@ const CARD_DB = [
     notGoodFor:["Dining out (only 1x -- use Amex Gold)","Warehouse clubs count as 1x not 6x","International purchases"],
   },
   {
-    id:"ambu", name:"Blue Cash Everyday", issuer:"Amex",
+    id:"ambu", name:"Blue Cash Everyday", issuer:"Amex", apr:"19.24%-29.99% Variable",
     gradient:"linear-gradient(135deg,#001B5E 0%,#003092 50%,#001B5E 100%)",
     accentColor:"#93C5FD", rewardRate:"3x Groceries", annualFee:0, perksValue:0, cashback:"Cash Back", category:"groceries",
     signupBonus:"$200 back after spending $2,000 in first 6 months",
@@ -370,17 +472,17 @@ const CARD_DB = [
     notGoodFor:["Worth upgrading to Blue Cash Preferred if you spend $31+/month on groceries"],
   },
   {
-    id:"covx", name:"Venture X", issuer:"Capital One",
+    id:"covx", name:"Venture X", issuer:"Capital One", apr:"19.49%-28.49% Variable",
     gradient:"linear-gradient(135deg,#080C18 0%,#0D1F3C 50%,#162B50 100%)",
     accentColor:"#38BDF8", rewardRate:"2x Everything, 5x Travel", annualFee:395, perksValue:620, cashback:"Miles", category:"travel",
     signupBonus:"75,000 miles after spending $4,000 in first 3 months -- worth $750 in travel",
     bestFor:["All everyday spending (flat 2x)","Travel booked through Capital One portal (5x)","Hotels and car rentals (5x portal)","Flights booked through portal (5x)"],
-    keyBenefits:["$300 travel credit for Capital One portal bookings","10,000 miles anniversary bonus (worth $100)","Priority Pass lounge access -- unlimited guests","Capital One lounge access","No foreign transaction fees","Cell phone protection","Global Entry / TSA PreCheck credit"],
+    keyBenefits:["$300 travel credit for Capital One portal bookings","10,000 miles anniversary bonus (worth $100)","Priority Pass lounge access for primary cardholder (guest access limited starting Feb 2026)","Capital One lounge access","No foreign transaction fees","Cell phone protection","Global Entry / TSA PreCheck credit"],
     bestPlaces:["Capital One Travel portal for 5x","Every purchase for flat 2x (best catch-all premium card)","Airports with Capital One Lounges: DFW, DEN, LAS, IAD","Any hotel or airline via portal"],
     notGoodFor:["If you dont use Capital One travel portal -- loses much of its value","Dining category-specific spending (Amex Gold is better)"],
   },
   {
-    id:"cov", name:"Venture", issuer:"Capital One",
+    id:"cov", name:"Venture", issuer:"Capital One", apr:"19.99%-29.99% Variable",
     gradient:"linear-gradient(135deg,#0A1628 0%,#1A3A5C 50%,#0A1628 100%)",
     accentColor:"#60A5FA", rewardRate:"2x Everything", annualFee:95, perksValue:0, cashback:"Miles", category:"travel",
     signupBonus:"75,000 miles after spending $4,000 in first 3 months",
@@ -390,7 +492,7 @@ const CARD_DB = [
     notGoodFor:["Category-specific spending where other cards earn 3x-6x"],
   },
   {
-    id:"coqs", name:"Quicksilver", issuer:"Capital One",
+    id:"coqs", name:"Quicksilver", issuer:"Capital One", apr:"19.99%-29.99% Variable",
     gradient:"linear-gradient(135deg,#1A1018 0%,#3A1A30 50%,#1A1018 100%)",
     accentColor:"#E879F9", rewardRate:"1.5x Everything", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
     signupBonus:"$200 after spending $500 in first 3 months",
@@ -400,7 +502,7 @@ const CARD_DB = [
     notGoodFor:["Domestic dining, groceries, travel -- better cards exist for each"],
   },
   {
-    id:"cdc", name:"Double Cash", issuer:"Citi",
+    id:"cdc", name:"Double Cash", issuer:"Citi", apr:"19.24%-29.24% Variable",
     gradient:"linear-gradient(135deg,#0F1923 0%,#1A2F42 50%,#0F1923 100%)",
     accentColor:"#34D399", rewardRate:"2% Everything", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
     signupBonus:"$200 cash back after spending $1,500 in first 6 months",
@@ -410,7 +512,7 @@ const CARD_DB = [
     notGoodFor:["Carrying a balance -- the 1% on payment is lost"],
   },
   {
-    id:"cpc", name:"Premier", issuer:"Citi",
+    id:"cpc", name:"Premier", issuer:"Citi", apr:"21.24%-29.24% Variable",
     gradient:"linear-gradient(135deg,#0A1628 0%,#1A3360 50%,#0A1628 100%)",
     accentColor:"#6366F1", rewardRate:"3x Hotels, Air, Dining", annualFee:95, perksValue:0, cashback:"Points", category:"travel",
     signupBonus:"60,000 points after spending $4,000 in first 3 months",
@@ -420,7 +522,7 @@ const CARD_DB = [
     notGoodFor:["Lounge access","Premium travel protections (use Chase Sapphire for those)"],
   },
   {
-    id:"disc", name:"Discover it", issuer:"Discover",
+    id:"disc", name:"Discover it", issuer:"Discover", apr:"17.24%-28.24% Variable",
     gradient:"linear-gradient(135deg,#1A0A00 0%,#7A3800 50%,#1A0A00 100%)",
     accentColor:"#FB923C", rewardRate:"5x Rotating, 1x Other", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
     signupBonus:"Cashback Match -- Discover matches all cash back earned in first year automatically",
@@ -430,7 +532,7 @@ const CARD_DB = [
     notGoodFor:["Not widely accepted internationally","After year 1 cashback match ends, less competitive"],
   },
   {
-    id:"apple", name:"Apple Card", issuer:"Apple/Goldman Sachs",
+    id:"apple", name:"Apple Card", issuer:"Apple/Goldman Sachs", apr:"19.24%-29.49% Variable",
     gradient:"linear-gradient(135deg,#1C1C1E 0%,#2C2C2E 50%,#1C1C1E 100%)",
     accentColor:"#F5F5F7", rewardRate:"3% Apple, 2% Apple Pay", annualFee:0, perksValue:0, cashback:"Daily Cash", category:"cashback",
     signupBonus:"No traditional signup bonus -- Daily Cash paid instantly every day",
@@ -440,7 +542,7 @@ const CARD_DB = [
     notGoodFor:["Places that dont accept Apple Pay (only 1% with physical card)","Non-Apple purchases where other cards earn 2-6%"],
   },
   {
-    id:"wells", name:"Active Cash", issuer:"Wells Fargo",
+    id:"wells", name:"Active Cash", issuer:"Wells Fargo", apr:"19.24%-29.24% Variable",
     gradient:"linear-gradient(135deg,#140000 0%,#480000 50%,#140000 100%)",
     accentColor:"#F87171", rewardRate:"2% Everything", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
     signupBonus:"$200 cash rewards bonus after spending $500 in first 3 months",
@@ -450,7 +552,7 @@ const CARD_DB = [
     notGoodFor:["Category spenders -- Amex Gold and Chase Freedom earn more in categories"],
   },
   {
-    id:"boar", name:"Customized Cash Rewards", issuer:"Bank of America",
+    id:"boar", name:"Customized Cash Rewards", issuer:"Bank of America", apr:"19.24%-29.24% Variable",
     gradient:"linear-gradient(135deg,#001A3A 0%,#003580 50%,#001A3A 100%)",
     accentColor:"#60A5FA", rewardRate:"3% Choice category, 2% Grocery", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
     signupBonus:"$200 online cash rewards bonus after spending $1,000 in first 90 days",
@@ -460,7 +562,7 @@ const CARD_DB = [
     notGoodFor:["Spending above $2,500/quarter in bonus categories (drops to 1%)","Without Preferred Rewards, competitive cards earn more"],
   },
   {
-    id:"usb", name:"Altitude Reserve", issuer:"US Bank",
+    id:"usb", name:"Altitude Reserve", issuer:"US Bank", apr:"21.24%-28.24% Variable",
     gradient:"linear-gradient(135deg,#0A0A1A 0%,#1A1A40 50%,#0A0A1A 100%)",
     accentColor:"#818CF8", rewardRate:"3x Mobile Pay & Travel", annualFee:400, perksValue:500, cashback:"Points", category:"travel",
     signupBonus:"50,000 points after spending $4,500 in first 90 days -- worth $750 in travel",
@@ -470,7 +572,7 @@ const CARD_DB = [
     notGoodFor:["Stores not accepting mobile payments","Lower-value points than Chase/Amex for complex redemptions"],
   },
   {
-    id:"mar", name:"Marriott Bonvoy Boundless", issuer:"Chase",
+    id:"mar", name:"Marriott Bonvoy Boundless", issuer:"Chase", apr:"21.49%-29.49% Variable",
     gradient:"linear-gradient(135deg,#1A0A00 0%,#4A1A00 50%,#1A0A00 100%)",
     accentColor:"#FB923C", rewardRate:"6x Marriott, 2x All", annualFee:95, perksValue:200, cashback:"Points", category:"hotel",
     signupBonus:"3 Free Night Awards (each worth up to 50,000 points) after spending $3,000 in first 3 months",
@@ -480,7 +582,7 @@ const CARD_DB = [
     notGoodFor:["Non-Marriott hotels","Travel booked outside Marriott ecosystem"],
   },
   {
-    id:"hlt", name:"Hilton Honors Surpass", issuer:"Amex",
+    id:"hlt", name:"Hilton Honors Surpass", issuer:"Amex", apr:"21.49%-29.49% Variable",
     gradient:"linear-gradient(135deg,#001028 0%,#002060 50%,#001028 100%)",
     accentColor:"#60A5FA", rewardRate:"12x Hilton, 6x Grocery & Restaurant", annualFee:150, perksValue:300, cashback:"Points", category:"hotel",
     signupBonus:"130,000 Hilton Honors points after spending $3,000 in first 6 months",
@@ -490,7 +592,7 @@ const CARD_DB = [
     notGoodFor:["Non-Hilton hotel stays","Travel booked through third-party sites"],
   },
   {
-    id:"delta", name:"Delta SkyMiles Gold", issuer:"Amex",
+    id:"delta", name:"Delta SkyMiles Gold", issuer:"Amex", apr:"21.49%-29.49% Variable",
     gradient:"linear-gradient(135deg,#0A0028 0%,#1A0050 50%,#0A0028 100%)",
     accentColor:"#A78BFA", rewardRate:"2x Delta, 2x Dining", annualFee:150, perksValue:220, cashback:"Miles", category:"airline",
     signupBonus:"40,000 bonus miles after spending $2,000 in first 6 months",
@@ -500,7 +602,7 @@ const CARD_DB = [
     notGoodFor:["Non-Delta airlines","Hotels and other travel (only 1x)"],
   },
   {
-    id:"united", name:"Explorer", issuer:"Chase",
+    id:"united", name:"Explorer", issuer:"Chase", apr:"21.49%-29.24% Variable",
     gradient:"linear-gradient(135deg,#000A1E 0%,#001A50 50%,#000A1E 100%)",
     accentColor:"#3B82F6", rewardRate:"2x United, 2x Dining", annualFee:95, perksValue:200, cashback:"Miles", category:"airline",
     signupBonus:"60,000 miles after spending $3,000 in first 3 months",
@@ -510,7 +612,227 @@ const CARD_DB = [
     notGoodFor:["Non-United airlines","Everyday non-travel spending (use a flat-rate card)"],
   },
   {
-    id:"boa", name:"Alaska Airlines Visa", issuer:"Bank of America",
+    id:"citicc", name:"Custom Cash", issuer:"Citi", apr:"19.24%-29.24% Variable",
+    gradient:"linear-gradient(135deg,#0F2027 0%,#203A43 50%,#2C5364 100%)",
+    accentColor:"#56CCF2", rewardRate:"5% Top category", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
+    signupBonus:"$200 cash back after spending $1,500 in first 6 months",
+    bestFor:["Automatically tracks your top spending category each month","Restaurants, gas, groceries, travel, drugstores, home improvement, fitness, live entertainment"],
+    keyBenefits:["5% cash back on your top eligible category (up to $500 spent/month)","1% on everything else","No annual fee","No category activation needed -- automatic"],
+    bestPlaces:["Whatever you spend most on that month","Gas stations, groceries, restaurants, drugstores"],
+    notGoodFor:["Spending above $500/month in top category (drops to 1%)","Multiple high-spend categories at once"],
+  },
+  {
+    id:"citiaa", name:"AAdvantage Platinum Select", issuer:"Citi", apr:"21.24%-29.24% Variable",
+    gradient:"linear-gradient(135deg,#1A1A2E 0%,#0F3460 50%,#16213E 100%)",
+    accentColor:"#5390D9", rewardRate:"2x Dining & Gas", annualFee:99, perksValue:120, cashback:"Miles", category:"travel",
+    signupBonus:"50,000 American Airlines miles after spending $2,500 in first 3 months",
+    bestFor:["American Airlines flyers","Free checked bags on AA flights","Priority boarding"],
+    keyBenefits:["First checked bag free for you + 4 companions","Preferred boarding on American Airlines","25% savings on in-flight purchases","No foreign transaction fees"],
+    bestPlaces:["Gas stations","Restaurants","American Airlines flights and partners"],
+    notGoodFor:["Non-AA travelers","Grocery and general spending (only 1x)"],
+  },
+  {
+    id:"covsavor", name:"SavorOne", issuer:"Capital One", apr:"19.99%-29.99% Variable",
+    gradient:"linear-gradient(135deg,#1B1B2F 0%,#162447 50%,#1F4068 100%)",
+    accentColor:"#E43F5A", rewardRate:"3x Dining & Entertainment", annualFee:0, perksValue:0, cashback:"Cash Back", category:"dining",
+    signupBonus:"$200 cash bonus after spending $500 in first 3 months",
+    bestFor:["Dining out and takeout","Movies, concerts, streaming services","Grocery stores (3x)"],
+    keyBenefits:["3% on dining, entertainment, popular streaming, and grocery stores","1% on everything else","No annual fee","No foreign transaction fees"],
+    bestPlaces:["Restaurants and fast food","Netflix, Spotify, Hulu, Disney+","Grocery stores","Movie theaters and concerts"],
+    notGoodFor:["Gas (only 1%)","General retail (only 1%)","Travel bookings outside dining/entertainment"],
+  },
+  {
+    id:"discit_miles", name:"Discover it Miles", issuer:"Discover", apr:"17.24%-28.24% Variable",
+    gradient:"linear-gradient(135deg,#231942 0%,#5E548E 50%,#231942 100%)",
+    accentColor:"#9F86C0", rewardRate:"1.5x Everything", annualFee:0, perksValue:0, cashback:"Miles", category:"travel",
+    signupBonus:"Discover matches all miles earned in your first year",
+    bestFor:["Simple flat-rate travel rewards","No foreign transaction fee international travel"],
+    keyBenefits:["1.5x miles on every purchase","First-year match doubles your miles","No annual fee","No foreign transaction fees","Free FICO score access"],
+    bestPlaces:["Everywhere -- flat rate card","International travel and purchases"],
+    notGoodFor:["Anywhere you have a higher-earning category card"],
+  },
+  {
+    id:"wellsauto", name:"Autograph", issuer:"Wells Fargo", apr:"19.24%-29.24% Variable",
+    gradient:"linear-gradient(135deg,#1A1A2E 0%,#3D348B 50%,#1A1A2E 100%)",
+    accentColor:"#7C77B9", rewardRate:"3x Travel, Dining, Gas, Streaming", annualFee:0, perksValue:0, cashback:"Points", category:"travel",
+    signupBonus:"20,000 bonus points after spending $1,000 in first 3 months -- worth $200",
+    bestFor:["Restaurants and dining","Gas stations and EV charging","Streaming services","Phone plans"],
+    keyBenefits:["3x on dining, travel, gas, transit, streaming, and phone plans","1x on everything else","No annual fee","No foreign transaction fees"],
+    bestPlaces:["Restaurants, gas stations, streaming subscriptions","Phone bills","Flights, hotels, rideshares"],
+    notGoodFor:["Groceries (only 1x)","General retail shopping (only 1x)"],
+  },
+  {
+    id:"usbcash", name:"Cash+", issuer:"US Bank", apr:"19.24%-29.24% Variable",
+    gradient:"linear-gradient(135deg,#0B132B 0%,#1C2541 50%,#3A506B 100%)",
+    accentColor:"#5BC0BE", rewardRate:"5% Choose 2 categories", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
+    signupBonus:"$200 cash bonus after spending $1,000 in first 90 days",
+    bestFor:["Pick your own 2 categories quarterly for 5% back","Utilities, gyms, electronics, furniture, and more"],
+    keyBenefits:["5% on two categories you choose (up to $2,000/quarter combined)","2% on one everyday category (gas, grocery, or restaurants)","1% on everything else","No annual fee"],
+    bestPlaces:["Whatever 2 categories you select each quarter","Utility bills, phone bills, gyms, furniture stores"],
+    notGoodFor:["Categories outside your chosen 2 -- only 1% back"],
+  },
+  {
+    id:"boaprem", name:"Premium Rewards", issuer:"Bank of America", apr:"19.24%-29.24% Variable",
+    gradient:"linear-gradient(135deg,#3C1053 0%,#AD5389 50%,#3C1053 100%)",
+    accentColor:"#D291BC", rewardRate:"2x Travel & Dining", annualFee:95, perksValue:170, cashback:"Points", category:"travel",
+    signupBonus:"50,000 points after spending $3,000 in first 90 days -- worth $500 toward travel",
+    bestFor:["Frequent travelers and diners","Preferred Rewards members (up to 75% point bonus)"],
+    keyBenefits:["$100 annual airline incidental credit","TSA PreCheck/Global Entry credit ($100)","2x on travel and dining, 1.5x on everything else","No foreign transaction fees","Preferred Rewards bonus up to 75% more points"],
+    bestPlaces:["Flights, hotels, dining","Bank of America Preferred Rewards members get the most value"],
+    notGoodFor:["Grocery and gas (only 1.5x)","Non-BoA customers miss the relationship bonus"],
+  },
+  {
+    id:"target", name:"Target RedCard", issuer:"Target", apr:"29.65% Variable (single rate)",
+    gradient:"linear-gradient(135deg,#CC0000 0%,#8B0000 50%,#CC0000 100%)",
+    accentColor:"#FF6B6B", rewardRate:"5% All Target purchases", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
+    signupBonus:"None -- instant 5% discount applies immediately",
+    bestFor:["Frequent Target shoppers","Target.com and in-store purchases"],
+    keyBenefits:["5% off every Target purchase, in-store and online","Free shipping on most Target.com orders","Extended return window (30 extra days)","No annual fee"],
+    bestPlaces:["Target stores and Target.com only"],
+    notGoodFor:["Anywhere other than Target -- this is a store card with no rewards elsewhere"],
+  },
+  {
+    id:"costco", name:"Costco Anywhere Visa", issuer:"Citi", apr:"19.24%-27.24% Variable",
+    gradient:"linear-gradient(135deg,#003594 0%,#0050C8 50%,#003594 100%)",
+    accentColor:"#4D8DFF", rewardRate:"4% Gas, 3% Dining/Travel", annualFee:0, perksValue:0, cashback:"Cash Back", category:"gas",
+    signupBonus:"None -- requires active Costco membership",
+    bestFor:["Costco members who drive a lot","Gas station purchases (4% up to $7,000/year)","Costco warehouse and Costco.com purchases (2%)"],
+    keyBenefits:["4% on gas and EV charging (up to $7k/year, then 1%)","3% on restaurants and eligible travel","2% on all Costco purchases","1% on everything else","No annual fee (Costco membership required separately)"],
+    bestPlaces:["Gas stations","Costco warehouses and Costco.com","Restaurants and travel bookings"],
+    notGoodFor:["Non-Costco members can't get this card","General retail outside Costco (only 1%)"],
+  },
+  {
+    id:"penfed", name:"Power Cash Rewards", issuer:"PenFed", apr:"13.99%-23.99% Variable (credit union -- typically lower)",
+    gradient:"linear-gradient(135deg,#001F3F 0%,#003366 50%,#001F3F 100%)",
+    accentColor:"#7FB3D5", rewardRate:"2% Everything (with Honors)", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
+    signupBonus:"$100 statement credit after spending $1,500 in first 90 days",
+    bestFor:["PenFed credit union members","Simple flat-rate cash back without category tracking"],
+    keyBenefits:["2% cash back on all purchases with PenFed Honors Advantage checking","1.5% without Honors Advantage","No annual fee","5% back on gas at the pump for first year"],
+    bestPlaces:["Everywhere -- flat rate card","Gas stations during the introductory period"],
+    notGoodFor:["Non-PenFed members face credit union membership requirement"],
+  },
+  {
+    id:"synchamazon", name:"Amazon Prime Visa", issuer:"Chase", apr:"19.24%-27.99% Variable",
+    gradient:"linear-gradient(135deg,#232F3E 0%,#37475A 50%,#232F3E 100%)",
+    accentColor:"#FF9900", rewardRate:"5% Amazon & Whole Foods", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
+    signupBonus:"$200 Amazon gift card instantly upon approval (requires Prime membership)",
+    bestFor:["Amazon Prime members who shop on Amazon frequently","Whole Foods shoppers"],
+    keyBenefits:["5% back at Amazon.com and Whole Foods (with Prime)","2% at restaurants, gas stations, and drugstores","1% on everything else","No annual fee (requires Prime membership $139/yr)"],
+    bestPlaces:["Amazon.com purchases","Whole Foods Market","Restaurants and gas stations"],
+    notGoodFor:["Non-Prime members get reduced rates (3% Amazon instead of 5%)"],
+  },
+  {
+    id:"southwest", name:"Southwest Rapid Rewards Priority", issuer:"Chase", apr:"19.99%-28.74% Variable",
+    gradient:"linear-gradient(135deg,#304CB2 0%,#1A2D6D 50%,#304CB2 100%)",
+    accentColor:"#FFBF27", rewardRate:"3x Southwest purchases", annualFee:149, perksValue:200, cashback:"Points", category:"travel",
+    signupBonus:"50,000 points after spending $1,000 in first 3 months -- worth $650+ toward flights",
+    bestFor:["Frequent Southwest flyers","Companion Pass pursuers","Annual travel credit users"],
+    keyBenefits:["$75 annual Southwest travel credit","7,500 anniversary points each year","4 upgraded boardings per year (when available)","20% back on inflight purchases","Points count toward Companion Pass"],
+    bestPlaces:["Southwest Airlines flights and vacation packages"],
+    notGoodFor:["Non-Southwest flyers","General everyday spending (only 1x)"],
+  },
+  {
+    id:"ihg", name:"IHG One Rewards Premier", issuer:"Chase", apr:"21.49%-29.49% Variable",
+    gradient:"linear-gradient(135deg,#A6192E 0%,#6E0E1E 50%,#A6192E 100%)",
+    accentColor:"#FF6B7A", rewardRate:"10x IHG Hotels", annualFee:99, perksValue:150, cashback:"Points", category:"travel",
+    signupBonus:"140,000 bonus points after spending $3,000 in first 3 months",
+    bestFor:["IHG hotel loyalists (Holiday Inn, InterContinental, Crowne Plaza)","Free anniversary night each year"],
+    keyBenefits:["Free anniversary night every year (up to 40k points)","Automatic Platinum Elite status","4th night free on award stays","10x points at IHG hotels, 5x on travel/dining/gas"],
+    bestPlaces:["IHG hotel stays","Gas stations, restaurants, and travel (5x)"],
+    notGoodFor:["Non-IHG travelers","General retail purchases (only 1x)"],
+  },
+  {
+    id:"venmo", name:"Venmo Credit Card", issuer:"Synchrony", apr:"20.24%-29.99% Variable",
+    gradient:"linear-gradient(135deg,#3D95CE 0%,#008CFF 50%,#3D95CE 100%)",
+    accentColor:"#65C9FF", rewardRate:"3% Top category", annualFee:0, perksValue:0, cashback:"Cash Back", category:"cashback",
+    signupBonus:"None typically offered",
+    bestFor:["Venmo app users who want auto-categorized rewards","Splitting purchases easily with friends"],
+    keyBenefits:["3% on your top spend category each billing cycle","2% on second-highest category","1% on everything else","Manage and pay directly in the Venmo app"],
+    bestPlaces:["Whatever you spend most on -- auto-detected monthly"],
+    notGoodFor:["Users who don't already use Venmo regularly"],
+  },
+  {
+    id:"bilt", name:"Bilt Mastercard", issuer:"Wells Fargo", apr:"19.24%-29.99% Variable",
+    gradient:"linear-gradient(135deg,#000000 0%,#2C2C2C 50%,#000000 100%)",
+    accentColor:"#FFFFFF", rewardRate:"1x Rent (no fee)", annualFee:0, perksValue:0, cashback:"Points", category:"cashback",
+    signupBonus:"None -- value is in ongoing rent points with no transaction fee",
+    bestFor:["Renters who want points on rent without a processing fee","Dining (3x) and travel (2x) spenders"],
+    keyBenefits:["Earn points on rent payments with zero transaction fee (unique in the market)","3x on dining","2x on travel","1x on rent and other purchases","No annual fee"],
+    bestPlaces:["Rent payments","Restaurants","Travel bookings"],
+    notGoodFor:["Homeowners get no special benefit from the rent feature"],
+  },
+  {
+    id:"inkbiz", name:"Ink Business Unlimited", issuer:"Chase", apr:"18.49%-26.49% Variable",
+    gradient:"linear-gradient(135deg,#1A2A3A 0%,#2C4A6E 50%,#1A2A3A 100%)",
+    accentColor:"#6FA8DC", rewardRate:"1.5x Everything", annualFee:0, perksValue:0, cashback:"Cash Back", category:"business",
+    signupBonus:"$750 cash back after spending $6,000 in first 3 months",
+    bestFor:["Small business owners","Simple flat-rate business spending"],
+    keyBenefits:["1.5% cash back on every business purchase","No annual fee","Free employee cards with spend controls","Purchase protection and extended warranty"],
+    bestPlaces:["Any business expense -- office supplies, software, travel"],
+    notGoodFor:["Businesses with concentrated spend in one category -- a category card may earn more"],
+  },
+  {
+    id:"spark", name:"Spark Cash Plus", issuer:"Capital One", apr:"19.99%-29.99% Variable",
+    gradient:"linear-gradient(135deg,#0D1B2A 0%,#1B263B 50%,#0D1B2A 100%)",
+    accentColor:"#778DA9", rewardRate:"2% Everything", annualFee:150, perksValue:200, cashback:"Cash Back", category:"business",
+    signupBonus:"$1,200 cash bonus after spending $30,000 in first 3 months",
+    bestFor:["Higher-spending small businesses","Unlimited 2% back with no caps"],
+    keyBenefits:["2% cash back on every purchase, no limit","5% on hotels and rental cars booked via Capital One Travel","Annual fee refunded if you spend $200k+","No preset spending limit"],
+    bestPlaces:["Any business expense","Travel booked through Capital One"],
+    notGoodFor:["Small businesses with lower annual spend -- the $150 fee may not be worth it"],
+  },
+  {
+    id:"discstudent", name:"Discover it Student Cash Back", issuer:"Discover", apr:"17.24%-26.24% Variable",
+    gradient:"linear-gradient(135deg,#4A2545 0%,#7B337A 50%,#4A2545 100%)",
+    accentColor:"#C77DFF", rewardRate:"5% Rotating categories", annualFee:0, perksValue:0, cashback:"Cash Back", category:"student",
+    signupBonus:"Discover matches all cash back earned in your first year",
+    bestFor:["College students building credit","Good grades reward ($20/year for 3.0+ GPA)"],
+    keyBenefits:["5% rotating categories (up to $1,500/quarter)","1% on everything else","Cashback Match doubles your first year earnings","$20 statement credit each school year for good grades","No annual fee, no credit history required"],
+    bestPlaces:["Quarterly rotating categories: groceries, restaurants, gas, Amazon"],
+    notGoodFor:["Students who want a simple flat-rate card instead of rotating categories"],
+  },
+  {
+    id:"capquicksilverstudent", name:"Quicksilver Student", issuer:"Capital One", apr:"26.99%-29.99% Variable",
+    gradient:"linear-gradient(135deg,#10002B 0%,#3C096C 50%,#10002B 100%)",
+    accentColor:"#9D4EDD", rewardRate:"1.5x Everything", annualFee:0, perksValue:0, cashback:"Cash Back", category:"student",
+    signupBonus:"None typically for student cards",
+    bestFor:["Students with limited credit history","Simple flat-rate rewards while building credit"],
+    keyBenefits:["1.5% cash back on every purchase","No annual fee","No foreign transaction fees","Automatic credit line reviews"],
+    bestPlaces:["Everywhere -- flat rate, easy to understand for first-time cardholders"],
+    notGoodFor:["Students who spend heavily in one category and want bonus rewards there"],
+  },
+  {
+    id:"discsecured", name:"Discover it Secured", issuer:"Discover", apr:"27.24% Fixed",
+    gradient:"linear-gradient(135deg,#2B2D42 0%,#8D99AE 50%,#2B2D42 100%)",
+    accentColor:"#EDF2F4", rewardRate:"2x Gas & Restaurants", annualFee:0, perksValue:0, cashback:"Cash Back", category:"secured",
+    signupBonus:"Discover matches all cash back earned in your first year",
+    bestFor:["Building or rebuilding credit","Refundable security deposit required"],
+    keyBenefits:["2% at gas stations and restaurants (up to $1,000/quarter)","1% on everything else","Automatic monthly reviews for unsecured upgrade","Free FICO score access","No annual fee"],
+    bestPlaces:["Gas stations","Restaurants"],
+    notGoodFor:["Anyone with established good credit -- a secured card requires a deposit and offers fewer perks"],
+  },
+  {
+    id:"capventureone", name:"VentureOne Rewards", issuer:"Capital One", apr:"19.99%-29.99% Variable",
+    gradient:"linear-gradient(135deg,#03071E 0%,#370617 50%,#03071E 100%)",
+    accentColor:"#9D0208", rewardRate:"1.25x Everything, 5x Hotels", annualFee:0, perksValue:0, cashback:"Miles", category:"travel",
+    signupBonus:"20,000 miles after spending $500 in first 3 months -- worth $200 toward travel",
+    bestFor:["No-annual-fee travel rewards","Hotels and rental cars booked through Capital One Travel"],
+    keyBenefits:["1.25x miles on every purchase","5x miles on hotels and rental cars via Capital One Travel","No annual fee","No foreign transaction fees","Miles transfer to 15+ airline/hotel partners"],
+    bestPlaces:["Everywhere -- flat rate","Capital One Travel portal bookings"],
+    notGoodFor:["Heavy travelers who'd benefit more from Venture or Venture X's higher earn rate"],
+  },
+  {
+    id:"usbaltconnect", name:"Altitude Connect", issuer:"US Bank", apr:"21.24%-29.24% Variable",
+    gradient:"linear-gradient(135deg,#03045E 0%,#0077B6 50%,#03045E 100%)",
+    accentColor:"#00B4D8", rewardRate:"4x Travel, 2x Gas/Dining/Streaming", annualFee:95, perksValue:130, cashback:"Points", category:"travel",
+    signupBonus:"50,000 points after spending $2,000 in first 90 days",
+    bestFor:["Travelers wanting a mid-tier annual fee card","TSA PreCheck/Global Entry credit"],
+    keyBenefits:["4x points on travel (after $12k spend)","2x on gas, EV charging, dining, streaming","$30 annual streaming credit","TSA PreCheck/Global Entry credit ($100)","Trip cancellation insurance"],
+    bestPlaces:["Travel bookings","Gas stations and dining","Streaming subscriptions"],
+    notGoodFor:["Grocery purchases (only 1x)","General retail (only 1x)"],
+  },
+  {
+    id:"boa", name:"Alaska Airlines Visa", issuer:"Bank of America", apr:"21.24%-29.24% Variable",
     gradient:"linear-gradient(135deg,#000A1E 0%,#001E50 50%,#000A1E 100%)",
     accentColor:"#38BDF8", rewardRate:"3x Alaska, 2x Gas & EV", annualFee:75, perksValue:150, cashback:"Miles", category:"airline",
     signupBonus:"60,000 bonus miles plus Alaska companion fare after spending $3,000 in first 90 days",
@@ -525,9 +847,9 @@ const CARD_DB = [
    SAMPLE DATA
    ============================================================ */
 const SAMPLE_GOALS: Goal[] = [
-  { id:1, emoji:"📊", title:"Keep Utilization Under 30%", target:30, current:18, unit:"%", color:"#C9A84C", due:"Ongoing", tips:["Pay $400 on Chase before the 18th -> drops to 9%","Pay Amex balance before statement closes","Keep Venture X under $6,000 at all times"] },
-  { id:2, emoji:"💰", title:"Save $6,000 This Year", target:6000, current:3240, unit:"$", color:"#2DC8A0", due:"Dec 31, 2025", tips:["Cancel 4 unused subscriptions -> $840/yr saved","Switch groceries to Amex Gold (4x) -> $300/yr extra","Cut takeout from $340 -> $190/month -> $1,800/yr"] },
-  { id:3, emoji:"📈", title:"Reach 750 Credit Score", target:750, current:698, unit:"pts", color:"#4F6EF7", due:"Sep 2025", tips:["Bring all cards under 10% utilization -> +12-18 pts","Zero missed payments for 6 months","No new applications for 4 months"] },
+  { id:"sample-1", emoji:"📊", title:"Keep Utilization Under 30%", target:30, current:18, unit:"%", color:"#C9A84C", due:"Ongoing", tips:["Pay $400 on Chase before the 18th -> drops to 9%","Pay Amex balance before statement closes","Keep Venture X under $6,000 at all times"] },
+  { id:"sample-2", emoji:"💰", title:"Save $6,000 This Year", target:6000, current:3240, unit:"$", color:"#2DC8A0", due:"Dec 31, 2025", tips:["Cancel 4 unused subscriptions -> $840/yr saved","Switch groceries to Amex Gold (4x) -> $300/yr extra","Cut takeout from $340 -> $190/month -> $1,800/yr"] },
+  { id:"sample-3", emoji:"📈", title:"Reach 750 Credit Score", target:750, current:698, unit:"pts", color:"#4F6EF7", due:"Sep 2025", tips:["Bring all cards under 10% utilization -> +12-18 pts","Zero missed payments for 6 months","No new applications for 4 months"] },
 ];
 
 const SAMPLE_BILLS: Bill[] = [
@@ -576,6 +898,16 @@ const daysUntil = (dateStr: string) => {
   return Math.ceil((due.getTime() - now.getTime()) / (1000*60*60*24));
 };
 const urgencyColor = (days: number) => days <= 3 ? "var(--red)" : days <= 7 ? "var(--amber)" : "var(--green)";
+
+// Extract a representative APR number from a string like "19.49%-27.99% Variable" -- uses the midpoint of the range,
+// which is more realistic than the low end since actual assigned rate depends on individual creditworthiness.
+const aprMidpoint = (aprStr: string): number => {
+  if (!aprStr) return 24.99;
+  const nums = aprStr.match(/\d+\.?\d*/g);
+  if (!nums || nums.length === 0) return 24.99;
+  if (nums.length === 1) return parseFloat(nums[0]);
+  return (parseFloat(nums[0]) + parseFloat(nums[1])) / 2;
+};
 
 /* ============================================================
    TOAST NOTIFICATION SYSTEM
@@ -1336,6 +1668,7 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
   const [selected, setSelected] = useState<typeof CARD_DB[0]|null>(null);
   const [form, setForm] = useState({ balance:"", limit:"", minPayment:"", dueDate:"", points:"" });
   const [step, setStep] = useState<"search"|"details">("search");
+  const [openedDate, setOpenedDate] = useState(new Date().toISOString().slice(0,10));
   const setF = (k: keyof typeof form, v: string) => setForm(p=>({...p,[k]:v}));
 
   const filtered = CARD_DB.filter(c =>
@@ -1349,6 +1682,7 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
     const newCard: CreditCard = {
       id: Date.now().toString(),
       dbId: selected.id,
+      openedDate: openedDate || new Date().toISOString().slice(0,10),
       name: selected.name,
       issuer: selected.issuer,
       gradient: selected.gradient,
@@ -1358,7 +1692,7 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
       minPayment: parseFloat(form.minPayment)||0,
       dueDate: form.dueDate,
       points: parseFloat(form.points)||0,
-      apr: "21.99%",
+      apr: (selected as any).apr || "19.99%-29.99% Variable",
       rewardRate: selected.rewardRate,
       annualFee: selected.annualFee,
       perksValue: selected.perksValue,
@@ -1520,6 +1854,12 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
               </div>
             ))}
 
+            <div style={{marginBottom:16}}>
+              <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:6}}>Date You Opened This Card</label>
+              <input className="field" type="date" value={openedDate} onChange={e=>setOpenedDate(e.target.value)} style={{padding:"13px 16px"}}/>
+              <p style={{color:"var(--text3)",fontSize:11,marginTop:6}}>Used for annual fee reminders and 5/24 tracking</p>
+            </div>
+
             <div style={{marginTop:24}}>
               <button onClick={handleAdd} className="btn-gold press" style={{width:"100%"}}>
                 Add {selected.name} ->
@@ -1635,6 +1975,7 @@ function Cards({ cards, go, onDelete }: { cards:CreditCard[]; go:(s:S)=>void; on
                         </div>
                       ))}
                     </div>
+                    <p style={{color:"var(--text3)",fontSize:10,marginTop:8,lineHeight:1.4}}>APR shown is the issuer's published range as of mid-2026. Your actual rate depends on your individual creditworthiness. Sign-up bonuses vary by applicant and may differ from what's shown -- always confirm current terms on the issuer's site before applying.</p>
 
                     {/* AI tip */}
                     <div style={{background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",borderRadius:14,padding:"12px 16px",marginTop:14}}>
@@ -1723,7 +2064,7 @@ function Cards({ cards, go, onDelete }: { cards:CreditCard[]; go:(s:S)=>void; on
    ============================================================ */
 function Chat({ cards, profile }: { cards:CreditCard[]; profile:UserProfile }) {
   const [msgs, setMsgs] = useState<Msg[]>([
-    {role:"ai",text:`Hi ${profile.name||"there"}! I'm your WiseCard AI advisor. I know your complete profile -- your cards, balances, spending habits, and goals. I can help you with: which card to use anywhere, how to maximize rewards and cashback, improving your credit score, paying off debt faster, applying for new cards, using any feature in the app, or any financial question. What would you like to know?`,id:0},
+    {role:"ai",text:`Hi ${profile.name||"there"}! I'm your WiseCard AI advisor. I know your complete profile -- your cards, balances, spending habits, and goals. I can help you with: which card to use anywhere, how to maximize rewards and cashback, improving your credit score, paying off debt faster, applying for new cards, using any feature in the app, or any financial question. I can also search the web for current bonus offers and APRs if those have changed. What would you like to know?`,id:0},
   ]);
   const [val, setVal] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1743,7 +2084,7 @@ function Chat({ cards, profile }: { cards:CreditCard[]; profile:UserProfile }) {
       const systemPrompt = `You are the AI financial advisor inside WiseCard. Respond like a knowledgeable human advisor -- natural, clear, and appropriately detailed.
 
 RULES:
-- Greetings (hi, hello, hey, how are you) -> respond with a warm intro that tells them exactly what you can do. Example: "Hi [name]! I'm your WiseCard AI advisor. I know your full profile -- your cards, balances, points, spending habits, and goals. Here's what I can help you with: which card to use at any store or restaurant, how to maximize your rewards and cashback, how to improve your credit score, whether to apply for a new card, how to pay off debt faster, how to use any feature in the app, or anything else about your finances. What would you like to know?" -- keep it natural and friendly
+- Greetings (hi, hello, hey, how are you) -> respond with a warm intro that tells them exactly what you can do. Example: "Hi [name]! I'm your WiseCard AI advisor. I know your full profile -- your cards, balances, points, spending habits, and goals. Here's what I can help you with: which card to use at any store or restaurant, how to maximize your rewards and cashback, how to improve your credit score, whether to apply for a new card, how to pay off debt faster, how to use any feature in the app, checking current bonus offers or APRs with a live web search, or anything else about your finances. What would you like to know?" -- keep it natural and friendly
 - Simple questions -> answer in 1-2 sentences
 - Complex financial questions -> answer as thoroughly as needed with real numbers and clear explanations
 - Questions asking for a list or comparison -> use a clean numbered or bulleted list
@@ -1793,7 +2134,7 @@ PORTFOLIO: ${f(totalPts)} total points worth ~$${f(Math.round(totalPts*0.015))} 
       });
       const data = await response.json();
       const aiText = data.text || "Sorry, I could not get a response. Please try again.";
-      setMsgs(p=>[...p,{role:"ai",text:aiText,id:uid+1}]);
+      setMsgs(p=>[...p,{role:"ai",text:aiText,id:uid+1,searched:!!data.usedSearch}]);
     } catch(err) {
       setMsgs(p=>[...p,{role:"ai",text:"Connection error. Please check your internet and try again.",id:uid+1}]);
     }
@@ -1826,6 +2167,12 @@ PORTFOLIO: ${f(totalPts)} total points worth ~$${f(Math.round(totalPts*0.015))} 
                 border:m.role==="ai"?"1px solid var(--border2)":"none",
                 boxShadow:m.role==="user"?"0 4px 20px rgba(37,99,235,.15)":"var(--shadow)",
               }}>
+                {m.searched && (
+                  <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:8,paddingBottom:8,borderBottom:"1px solid var(--border)"}}>
+                    <span style={{fontSize:11}}>🔍</span>
+                    <span style={{fontSize:11,color:"var(--accent)",fontWeight:600}}>Searched the web for current info</span>
+                  </div>
+                )}
                 <p style={{color:m.role==="user"?"#ffffff":"var(--text)",fontSize:14,lineHeight:1.7}}>{m.text}</p>
               </div>
             </div>
@@ -1883,7 +2230,14 @@ PORTFOLIO: ${f(totalPts)} total points worth ~$${f(Math.round(totalPts*0.015))} 
    ============================================================ */
 function Travel({ cards }: { cards:CreditCard[] }) {
   const [tab, setTab] = useState(0);
+  const [selProgram, setSelProgram] = useState<string|null>(null);
+  const [selPartnerType, setSelPartnerType] = useState<"airlines"|"hotels">("airlines");
   const totalPts = cards.reduce((s,c)=>s+c.points,0);
+
+  // Which programs the user actually has, based on their cards
+  const ownedPrograms = Array.from(new Set(cards.map(c=>c.issuer))).map(i=>issuerToProgram(i)).filter(Boolean) as typeof TRANSFER_PROGRAMS;
+  const activeProgram = TRANSFER_PROGRAMS.find(p=>p.id===selProgram) || ownedPrograms[0] || TRANSFER_PROGRAMS[0];
+
   return (
     <div className="screen desktop-content">
       <PageHead title="Travel & Points" sub="Maximize every mile and hotel night"/>
@@ -1938,26 +2292,70 @@ function Travel({ cards }: { cards:CreditCard[] }) {
         </div>}
 
         {tab===2&&<div className="ai">
-          <div style={{background:"var(--surface2)",borderRadius:14,padding:"12px 16px",marginBottom:16}}>
-            <p style={{color:"var(--text2)",fontSize:12}}>Optimizing Chase UR & Amex MR points</p>
-          </div>
-          {[
-            {p:"World of Hyatt",v:"2.2/pt",best:true,n:"Best for luxury hotels"},
-            {p:"British Airways Avios",v:"1.8/pt",best:false,n:"Short-haul & partner flights"},
-            {p:"Air France/KLM Flying Blue",v:"1.6/pt",best:false,n:"Transatlantic Business Class"},
-            {p:"United MileagePlus",v:"1.5/pt",best:false,n:"Domestic & Star Alliance"},
-          ].map((p,i)=>(
-            <div key={i} className={`au d${i+1} card-surface`} style={{padding:"14px 18px",marginBottom:10,border:`1.5px solid ${p.best?"var(--accent)":"var(--border2)"}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                  <p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px"}}>{p.p}</p>
-                  {p.best&&<span className="pill pill-gold">Best Value</span>}
-                </div>
-                <p style={{color:"var(--text2)",fontSize:11}}>{p.n}</p>
-              </div>
-              <p className="gold-text" style={{fontSize:18,fontWeight:700}}>{p.v}</p>
+          {ownedPrograms.length>0 && (
+            <div style={{background:"var(--accentbg)",borderRadius:12,padding:"10px 14px",marginBottom:16,border:"1px solid rgba(37,99,235,.15)"}}>
+              <p style={{color:"var(--accent)",fontSize:12,fontWeight:600}}>📌 Showing programs based on your {cards.length} card{cards.length!==1?"s":""}</p>
             </div>
-          ))}
+          )}
+
+          {/* Program selector pills */}
+          <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,marginBottom:18,WebkitOverflowScrolling:"touch"}}>
+            {TRANSFER_PROGRAMS.map(p=>{
+              const owned = ownedPrograms.some(op=>op.id===p.id);
+              const isActive = activeProgram.id===p.id;
+              return (
+                <button key={p.id} onClick={()=>setSelProgram(p.id)} className="press" style={{
+                  flexShrink:0,padding:"9px 14px",borderRadius:99,whiteSpace:"nowrap",
+                  border:`1.5px solid ${isActive?p.color:"var(--border)"}`,
+                  background:isActive?`${p.color}18`:"var(--surface2)",cursor:"pointer",transition:"all .15s",
+                  display:"flex",alignItems:"center",gap:6,
+                }}>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0}}/>
+                  <span style={{fontSize:12,fontWeight:isActive?700:500,color:isActive?p.color:"var(--text2)"}}>{p.name}</span>
+                  {owned&&<span style={{fontSize:9,color:"var(--green)",fontWeight:700}}>●</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Program note */}
+          <div className="card-surface" style={{padding:"13px 16px",marginBottom:16,borderLeft:`3px solid ${activeProgram.color}`}}>
+            <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>{activeProgram.note}</p>
+          </div>
+
+          {/* Airlines/Hotels toggle */}
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <button onClick={()=>setSelPartnerType("airlines")} className="press" style={{flex:1,padding:"9px",borderRadius:10,border:"1px solid var(--border)",background:selPartnerType==="airlines"?"var(--surface2)":"none",fontSize:12,fontWeight:selPartnerType==="airlines"?700:500,color:selPartnerType==="airlines"?"var(--text)":"var(--text2)"}}>
+              ✈️ Airlines ({activeProgram.airlines.length})
+            </button>
+            {activeProgram.hotels.length>0 && (
+              <button onClick={()=>setSelPartnerType("hotels")} className="press" style={{flex:1,padding:"9px",borderRadius:10,border:"1px solid var(--border)",background:selPartnerType==="hotels"?"var(--surface2)":"none",fontSize:12,fontWeight:selPartnerType==="hotels"?700:500,color:selPartnerType==="hotels"?"var(--text)":"var(--text2)"}}>
+                🏨 Hotels ({activeProgram.hotels.length})
+              </button>
+            )}
+          </div>
+
+          {/* Partner list */}
+          <div className="card-surface" style={{overflow:"hidden"}}>
+            {(selPartnerType==="airlines"?activeProgram.airlines:activeProgram.hotels).map((partner,i,arr)=>(
+              <div key={partner.name} style={{padding:"13px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{partner.name}</p>
+                  <span style={{color:activeProgram.color,fontSize:13,fontWeight:700}}>{partner.ratio}</span>
+                </div>
+                <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.4}}>{partner.best}</p>
+                {(partner as any).flag && (
+                  <p style={{color:"var(--amber)",fontSize:11,marginTop:5,lineHeight:1.4,display:"flex",gap:5}}>
+                    <span>⚠️</span><span>{(partner as any).flag}</span>
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:14,lineHeight:1.5}}>
+            Transfer ratios shown are standard rates. Issuers regularly run 20-30% transfer bonuses to specific partners — check the issuer's app before transferring.
+          </p>
         </div>}
       </div>
     </div>
@@ -1967,57 +2365,110 @@ function Travel({ cards }: { cards:CreditCard[] }) {
 /* ============================================================
    GOALS SCREEN
    ============================================================ */
-function Goals() {
+function Goals({ goals, onAdd, onUpdateProgress, onDelete }: { goals:Goal[]; onAdd:(g:Omit<Goal,"id">)=>void; onUpdateProgress:(id:string,current:number)=>void; onDelete:(id:string)=>void }) {
   const [add, setAdd] = useState(false);
-  const [open, setOpen] = useState<number|null>(null);
-  const [userGoals, setUserGoals] = useState<typeof SAMPLE_GOALS>([]);
-  const [showSamples, setShowSamples] = useState(true);
-  const allGoals = showSamples ? SAMPLE_GOALS : userGoals;
+  const [open, setOpen] = useState<string|null>(null);
+  const [editingProgress, setEditingProgress] = useState<string|null>(null);
+  const [progressInput, setProgressInput] = useState("");
+
+  const GOAL_TYPES: [string,string,string,number,"$"|"%"|"pts",string,string[]][] = [
+    ["📊","Utilization","Keep cards under 30%",30,"%","#C9A84C",["Pay down your highest-balance card first","Keep each card under 30% individually, not just overall","Consider asking for a credit limit increase"]],
+    ["💰","Save Money","Hit a savings target",1000,"$","#2DC8A0",["Set up an automatic transfer on payday","Track spending in Analytics to find where to cut back","Move savings to a high-yield account"]],
+    ["📈","Credit Score","Reach a target score",750,"pts","#4F6EF7",["Pay every bill on time, every time","Keep utilization under 10% before statement closes","Don't apply for new cards while building score"]],
+    ["✈️","Travel","Earn points for a trip",100000,"pts","#F59E0B",["Use the Travel & Points screen to find transfer bonuses","Put everyday spend on your highest-multiplier card","Watch for limited-time transfer bonuses (20-30%)"]],
+    ["💳","Pay Off Debt","Become debt free",5000,"$","#EF4444",["Use the Debt Payoff Planner to pick avalanche or snowball","Put any extra cash toward your highest-APR card first","Avoid adding new charges while paying down debt"]],
+    ["🛡️","Emergency Fund","3-6 months expenses",10000,"$","#8B5CF6",["Start with a goal of 1 month of expenses, then build up","Keep this separate from everyday checking","Automate a fixed amount each payday"]],
+  ];
+  const [customTitle, setCustomTitle] = useState("");
+  const [customTarget, setCustomTarget] = useState("");
+  const [selectedType, setSelectedType] = useState<typeof GOAL_TYPES[0]|null>(null);
+
+  const createGoal = () => {
+    if(!selectedType) return;
+    const [emoji,title,,defaultTarget,unit,color,tips] = selectedType;
+    onAdd({
+      emoji, title: customTitle || title, target: Number(customTarget)||defaultTarget,
+      current: 0, unit, color, due: "No deadline set", tips,
+    });
+    setAdd(false); setSelectedType(null); setCustomTitle(""); setCustomTarget("");
+  };
+
+  const saveProgress = (goalId:string) => {
+    onUpdateProgress(goalId, Number(progressInput)||0);
+    setEditingProgress(null);
+  };
+
   return (
-    <div className="screen desktop-content">
+    <div className="screen desktop-content screen-enter">
       <PageHead title="My Goals" sub="Track your financial targets"
         right={<button onClick={()=>setAdd(a=>!a)} className="pill pill-gold press" style={{fontSize:12,fontWeight:700}}>+ Add Goal</button>}/>
       <div className="px">
-        {allGoals.length === 0 && !add && (
-          <EmptyState icon="🎯" title="No goals yet" sub="Set financial goals — pay off debt, boost your credit score, or save points for a trip. Your AI advisor builds a custom action plan for each one." action="Set Your First Goal" onAction={()=>setAdd(true)}/>
+        {goals.length === 0 && !add && (
+          <EmptyState icon="🎯" title="No goals yet" sub="Set financial goals — pay off debt, boost your credit score, or save points for a trip." action="Set Your First Goal" onAction={()=>setAdd(true)}/>
         )}
         {add&&(
           <div className="ap card-surface" style={{border:"1.5px solid var(--accent)",padding:20,marginBottom:20}}>
-            <p style={{color:"var(--text)",fontSize:15,fontWeight:600,marginBottom:14}}>Choose a goal type</p>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {[["📊","Utilization","Keep cards under 30%"],["💰","Save Money","Hit a savings target"],["📈","Credit Score","Reach 750+"],["","Travel","Earn points for a trip"],["💳","Pay Off Debt","Become debt free"],["🛡","Emergency Fund","3-6 months expenses"]].map(([e,t,d])=>(
-                <button key={t} onClick={()=>setAdd(false)} className="press hover-lift card-surface-2" style={{padding:"14px 12px",textAlign:"left"}}>
-                  <p style={{fontSize:22,marginBottom:5}}>{e}</p>
-                  <p style={{color:"var(--text)",fontSize:12,fontWeight:700}}>{t}</p>
-                  <p style={{color:"var(--text2)",fontSize:11,marginTop:2}}>{d}</p>
-                </button>
-              ))}
-            </div>
+            {!selectedType ? (
+              <>
+                <p style={{color:"var(--text)",fontSize:15,fontWeight:600,marginBottom:14}}>Choose a goal type</p>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  {GOAL_TYPES.map(gt=>(
+                    <button key={gt[1]} onClick={()=>setSelectedType(gt)} className="press hover-lift card-surface-2" style={{padding:"14px 12px",textAlign:"left"}}>
+                      <p style={{fontSize:22,marginBottom:5}}>{gt[0]}</p>
+                      <p style={{color:"var(--text)",fontSize:12,fontWeight:700}}>{gt[1]}</p>
+                      <p style={{color:"var(--text2)",fontSize:11,marginTop:2}}>{gt[2]}</p>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={{color:"var(--text)",fontSize:15,fontWeight:600,marginBottom:14}}>{selectedType[0]} {selectedType[1]} Goal</p>
+                <div style={{marginBottom:12}}>
+                  <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Goal title</label>
+                  <input className="field" placeholder={selectedType[1]} value={customTitle} onChange={e=>setCustomTitle(e.target.value)} style={{padding:"10px 12px"}}/>
+                </div>
+                <div style={{marginBottom:16}}>
+                  <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Target ({selectedType[4]})</label>
+                  <input className="field" type="number" placeholder={String(selectedType[3])} value={customTarget} onChange={e=>setCustomTarget(e.target.value)} style={{padding:"10px 12px"}}/>
+                </div>
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={createGoal} className="btn-gold press" style={{flex:1,padding:"11px"}}>Create Goal</button>
+                  <button onClick={()=>setSelectedType(null)} className="btn-ghost press" style={{padding:"11px 16px"}}>Back</button>
+                </div>
+              </>
+            )}
           </div>
         )}
-        {SAMPLE_GOALS.map((g,i)=>{
+        {goals.map((g,i)=>{
           const p=Math.min(100,Math.round(g.current/g.target*100));
           const isOpen=open===g.id;
           return (
-            <div key={g.id} className={`au d${i+1} card-surface`} style={{padding:"20px",marginBottom:16}}>
+            <div key={g.id} className="card-surface" style={{padding:"20px",marginBottom:16}}>
               <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:16}}>
                 <div style={{width:52,height:52,borderRadius:16,flexShrink:0,background:`${g.color}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{g.emoji}</div>
                 <div style={{flex:1}}>
                   <p style={{color:"var(--text)",fontSize:15,fontWeight:600,marginBottom:2}}>{g.title}</p>
-                  <p style={{color:"var(--text2)",fontSize:12}}>Due: {g.due}</p>
+                  <p style={{color:"var(--text2)",fontSize:12}}>{g.due}</p>
                 </div>
-                <div style={{position:"relative",flexShrink:0}}>
-                  <Ring v={g.current} max={g.target} color={g.color} r={26} sw={5}/>
-                  <span style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:11,fontWeight:800,color:g.color}}>{p}%</span>
-                </div>
+                <button onClick={()=>onDelete(g.id)} style={{background:"none",border:"none",color:"var(--text3)",fontSize:16,cursor:"pointer",flexShrink:0}}>✕</button>
               </div>
               <Bar v={g.current} max={g.target} color={g.color} h={7}/>
               <div style={{display:"flex",justifyContent:"space-between",marginTop:8,marginBottom:14}}>
-                <p style={{color:"var(--text2)",fontSize:12}}>{g.unit==="$"?"$":""}{f(g.current)}{g.unit!=="$"?" "+g.unit:""}</p>
+                <p style={{color:"var(--text2)",fontSize:12}}>{g.unit==="$"?"$":""}{f(g.current)}{g.unit!=="$"?" "+g.unit:""} ({p}%)</p>
                 <p style={{color:"var(--text2)",fontSize:12}}>Target: {g.unit==="$"?"$":""}{f(g.target)}{g.unit!=="$"?" "+g.unit:""}</p>
               </div>
+              {editingProgress===g.id ? (
+                <div style={{display:"flex",gap:8,marginBottom:10}}>
+                  <input className="field" type="number" placeholder="Current progress" value={progressInput} onChange={e=>setProgressInput(e.target.value)} style={{flex:1,padding:"8px 10px",fontSize:13}}/>
+                  <button onClick={()=>saveProgress(g.id)} style={{background:"var(--green)",border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>Save</button>
+                  <button onClick={()=>setEditingProgress(null)} style={{background:"var(--surface2)",border:"none",borderRadius:8,padding:"8px 12px",color:"var(--text2)",fontSize:12,cursor:"pointer"}}>✕</button>
+                </div>
+              ) : (
+                <button onClick={()=>{setProgressInput(String(g.current));setEditingProgress(g.id);}} style={{background:"none",border:"none",color:"var(--accent)",fontSize:13,fontWeight:600,padding:0,marginRight:16}}>Update progress</button>
+              )}
               <button onClick={()=>setOpen(isOpen?null:g.id)} style={{background:"none",border:"none",color:"var(--accent)",fontSize:13,fontWeight:600,padding:0}}>
-                {isOpen?"Hide":"View"} action plan {isOpen?"":""}
+                {isOpen?"Hide":"View"} action plan
               </button>
               {isOpen&&(
                 <div className="ai" style={{marginTop:14,background:"var(--surface2)",borderRadius:14,padding:"14px 16px"}}>
@@ -2271,6 +2722,27 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
             ["🎁","Refer a Friend","Give $20, get $20 in rewards",()=>go("referral")],
             ["🔒","Privacy & Security","Data, security and permissions",()=>go("privacy")],
             ["ℹ️","About WiseCard","Version info and changelog",()=>go("about")],
+          ] as [string,string,string,()=>void][]).map(([icon,label,desc,action],i,arr)=>(
+            <button key={label} onClick={action} className="press" style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"13px 16px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",textAlign:"left"}}>
+              <span style={{fontSize:18,width:24,textAlign:"center",flexShrink:0}}>{icon}</span>
+              <div style={{flex:1}}>
+                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
+                <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
+              </div>
+              <span style={{color:"var(--text3)",fontSize:13}}>→</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Tools section */}
+        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Tools</p>
+        <div className="au d2 card-surface" style={{overflow:"hidden",marginBottom:20}}>
+          {([
+            ["🎁","Card Strategy","Sign-up bonuses & 5/24 status",()=>go("card-strategy")],
+            ["📉","Debt Payoff Planner","Avalanche vs snowball calculator",()=>go("debt-planner")],
+            ["💰","Net Worth","Assets minus card debt",()=>go("net-worth")],
+            ["🏆","Achievements","Track your progress and badges",()=>go("achievements")],
+            ["❓","Help Center","FAQs and support",()=>go("help")],
           ] as [string,string,string,()=>void][]).map(([icon,label,desc,action],i,arr)=>(
             <button key={label} onClick={action} className="press" style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"13px 16px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",textAlign:"left"}}>
               <span style={{fontSize:18,width:24,textAlign:"center",flexShrink:0}}>{icon}</span>
@@ -3259,7 +3731,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
 /* ============================================================
    SPENDING ANALYTICS SCREEN
    ============================================================ */
-function Analytics({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard[]; profile:UserProfile }) {
+function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:S)=>void; cards:CreditCard[]; profile:UserProfile; txns:Txn[]; onAddTxn:(cat:string,amount:number,desc:string,card:string,date:string)=>void; onDeleteTxn:(id:string)=>void }) {
   const CATS = [
     {label:"Dining",    key:"dining",    color:"#3B82F6", icon:"🍽️"},
     {label:"Groceries", key:"groceries", color:"#22C55E", icon:"🛒"},
@@ -3268,7 +3740,6 @@ function Analytics({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard[];
     {label:"Shopping",  key:"shopping",  color:"#8B5CF6", icon:"🛍️"},
     {label:"Other",     key:"other",     color:"#6B7280", icon:"📦"},
   ];
-  const [txns, setTxns] = useState<{id:string;cat:string;amount:number;desc:string;card:string;date:string}[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [amt, setAmt] = useState(""); const [desc, setDesc] = useState(""); const [cat, setCat] = useState("dining"); const [card, setCard] = useState(cards[0]?.name||"");
   const [sel, setSel] = useState<string|null>(null);
@@ -3284,8 +3755,34 @@ function Analytics({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard[];
 
   const addTxn = () => {
     if(!amt||isNaN(Number(amt))) return;
-    setTxns(p=>[...p,{id:Math.random().toString(36).slice(2),cat,amount:Number(amt),desc:desc||CATS.find(c=>c.key===cat)?.label||"",card,date:"Today"}]);
-    setAmt(""); setDesc(""); setShowAdd(false); showToast("Transaction added to analytics");
+    onAddTxn(cat, Number(amt), desc||CATS.find(c=>c.key===cat)?.label||"", card, new Date().toISOString().slice(0,10));
+    setAmt(""); setDesc(""); setShowAdd(false);
+  };
+
+  // Subscription detector — find recurring desc+amount pairs in logged transactions
+  const subscriptions = (() => {
+    const groups: Record<string,{desc:string;amount:number;count:number;cat:string}> = {};
+    txns.forEach(t=>{
+      const key = `${t.desc.toLowerCase().trim()}|${t.amount}`;
+      if(!groups[key]) groups[key] = {desc:t.desc, amount:t.amount, count:0, cat:t.cat};
+      groups[key].count++;
+    });
+    return Object.values(groups).filter(g=>g.count>=2 && g.desc.length>0);
+  })();
+
+  // Export to CSV
+  const exportCSV = () => {
+    const rows = [["Date","Description","Category","Card","Amount"]];
+    txns.forEach(t=>rows.push([t.date, t.desc, CATS.find(c=>c.key===t.cat)?.label||t.cat, t.card, String(t.amount)]));
+    active.forEach(c=>rows.push(["Monthly Budget", c.label, c.label, "-", String(c.val)]));
+    const csv = rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], {type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `wisecard-analytics-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Analytics exported as CSV");
   };
 
   const SpeedoGauge = () => {
@@ -3321,7 +3818,10 @@ function Analytics({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard[];
   return (
     <div className="screen desktop-content screen-enter">
       <PageHead title="Analytics" sub="Tap segments to explore spending" back={()=>go("settings")}
-        right={<button onClick={()=>setShowAdd(a=>!a)} className="btn-gold press" style={{padding:"8px 16px",fontSize:13}}>+ Log</button>}/>
+        right={<div style={{display:"flex",gap:8}}>
+          {txns.length>0 && <button onClick={exportCSV} className="btn-ghost press" style={{padding:"8px 14px",fontSize:13}}>⬇ Export</button>}
+          <button onClick={()=>setShowAdd(a=>!a)} className="btn-gold press" style={{padding:"8px 16px",fontSize:13}}>+ Log</button>
+        </div>}/>
       <div className="px">
         {showAdd&&(
           <div className="ap card-surface" style={{padding:20,marginBottom:20,border:"1.5px solid var(--accent)"}}>
@@ -3440,6 +3940,29 @@ function Analytics({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard[];
           </>
         )}
 
+        {subscriptions.length>0 && (
+          <>
+            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>🔁 Detected Recurring Charges</p>
+            <div className="card-surface" style={{overflow:"hidden",marginBottom:20,border:"1px solid rgba(217,119,6,.2)"}}>
+              {subscriptions.map((s,i,arr)=>{
+                const c=CATS.find(x=>x.key===s.cat);
+                return (
+                  <div key={i} style={{padding:"12px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:16}}>{c?.icon||"🔁"}</span>
+                      <div>
+                        <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{s.desc}</p>
+                        <p style={{color:"var(--amber)",fontSize:11}}>Seen {s.count}× — looks recurring</p>
+                      </div>
+                    </div>
+                    <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${f(s.amount)}<span style={{color:"var(--text3)",fontSize:10,fontWeight:400}}>/mo</span></p>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
         {txns.length>0&&(
           <>
             <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Logged Transactions</p>
@@ -3455,7 +3978,10 @@ function Analytics({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard[];
                         <p style={{color:"var(--text2)",fontSize:11}}>{t.card} · {t.date}</p>
                       </div>
                     </div>
-                    <p style={{color:c?.color||"var(--text)",fontSize:14,fontWeight:700}}>-${f(t.amount)}</p>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <p style={{color:c?.color||"var(--text)",fontSize:14,fontWeight:700}}>-${f(t.amount)}</p>
+                      <button onClick={()=>onDeleteTxn(t.id)} style={{background:"none",border:"none",color:"var(--text3)",fontSize:14,cursor:"pointer",padding:0}}>✕</button>
+                    </div>
                   </div>
                 );
               })}
@@ -3491,11 +4017,23 @@ function Analytics({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard[];
    NOTIFICATIONS SCREEN
    ============================================================ */
 function Notifications({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
-  const [prefs, setPrefs] = useState({paymentDue:true,utilizationHigh:true,perkExpiring:true,scoreChange:true,newOffer:true,weeklyDigest:true,appUpdates:false});
+  const [prefs, setPrefs] = useState({paymentDue:true,utilizationHigh:true,perkExpiring:true,scoreChange:true,newOffer:true,weeklyDigest:true,appUpdates:false,annualFeeRenewal:true});
   const tog = (k: keyof typeof prefs) => setPrefs(p=>({...p,[k]:!p[k]}));
+  // Annual fee renewal alerts -- based on openedDate anniversary
+  const annualFeeAlerts = cards.filter(c=>c.annualFee>0 && c.openedDate).map(c=>{
+    const opened = new Date(c.openedDate!);
+    const now = new Date();
+    const nextRenewal = new Date(opened);
+    nextRenewal.setFullYear(now.getFullYear());
+    if(nextRenewal < now) nextRenewal.setFullYear(now.getFullYear()+1);
+    const daysUntilRenewal = Math.ceil((nextRenewal.getTime()-now.getTime())/86400000);
+    return {card:c, daysUntilRenewal};
+  }).filter(x=>x.daysUntilRenewal<=30);
+
   const alerts = [
     ...cards.filter(c=>daysUntil(c.dueDate)<=7&&daysUntil(c.dueDate)>=0).map(c=>({type:"warning" as const,title:`Payment due in ${daysUntil(c.dueDate)} days`,desc:`${c.name} — $${f(c.minPayment)} minimum due`,time:"Now"})),
     ...cards.filter(c=>c.balance/c.limit>0.3).map(c=>({type:"error" as const,title:"High utilization alert",desc:`${c.name} is at ${Math.round(c.balance/c.limit*100)}% — pay down to protect your score`,time:"Today"})),
+    ...annualFeeAlerts.map(({card,daysUntilRenewal})=>({type:"warning" as const,title:`Annual fee renews in ${daysUntilRenewal} days`,desc:`${card.name} — $${card.annualFee} fee. Decide whether to keep, downgrade, or call retention.`,time:"Soon"})),
     {type:"info" as const,title:"Weekly digest ready",desc:"Your WiseCard financial recap for this week is ready",time:"Mon"},
     {type:"success" as const,title:"New cashback offer",desc:"5% back on gas activated on your Chase card",time:"Yesterday"},
   ];
@@ -3530,6 +4068,7 @@ function Notifications({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
             ["scoreChange","📈","Score Changes","When your credit score changes"],
             ["newOffer","🎁","New Offers","When new cashback offers activate"],
             ["weeklyDigest","📧","Weekly Digest","Monday morning financial recap"],
+            ["annualFeeRenewal","💳","Annual Fee Reminders","30 days before your card's fee renews"],
             ["appUpdates","🔔","App Updates","New features and improvements"],
           ] as [keyof typeof prefs,string,string,string][]).map(([key,icon,label,desc],i,arr)=>(
             <div key={key} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
@@ -3720,6 +4259,8 @@ function Referral({ go }: { go:(s:S)=>void }) {
    ============================================================ */
 function Privacy({ go }: { go:(s:S)=>void }) {
   const [biometric,setBiometric]=useState(false);
+  const [twoFA,setTwoFA]=useState(false);
+  const [autoLogout,setAutoLogout]=useState(true);
   const [dataSharing,setDataSharing]=useState(false);
   const [analytics,setAnalytics]=useState(true);
   return (
@@ -3741,6 +4282,16 @@ function Privacy({ go }: { go:(s:S)=>void }) {
             <span style={{fontSize:18,width:26,textAlign:"center"}}>🔑</span>
             <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Biometric Login</p><p style={{color:"var(--text2)",fontSize:11}}>Face ID or fingerprint sign-in</p></div>
             <Toggle on={biometric} set={()=>setBiometric(v=>!v)}/>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)"}}>
+            <span style={{fontSize:18,width:26,textAlign:"center"}}>🛡️</span>
+            <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Two-Factor Authentication</p><p style={{color:"var(--text2)",fontSize:11}}>Require a code from your phone at sign-in</p></div>
+            <Toggle on={twoFA} set={()=>{setTwoFA(v=>!v);showToast(twoFA?"Two-factor authentication disabled":"Two-factor authentication enabled");}}/>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)"}}>
+            <span style={{fontSize:18,width:26,textAlign:"center"}}>⏱️</span>
+            <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Auto Sign-Out</p><p style={{color:"var(--text2)",fontSize:11}}>Sign out automatically after 15 minutes idle</p></div>
+            <Toggle on={autoLogout} set={()=>setAutoLogout(v=>!v)}/>
           </div>
           <button className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
             <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Change Password</p>
@@ -3834,6 +4385,546 @@ function About({ go }: { go:(s:S)=>void }) {
 
         <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:20,lineHeight:1.6}}>
           Made with care. Your data is encrypted and never sold.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+/* ============================================================
+   CARD STRATEGY -- Sign-up Bonus Tracker + 5/24 Rule
+   ============================================================ */
+function CardStrategy({ go, cards, applications, onAddApplication, onDeleteApplication, onUpdateBonus }: { go:(s:S)=>void; cards:CreditCard[]; applications:CardApplication[]; onAddApplication:(issuer:string,date:string)=>void; onDeleteApplication:(id:string)=>void; onUpdateBonus:(cardId:string,target:number,deadline:string,progress:number)=>void }) {
+  const [tab, setTab] = useState<"bonus"|"524">("bonus");
+  const [newIssuer, setNewIssuer] = useState("Chase");
+  const [newDate, setNewDate] = useState(new Date().toISOString().slice(0,10));
+  const [editingBonus, setEditingBonus] = useState<Record<string,{target:string;deadline:string;progress:string}>>({});
+
+  const getBonusInput = (card: CreditCard) => editingBonus[card.id] || {
+    target: String(card.bonusTarget || 4000),
+    deadline: card.bonusDeadline || "",
+    progress: String(card.bonusProgress || 0),
+  };
+  const setBonusField = (cardId:string, field:string, val:string) => {
+    setEditingBonus(p=>({...p, [cardId]: {...getBonusInput(cards.find(c=>c.id===cardId)!), ...(p[cardId]||{}), [field]:val}}));
+  };
+  const saveBonus = (cardId:string) => {
+    const b = editingBonus[cardId];
+    if(!b) return;
+    onUpdateBonus(cardId, Number(b.target)||4000, b.deadline||"", Number(b.progress)||0);
+  };
+
+  const cardsWithBonus = cards.filter(c=>c.signupBonus && c.signupBonus.length>0);
+
+  // 5/24 calculation -- count cards opened in last 24 months (combines actual cards' openedDate + logged applications)
+  const now = new Date();
+  const allOpenedEvents = [
+    ...cards.filter(c=>c.openedDate).map(c=>({id:c.id, issuer:c.issuer, date:c.openedDate!, fromCard:true})),
+    ...applications.map(a=>({id:a.id, issuer:a.issuer, date:a.date, fromCard:false})),
+  ];
+  const cardsLast24mo = allOpenedEvents.filter(c=>{
+    const d = new Date(c.date);
+    const months = (now.getFullYear()-d.getFullYear())*12 + (now.getMonth()-d.getMonth());
+    return months <= 24;
+  });
+  const under524 = cardsLast24mo.length < 5;
+
+  const addOpenedCard = () => {
+    onAddApplication(newIssuer, newDate);
+  };
+  const removeOpenedCard = (id:string) => onDeleteApplication(id);
+
+  return (
+    <div className="screen desktop-content screen-enter">
+      <PageHead title="Card Strategy" sub="Bonuses & application rules" back={()=>go("settings")}/>
+      <div className="px">
+        <div className="au" style={{display:"flex",gap:5,marginBottom:20,background:"var(--surface2)",padding:4,borderRadius:14}}>
+          {(["bonus","524"] as const).map(t=>(
+            <button key={t} onClick={()=>setTab(t)} className="press" style={{flex:1,padding:"10px",borderRadius:11,border:"none",background:tab===t?"var(--accent)":"none",color:tab===t?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===t?700:500}}>
+              {t==="bonus"?"Sign-up Bonuses":"5/24 Status"}
+            </button>
+          ))}
+        </div>
+
+        {tab==="bonus" && (
+          cardsWithBonus.length===0 ? (
+            <EmptyState icon="🎁" title="No bonuses to track" sub="Add a card with a sign-up bonus to start tracking your progress toward the minimum spend." action="Add a Card" onAction={()=>go("add-card")}/>
+          ) : (
+            <>
+              {cardsWithBonus.map(card=>{
+                const b = getBonusInput(card);
+                const target = Number(b.target)||4000;
+                const progress = Number(b.progress)||0;
+                const pct2 = Math.min(100, Math.round(progress/target*100));
+                const daysLeft = b.deadline ? Math.ceil((new Date(b.deadline).getTime()-Date.now())/86400000) : null;
+                return (
+                  <div key={card.id} className="card-surface" style={{padding:"16px 18px",marginBottom:14}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                      <div style={{width:36,height:24,borderRadius:6,background:card.gradient,flexShrink:0}}/>
+                      <div style={{flex:1}}>
+                        <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>{card.name}</p>
+                        <p style={{color:"var(--text2)",fontSize:11}}>{card.signupBonus}</p>
+                      </div>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+                      <div>
+                        <label style={{fontSize:10,color:"var(--text3)",display:"block",marginBottom:4}}>Target ($)</label>
+                        <input className="field" type="number" value={b.target} onChange={e=>setBonusField(card.id,"target",e.target.value)} style={{padding:"7px 9px",fontSize:12}}/>
+                      </div>
+                      <div>
+                        <label style={{fontSize:10,color:"var(--text3)",display:"block",marginBottom:4}}>Spent so far</label>
+                        <input className="field" type="number" value={b.progress} onChange={e=>setBonusField(card.id,"progress",e.target.value)} style={{padding:"7px 9px",fontSize:12}}/>
+                      </div>
+                      <div>
+                        <label style={{fontSize:10,color:"var(--text3)",display:"block",marginBottom:4}}>Deadline</label>
+                        <input className="field" type="date" value={b.deadline} onChange={e=>setBonusField(card.id,"deadline",e.target.value)} style={{padding:"7px 9px",fontSize:11}}/>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                      <span style={{color:"var(--text2)",fontSize:11}}>${f(progress)} of ${f(target)}</span>
+                      <span style={{color:pct2>=100?"var(--green)":"var(--accent)",fontSize:11,fontWeight:700}}>{pct2}%{daysLeft!==null&&daysLeft>=0?` · ${daysLeft}d left`:""}</span>
+                    </div>
+                    <Bar v={progress} max={target} color={pct2>=100?"var(--green)":"var(--accent)"} h={6}/>
+                    {pct2>=100 && <p style={{color:"var(--green)",fontSize:11,marginTop:8,fontWeight:600}}>✓ Bonus requirement met!</p>}
+                    {daysLeft!==null && daysLeft>=0 && daysLeft<=14 && pct2<100 && <p style={{color:"var(--red)",fontSize:11,marginTop:8,fontWeight:600}}>⚠️ {daysLeft} days left — spend ${f(target-progress)} more</p>}
+                    <button onClick={()=>saveBonus(card.id)} className="press" style={{marginTop:10,width:"100%",padding:"8px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Save Progress</button>
+                  </div>
+                );
+              })}
+            </>
+          )
+        )}
+
+        {tab==="524" && (
+          <>
+            <div className="au card-surface" style={{padding:"22px 20px",marginBottom:18,textAlign:"center",background:under524?"var(--greenbg)":"var(--redbg)",border:`1px solid ${under524?"rgba(39,103,73,.2)":"rgba(220,38,38,.2)"}`}}>
+              <p style={{fontSize:13,color:"var(--text2)",marginBottom:6}}>Cards opened in the last 24 months</p>
+              <p style={{fontSize:42,fontWeight:800,color:under524?"var(--green)":"var(--red)"}}>{cardsLast24mo.length}<span style={{fontSize:18,color:"var(--text3)"}}>/5</span></p>
+              <p style={{fontSize:13,fontWeight:600,color:under524?"var(--green)":"var(--red)",marginTop:6}}>
+                {under524?"✓ You're eligible for new Chase cards":"✗ Chase will likely deny new applications"}
+              </p>
+              <p style={{color:"var(--text2)",fontSize:11,marginTop:8,lineHeight:1.5}}>Chase's 5/24 rule blocks approval if you've opened 5+ personal cards (any issuer) in the trailing 24 months.</p>
+            </div>
+
+            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Log a Card Application</p>
+            <div className="card-surface" style={{padding:16,marginBottom:18}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                <div>
+                  <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Issuer</label>
+                  <select className="field" value={newIssuer} onChange={e=>setNewIssuer(e.target.value)} style={{padding:"9px 10px",fontSize:12}}>
+                    {["Chase","Amex","Capital One","Citi","Discover","Bank of America","Wells Fargo","US Bank"].map(i=><option key={i} value={i}>{i}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Date opened</label>
+                  <input className="field" type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{padding:"9px 10px",fontSize:12}}/>
+                </div>
+              </div>
+              <button onClick={addOpenedCard} className="btn-gold press" style={{width:"100%",padding:"10px",fontSize:13}}>+ Log Application</button>
+            </div>
+
+            {cards.filter(c=>c.openedDate).length>0 && (
+              <>
+                <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>From Your Wallet</p>
+                <div className="card-surface" style={{overflow:"hidden",marginBottom:18}}>
+                  {cards.filter(c=>c.openedDate).map((c,i,arr)=>{
+                    const d = new Date(c.openedDate!);
+                    const months = (now.getFullYear()-d.getFullYear())*12 + (now.getMonth()-d.getMonth());
+                    const within = months<=24;
+                    return (
+                      <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
+                        <div>
+                          <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{c.name}</p>
+                          <p style={{color:"var(--text2)",fontSize:11}}>{c.openedDate} {within&&<span style={{color:"var(--accent)"}}>· counts toward 5/24</span>}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {applications.length>0 && (
+              <>
+                <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Other Applications (closed/not in wallet)</p>
+                <div className="card-surface" style={{overflow:"hidden"}}>
+                  {[...applications].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).map((c,i,arr)=>{
+                    const d = new Date(c.date);
+                    const months = (now.getFullYear()-d.getFullYear())*12 + (now.getMonth()-d.getMonth());
+                    const within = months<=24;
+                    return (
+                      <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
+                        <div>
+                          <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{c.issuer}</p>
+                          <p style={{color:"var(--text2)",fontSize:11}}>{c.date} {within&&<span style={{color:"var(--accent)"}}>· counts toward 5/24</span>}</p>
+                        </div>
+                        <button onClick={()=>removeOpenedCard(c.id)} style={{background:"none",border:"none",color:"var(--text3)",fontSize:16,cursor:"pointer"}}>✕</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   DEBT PAYOFF PLANNER
+   ============================================================ */
+function DebtPlanner({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
+  const [extraPayment, setExtraPayment] = useState("100");
+  const [method, setMethod] = useState<"avalanche"|"snowball">("avalanche");
+  const debtCards = cards.filter(c=>c.balance>0);
+  const totalDebt = debtCards.reduce((s,c)=>s+c.balance,0);
+  const totalMin = debtCards.reduce((s,c)=>s+c.minPayment,0);
+  const extra = Number(extraPayment)||0;
+
+  // Sort by method
+  const order = [...debtCards].sort((a,b)=>{
+    if(method==="avalanche") return aprMidpoint(b.apr)-aprMidpoint(a.apr);
+    return a.balance-b.balance;
+  });
+
+  // Simulate payoff
+  const simulate = () => {
+    let balances = order.map(c=>({id:c.id,name:c.name,balance:c.balance,apr:aprMidpoint(c.apr),minPay:c.minPayment}));
+    let months=0, totalInterest=0;
+    const timeline:{month:number;totalRemaining:number}[] = [];
+    let extraPool = extra;
+    while(balances.some(b=>b.balance>0) && months<360){
+      months++;
+      let monthInterest=0;
+      let availableExtra = extraPool;
+      for(const b of balances){
+        if(b.balance<=0) continue;
+        const interest = b.balance*(b.apr/100/12);
+        monthInterest += interest;
+        b.balance += interest;
+        let payment = Math.min(b.balance, b.minPay);
+        b.balance -= payment;
+      }
+      // apply extra to first card with balance (per method order)
+      for(const b of balances){
+        if(availableExtra<=0) break;
+        if(b.balance<=0) continue;
+        const pay = Math.min(b.balance, availableExtra);
+        b.balance -= pay;
+        availableExtra -= pay;
+      }
+      totalInterest += monthInterest;
+      timeline.push({month:months, totalRemaining: balances.reduce((s,b)=>s+Math.max(0,b.balance),0)});
+    }
+    return {months, totalInterest:Math.round(totalInterest), timeline};
+  };
+
+  const result = totalDebt>0 ? simulate() : null;
+  const years = result ? Math.floor(result.months/12) : 0;
+  const remMonths = result ? result.months%12 : 0;
+
+  return (
+    <div className="screen desktop-content screen-enter">
+      <PageHead title="Debt Payoff Planner" sub="See exactly when you'll be debt-free" back={()=>go("settings")}/>
+      <div className="px">
+        {debtCards.length===0 ? (
+          <EmptyState icon="🎉" title="No debt to pay off!" sub="None of your cards carry a balance. Keep it that way!"/>
+        ) : (
+          <>
+            <div className="au card-surface" style={{padding:"20px 18px",marginBottom:18,background:"var(--redbg)",border:"1px solid rgba(220,38,38,.15)"}}>
+              <p style={{color:"var(--text2)",fontSize:12,marginBottom:4}}>Total debt across {debtCards.length} card{debtCards.length!==1?"s":""}</p>
+              <p style={{color:"var(--red)",fontSize:32,fontWeight:800}}>${f(totalDebt)}</p>
+              <p style={{color:"var(--text2)",fontSize:12,marginTop:4}}>${f(totalMin)}/mo minimum payments</p>
+            </div>
+
+            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Strategy</p>
+            <div style={{display:"flex",gap:8,marginBottom:16}}>
+              {(["avalanche","snowball"] as const).map(m=>(
+                <button key={m} onClick={()=>setMethod(m)} className="press" style={{flex:1,padding:"12px",borderRadius:12,border:`1.5px solid ${method===m?"var(--accent)":"var(--border)"}`,background:method===m?"var(--accentbg)":"var(--surface)",textAlign:"left"}}>
+                  <p style={{color:method===m?"var(--accent)":"var(--text)",fontSize:13,fontWeight:700,marginBottom:2}}>{m==="avalanche"?"❄️ Avalanche":"⛄ Snowball"}</p>
+                  <p style={{color:"var(--text2)",fontSize:10,lineHeight:1.3}}>{m==="avalanche"?"Highest APR first — saves the most money":"Smallest balance first — quick wins, motivation"}</p>
+                </button>
+              ))}
+            </div>
+
+            <div className="card-surface" style={{padding:16,marginBottom:18}}>
+              <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:8}}>Extra monthly payment (beyond minimums)</label>
+              <input className="field" type="number" value={extraPayment} onChange={e=>setExtraPayment(e.target.value)} placeholder="$100" style={{padding:"11px 14px"}}/>
+            </div>
+
+            {result && (
+              <div className="au card-surface" style={{padding:"20px",marginBottom:18,background:"var(--greenbg)",border:"1px solid rgba(39,103,73,.15)"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,textAlign:"center"}}>
+                  <div>
+                    <p style={{color:"var(--green)",fontSize:24,fontWeight:800}}>{years>0?`${years}y `:""}{remMonths}mo</p>
+                    <p style={{color:"var(--text2)",fontSize:11,marginTop:3}}>Time to debt-free</p>
+                  </div>
+                  <div>
+                    <p style={{color:"var(--green)",fontSize:24,fontWeight:800}}>${f(result.totalInterest)}</p>
+                    <p style={{color:"var(--text2)",fontSize:11,marginTop:3}}>Total interest paid</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Attack Order ({method==="avalanche"?"highest APR":"smallest balance"} first)</p>
+            <div className="card-surface" style={{overflow:"hidden"}}>
+              {order.map((c,i,arr)=>(
+                <div key={c.id} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
+                  <div style={{width:26,height:26,borderRadius:"50%",background:i===0?"var(--accent)":"var(--surface2)",color:i===0?"#fff":"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,flexShrink:0}}>{i+1}</div>
+                  <div style={{flex:1}}>
+                    <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{c.name}</p>
+                    <p style={{color:"var(--text2)",fontSize:11}}>${f(c.balance)} balance · {c.apr} APR</p>
+                  </div>
+                  {i===0 && <span className="pill pill-gold" style={{fontSize:10}}>Focus here</span>}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   NET WORTH TRACKER
+   ============================================================ */
+function NetWorth({ go, cards, assets, onAddAsset, onDeleteAsset }: { go:(s:S)=>void; cards:CreditCard[]; assets:Asset[]; onAddAsset:(name:string,value:number)=>void; onDeleteAsset:(id:string)=>void }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [assetName, setAssetName] = useState("");
+  const [assetValue, setAssetValue] = useState("");
+  const totalDebt = cards.reduce((s,c)=>s+c.balance,0);
+  const totalAssets = assets.reduce((s,a)=>s+(Number(a.value)||0),0);
+  const netWorth = totalAssets - totalDebt;
+
+  const addAsset = () => {
+    if(!assetName||!assetValue) return;
+    onAddAsset(assetName, Number(assetValue));
+    setAssetName(""); setAssetValue(""); setShowAdd(false);
+  };
+  const removeAsset = (id:string) => onDeleteAsset(id);
+
+  return (
+    <div className="screen desktop-content screen-enter">
+      <PageHead title="Net Worth" sub="Assets minus debt" back={()=>go("settings")}
+        right={<button onClick={()=>setShowAdd(a=>!a)} className="btn-gold press" style={{padding:"8px 16px",fontSize:13}}>+ Asset</button>}/>
+      <div className="px">
+        <div className="au card-surface" style={{padding:"24px 20px",marginBottom:20,textAlign:"center",background:netWorth>=0?"var(--greenbg)":"var(--redbg)"}}>
+          <p style={{color:"var(--text2)",fontSize:12,marginBottom:6}}>Your Net Worth</p>
+          <p style={{color:netWorth>=0?"var(--green)":"var(--red)",fontSize:38,fontWeight:800}}>{netWorth<0?"-":""}${f(Math.abs(netWorth))}</p>
+        </div>
+
+        {showAdd && (
+          <div className="ap card-surface" style={{padding:18,marginBottom:18,border:"1.5px solid var(--accent)"}}>
+            <div style={{display:"flex",gap:10,marginBottom:12}}>
+              <input className="field" placeholder="Asset name (e.g. Savings)" value={assetName} onChange={e=>setAssetName(e.target.value)} style={{flex:2,padding:"10px 12px"}}/>
+              <input className="field" type="number" placeholder="$0" value={assetValue} onChange={e=>setAssetValue(e.target.value)} style={{flex:1,padding:"10px 12px"}}/>
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={addAsset} className="btn-gold press" style={{flex:1,padding:"10px"}}>Add</button>
+              <button onClick={()=>setShowAdd(false)} className="btn-ghost press" style={{padding:"10px 16px"}}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+          <div className="card-surface" style={{padding:"16px 14px"}}>
+            <p style={{color:"var(--text2)",fontSize:11,marginBottom:6}}>Total Assets</p>
+            <p style={{color:"var(--green)",fontSize:20,fontWeight:800}}>${f(totalAssets)}</p>
+          </div>
+          <div className="card-surface" style={{padding:"16px 14px"}}>
+            <p style={{color:"var(--text2)",fontSize:11,marginBottom:6}}>Total Card Debt</p>
+            <p style={{color:"var(--red)",fontSize:20,fontWeight:800}}>${f(totalDebt)}</p>
+          </div>
+        </div>
+
+        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Your Assets</p>
+        {assets.length===0 ? (
+          <div className="card-surface"><EmptyState icon="💰" title="No assets added" sub="Add savings, investments, or other assets to see your full net worth." action="+ Add Asset" onAction={()=>setShowAdd(true)}/></div>
+        ) : (
+          <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
+            {assets.map((a,i,arr)=>(
+              <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
+                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{a.name}</p>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <p style={{color:"var(--green)",fontSize:13,fontWeight:700}}>${f(Number(a.value))}</p>
+                  <button onClick={()=>removeAsset(a.id)} style={{background:"none",border:"none",color:"var(--text3)",fontSize:15,cursor:"pointer"}}>✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Card Debt Breakdown</p>
+        <div className="card-surface" style={{overflow:"hidden"}}>
+          {cards.length===0 ? <p style={{padding:16,color:"var(--text2)",fontSize:13,textAlign:"center"}}>No cards added yet</p> : cards.map((c,i,arr)=>(
+            <div key={c.id} style={{display:"flex",justifyContent:"space-between",padding:"13px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
+              <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{c.name}</p>
+              <p style={{color:c.balance>0?"var(--red)":"var(--green)",fontSize:13,fontWeight:700}}>{c.balance>0?`-$${f(c.balance)}`:"$0"}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   ACHIEVEMENTS
+   ============================================================ */
+function Achievements({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard[]; profile:UserProfile }) {
+  const totalBal = cards.reduce((s,c)=>s+c.balance,0);
+  const totalLim = cards.reduce((s,c)=>s+c.limit,0);
+  const util = totalLim>0?Math.round(totalBal/totalLim*100):0;
+  const paidOffCards = cards.filter(c=>c.balance===0 && c.limit>0);
+  const spendingFilled = Object.values(profile.spending||{}).some(v=>Number(v)>0);
+
+  const badges = [
+    {id:"first-card",icon:"💳",title:"First Card Added",desc:"Added your first card to WiseCard",unlocked:cards.length>=1},
+    {id:"diversified",icon:"🃏",title:"Diversified Wallet",desc:"Own 3 or more cards",unlocked:cards.length>=3},
+    {id:"low-util",icon:"📊",title:"Utilization Master",desc:"Overall utilization under 30%",unlocked:cards.length>0 && util<30},
+    {id:"debt-free-card",icon:"🎉",title:"Debt Crusher",desc:"Paid a card down to $0",unlocked:paidOffCards.length>=1},
+    {id:"profile-complete",icon:"✏️",title:"Profile Pro",desc:"Filled in your spending profile",unlocked:spendingFilled},
+    {id:"five-cards",icon:"👑",title:"Card Collector",desc:"Own 5 or more cards",unlocked:cards.length>=5},
+    {id:"perfect-util",icon:"💎",title:"Pristine Credit",desc:"Utilization under 10%",unlocked:cards.length>0 && util<10},
+    {id:"high-points",icon:"⭐",title:"Points Powerhouse",desc:"10,000+ total points across cards",unlocked:cards.reduce((s,c)=>s+c.points,0)>=10000},
+  ];
+  const unlockedCount = badges.filter(b=>b.unlocked).length;
+
+  return (
+    <div className="screen desktop-content screen-enter">
+      <PageHead title="Achievements" sub={`${unlockedCount} of ${badges.length} unlocked`} back={()=>go("settings")}/>
+      <div className="px">
+        <div className="au card-surface" style={{padding:"20px",marginBottom:20,textAlign:"center",background:"var(--accentbg)"}}>
+          <div style={{height:8,background:"var(--border2)",borderRadius:99,overflow:"hidden",marginBottom:10}}>
+            <div style={{height:"100%",width:`${Math.round(unlockedCount/badges.length*100)}%`,background:"var(--accent)",borderRadius:99,transition:"width .6s ease"}}/>
+          </div>
+          <p style={{color:"var(--accent)",fontSize:14,fontWeight:700}}>{unlockedCount}/{badges.length} badges earned</p>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          {badges.map(b=>(
+            <div key={b.id} className="card-surface" style={{padding:"16px 14px",textAlign:"center",opacity:b.unlocked?1:0.45,border:b.unlocked?"1.5px solid var(--accent)":"1px solid var(--border)"}}>
+              <p style={{fontSize:32,marginBottom:8,filter:b.unlocked?"none":"grayscale(1)"}}>{b.icon}</p>
+              <p style={{color:"var(--text)",fontSize:12,fontWeight:700,marginBottom:4}}>{b.title}</p>
+              <p style={{color:"var(--text2)",fontSize:10,lineHeight:1.3}}>{b.desc}</p>
+              {b.unlocked && <p style={{color:"var(--green)",fontSize:10,fontWeight:700,marginTop:6}}>✓ UNLOCKED</p>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   HELP CENTER
+   ============================================================ */
+function HelpCenter({ go }: { go:(s:S)=>void }) {
+  const [open, setOpen] = useState<number|null>(null);
+  const faqs = [
+    {q:"Is my financial data secure?",a:"Yes. WiseCard uses AES-256 encryption for all stored data and TLS 1.3 for data in transit. We never store your full card numbers — only the balance, limit, and rewards info you choose to enter."},
+    {q:"How does the AI Advisor know my cards?",a:"The AI Advisor has read access to your card list, balances, points, and goals within your session so it can give personalized advice. It does not share this data with any third party."},
+    {q:"Why don't my balances update automatically?",a:"WiseCard currently uses manual entry for balances and points. Automatic bank syncing requires a licensed data aggregator (like Plaid) which we're evaluating for a future release."},
+    {q:"How accurate are the approval chance predictions?",a:"Approval chances are estimates based on general credit score and income ranges, not a guarantee. Actual approval depends on the issuer's full underwriting criteria."},
+    {q:"Can I delete my account and data?",a:"Yes. Go to Settings → Privacy & Security → Delete Account. This permanently removes your profile and card data from our database."},
+    {q:"How do transfer ratios work for points?",a:"Most transferable point programs (Chase, Amex, Citi, Capital One) transfer to airline/hotel partners at 1:1 ratios, with some exceptions. Check the Travel & Points → Transfers tab for exact current ratios."},
+    {q:"What's the difference between Avalanche and Snowball debt payoff?",a:"Avalanche pays off your highest-APR card first to minimize total interest paid. Snowball pays off your smallest balance first for quicker psychological wins. Avalanche saves more money; Snowball keeps you motivated."},
+  ];
+  return (
+    <div className="screen desktop-content screen-enter">
+      <PageHead title="Help Center" back={()=>go("settings")}/>
+      <div className="px">
+        <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
+          {faqs.map((item,i,arr)=>(
+            <div key={i} style={{borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
+              <button onClick={()=>setOpen(o=>o===i?null:i)} className="press" style={{width:"100%",padding:"15px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
+                <p style={{color:"var(--text)",fontSize:13,fontWeight:600,flex:1,paddingRight:10}}>{item.q}</p>
+                <span style={{color:"var(--text3)",fontSize:14,transform:open===i?"rotate(180deg)":"none",transition:"transform .2s"}}>⌄</span>
+              </button>
+              {open===i && <p style={{padding:"0 16px 16px",color:"var(--text2)",fontSize:12,lineHeight:1.6}}>{item.a}</p>}
+            </div>
+          ))}
+        </div>
+
+        <div className="card-surface au" style={{padding:"20px",textAlign:"center"}}>
+          <p style={{fontSize:28,marginBottom:8}}>💬</p>
+          <p style={{color:"var(--text)",fontSize:14,fontWeight:700,marginBottom:6}}>Still need help?</p>
+          <p style={{color:"var(--text2)",fontSize:12,marginBottom:14}}>Our support team typically responds within 24 hours.</p>
+          <a href="mailto:support@wisecard.app" className="btn-gold press" style={{display:"inline-block",padding:"11px 28px",fontSize:13,textDecoration:"none"}}>Email Support</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/* ============================================================
+   LANDING PAGE -- shown before sign in
+   ============================================================ */
+function Landing({ onGetStarted, onSignIn }: { onGetStarted:()=>void; onSignIn:()=>void }) {
+  return (
+    <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"var(--sans)"}}>
+      {/* Nav */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 24px",maxWidth:1100,margin:"0 auto"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:34,height:34,borderRadius:9,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+          <span style={{fontSize:16,fontWeight:800,color:"var(--text)",letterSpacing:"-.3px"}}>WiseCard</span>
+        </div>
+        <button onClick={onSignIn} style={{background:"none",border:"1px solid var(--border2)",borderRadius:10,padding:"9px 18px",color:"var(--text)",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"var(--sans)"}}>Sign In</button>
+      </div>
+
+      {/* Hero */}
+      <div style={{maxWidth:680,margin:"0 auto",padding:"60px 24px 40px",textAlign:"center"}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)",borderRadius:99,padding:"6px 14px",marginBottom:24}}>
+          <span style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)"}}/>
+          <span style={{fontSize:12,fontWeight:600,color:"var(--accent)"}}>AI-powered credit card optimization</span>
+        </div>
+        <h1 style={{fontSize:42,fontWeight:800,letterSpacing:"-1.5px",lineHeight:1.1,color:"var(--text)",marginBottom:18}}>
+          Save more on<br/>every card swipe
+        </h1>
+        <p style={{fontSize:16,color:"var(--text2)",lineHeight:1.6,maxWidth:480,margin:"0 auto 32px"}}>
+          WiseCard tells you exactly which card to use, tracks every reward, and finds money you're leaving on the table — automatically.
+        </p>
+        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+          <button onClick={onGetStarted} className="btn-gold press" style={{padding:"15px 32px",fontSize:15}}>Get Started Free →</button>
+          <button onClick={onSignIn} style={{background:"none",border:"1px solid var(--border2)",borderRadius:12,padding:"15px 28px",color:"var(--text)",fontSize:15,fontWeight:600,cursor:"pointer",fontFamily:"var(--sans)"}}>Sign In</button>
+        </div>
+        <p style={{color:"var(--text3)",fontSize:12,marginTop:16}}>Free to use · No credit card required to sign up</p>
+      </div>
+
+      {/* Feature grid */}
+      <div style={{maxWidth:1000,margin:"0 auto",padding:"20px 24px 80px"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16}}>
+          {[
+            {icon:"🤖",title:"AI Financial Advisor",desc:"Get personalized advice on which card to use, debt payoff strategy, and credit score improvement — anytime."},
+            {icon:"📊",title:"Real Spending Analytics",desc:"Interactive speedometer dashboards show exactly where your money goes, down to the category."},
+            {icon:"✈️",title:"Maximize Travel Points",desc:"Real, accurate transfer ratios across Chase, Amex, Citi, and Capital One — know exactly where to send your points."},
+            {icon:"⚖️",title:"Compare Any Two Cards",desc:"Side-by-side comparison of annual fees, perks, and net value across 45+ real cards."},
+            {icon:"📉",title:"Debt Payoff Planner",desc:"Avalanche or snowball calculator shows exactly when you'll be debt-free and how much interest you'll save."},
+            {icon:"🎁",title:"Sign-up Bonus Tracker",desc:"Never miss a minimum-spend deadline again — track every bonus in one place."},
+          ].map(f=>(
+            <div key={f.title} className="card-surface" style={{padding:"22px 20px"}}>
+              <p style={{fontSize:26,marginBottom:12}}>{f.icon}</p>
+              <p style={{color:"var(--text)",fontSize:14,fontWeight:700,marginBottom:6}}>{f.title}</p>
+              <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="card-surface au" style={{marginTop:40,padding:"32px 28px",textAlign:"center",background:"var(--accentbg)"}}>
+          <p style={{color:"var(--text)",fontSize:20,fontWeight:700,marginBottom:10}}>Ready to stop leaving money on the table?</p>
+          <button onClick={onGetStarted} className="btn-gold press" style={{padding:"14px 32px",fontSize:14,marginTop:10}}>Create Your Free Account →</button>
+        </div>
+
+        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:40}}>
+          WiseCard · Your data is encrypted and never sold · <a href="mailto:support@wisecard.app" style={{color:"var(--text3)"}}>support@wisecard.app</a>
         </p>
       </div>
     </div>
@@ -4001,10 +5092,15 @@ export default function App() {
   const [screen, setScreen] = useState<S>("onboard");
   const [profile, setProfile] = useState<UserProfile>({name:"",age:"",income:"",lifestyles:[],creditScore:"",spending:{dining:"",groceries:"",travel:"",gas:"",shopping:"",other:""},goal:""});
   const [cards, setCards] = useState<CreditCard[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [txns, setTxns] = useState<Txn[]>([]);
+  const [cardApplications, setCardApplications] = useState<CardApplication[]>([]);
   const [theme, setTheme] = useState<"dark"|"light">("light");
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [showAuthForm, setShowAuthForm] = useState(false);
 
   // Inject CSS
   useEffect(()=>{
@@ -4067,6 +5163,8 @@ export default function App() {
           signupBonus:c.signup_bonus||"", bestFor:c.best_for||[],
           keyBenefits:c.key_benefits||[], bestPlaces:c.best_places||[],
           notGoodFor:c.not_good_for||[],
+          openedDate:c.opened_date||"", bonusTarget:c.bonus_target||0,
+          bonusDeadline:c.bonus_deadline||"", bonusProgress:c.bonus_progress||0,
           offers:[
             {title:"10% back at Uber Eats",merchant:"Uber Eats",expires:"Dec 31, 2025",value:"Up to $25"},
             {title:"$50 off at Best Buy",merchant:"Best Buy",expires:"Nov 30, 2025",value:"$50 cashback"},
@@ -4075,6 +5173,36 @@ export default function App() {
         }));
         setCards(mapped);
       }
+
+      // Load goals
+      const {data:goalData} = await supabase.from("goals").select("*").eq("user_id",user.id);
+      if(goalData) {
+        setGoals(goalData.map((g:any):Goal=>({
+          id:g.id, emoji:g.emoji||"🎯", title:g.title, target:g.target, current:g.current,
+          unit:g.unit||"$", color:g.color||"#2563EB", due:g.due||"", tips:g.tips||[],
+        })));
+      }
+
+      // Load assets (net worth)
+      const {data:assetData} = await supabase.from("assets").select("*").eq("user_id",user.id);
+      if(assetData) {
+        setAssets(assetData.map((a:any):Asset=>({id:a.id, name:a.name, value:a.value})));
+      }
+
+      // Load transactions (analytics)
+      const {data:txnData} = await supabase.from("transactions").select("*").eq("user_id",user.id);
+      if(txnData) {
+        setTxns(txnData.map((t:any):Txn=>({
+          id:t.id, cat:t.category, amount:t.amount, desc:t.description||"", card:t.card_name||"", date:t.txn_date||"",
+        })));
+      }
+
+      // Load card applications (5/24 tracker)
+      const {data:appData} = await supabase.from("card_applications").select("*").eq("user_id",user.id);
+      if(appData) {
+        setCardApplications(appData.map((a:any):CardApplication=>({id:a.id, issuer:a.issuer, date:a.date_opened})));
+      }
+
       setDataLoaded(true);
     };
     loadData();
@@ -4085,10 +5213,13 @@ export default function App() {
 
   // Save card to Supabase + local state
   const addCard = async (card:CreditCard) => {
+    // Add to local state immediately with temp id for instant UI feedback
     setCards(p=>[...p,card]);
     showToast(`${card.name} added to your wallet`);
     if(user) {
-      await supabase.from("cards").insert({
+      // Insert without specifying id -- let Supabase auto-generate the real UUID,
+      // then swap our temp local id for the real one so update/delete work correctly.
+      const {data, error} = await supabase.from("cards").insert({
         user_id:user.id, db_id:card.dbId, name:card.name, issuer:card.issuer,
         gradient:card.gradient, accent_color:card.accentColor,
         balance:card.balance, credit_limit:card.limit, min_payment:card.minPayment,
@@ -4097,8 +5228,14 @@ export default function App() {
         cashback:card.cashback, category:card.category,
         signup_bonus:card.signupBonus, best_for:card.bestFor,
         key_benefits:card.keyBenefits, best_places:card.bestPlaces,
-        not_good_for:card.notGoodFor,
-      });
+        not_good_for:card.notGoodFor, opened_date:card.openedDate||"",
+        bonus_target:card.bonusTarget||0, bonus_deadline:card.bonusDeadline||"", bonus_progress:card.bonusProgress||0,
+      }).select().single();
+      if(error) { console.error("Failed to save card:", error); showToast("Card saved locally but failed to sync", "error"); return; }
+      if(data) {
+        // Swap temp id for the real database id
+        setCards(p=>p.map(c=>c.id===card.id ? {...c, id:data.id} : c));
+      }
     }
   };
 
@@ -4126,6 +5263,14 @@ export default function App() {
     }
   };
 
+  // Update a card's sign-up bonus tracking
+  const updateCardBonus = async (cardId: string, bonusTarget: number, bonusDeadline: string, bonusProgress: number) => {
+    setCards(p => p.map(c => c.id===cardId ? {...c, bonusTarget, bonusDeadline, bonusProgress} : c));
+    if(user) {
+      await supabase.from("cards").update({bonus_target:bonusTarget, bonus_deadline:bonusDeadline, bonus_progress:bonusProgress}).eq("id", cardId);
+    }
+  };
+
   // Delete a card
   const deleteCard = async (cardId: string) => {
     const card = cards.find(c => c.id === cardId);
@@ -4134,6 +5279,76 @@ export default function App() {
       await supabase.from("cards").delete().eq("id", cardId);
     }
     showToast("Card removed from wallet", "info");
+  };
+
+  // ===== GOALS =====
+  const addGoal = async (goal: Omit<Goal,"id">) => {
+    const tempId = Math.random().toString(36).slice(2);
+    setGoals(p=>[...p,{...goal,id:tempId}]);
+    if(user) {
+      const {data} = await supabase.from("goals").insert({
+        user_id:user.id, emoji:goal.emoji, title:goal.title, target:goal.target,
+        current:goal.current, unit:goal.unit, color:goal.color, due:goal.due, tips:goal.tips,
+      }).select().single();
+      if(data) setGoals(p=>p.map(g=>g.id===tempId?{...g,id:data.id}:g));
+    }
+    showToast("Goal created");
+  };
+  const updateGoalProgress = async (goalId: string, current: number) => {
+    setGoals(p=>p.map(g=>g.id===goalId?{...g,current}:g));
+    if(user) await supabase.from("goals").update({current}).eq("id", goalId);
+  };
+  const deleteGoal = async (goalId: string) => {
+    setGoals(p=>p.filter(g=>g.id!==goalId));
+    if(user) await supabase.from("goals").delete().eq("id", goalId);
+    showToast("Goal removed", "info");
+  };
+
+  // ===== ASSETS (Net Worth) =====
+  const addAsset = async (name: string, value: number) => {
+    const tempId = Math.random().toString(36).slice(2);
+    setAssets(p=>[...p,{id:tempId,name,value}]);
+    if(user) {
+      const {data} = await supabase.from("assets").insert({user_id:user.id, name, value}).select().single();
+      if(data) setAssets(p=>p.map(a=>a.id===tempId?{...a,id:data.id}:a));
+    }
+    showToast("Asset added");
+  };
+  const deleteAsset = async (assetId: string) => {
+    setAssets(p=>p.filter(a=>a.id!==assetId));
+    if(user) await supabase.from("assets").delete().eq("id", assetId);
+  };
+
+  // ===== TRANSACTIONS (Analytics) =====
+  const addTxn = async (cat: string, amount: number, desc: string, card: string, date: string) => {
+    const tempId = Math.random().toString(36).slice(2);
+    setTxns(p=>[...p,{id:tempId,cat,amount,desc,card,date}]);
+    if(user) {
+      const {data} = await supabase.from("transactions").insert({
+        user_id:user.id, category:cat, amount, description:desc, card_name:card, txn_date:date,
+      }).select().single();
+      if(data) setTxns(p=>p.map(t=>t.id===tempId?{...t,id:data.id}:t));
+    }
+    showToast("Transaction added to analytics");
+  };
+  const deleteTxn = async (txnId: string) => {
+    setTxns(p=>p.filter(t=>t.id!==txnId));
+    if(user) await supabase.from("transactions").delete().eq("id", txnId);
+  };
+
+  // ===== CARD APPLICATIONS (5/24 tracker) =====
+  const addCardApplication = async (issuer: string, date: string) => {
+    const tempId = Math.random().toString(36).slice(2);
+    setCardApplications(p=>[...p,{id:tempId,issuer,date}]);
+    if(user) {
+      const {data} = await supabase.from("card_applications").insert({user_id:user.id, issuer, date_opened:date}).select().single();
+      if(data) setCardApplications(p=>p.map(a=>a.id===tempId?{...a,id:data.id}:a));
+    }
+    showToast("Card application logged");
+  };
+  const deleteCardApplication = async (appId: string) => {
+    setCardApplications(p=>p.filter(a=>a.id!==appId));
+    if(user) await supabase.from("card_applications").delete().eq("id", appId);
   };
 
   // Sign out
@@ -4145,6 +5360,27 @@ export default function App() {
     setScreen("onboard");
   };
 
+  // Real session auto-logout — signs out after 15 minutes of no mouse/keyboard activity
+  useEffect(()=>{
+    if(!user) return;
+    const TIMEOUT_MS = 15*60*1000;
+    let timer: ReturnType<typeof setTimeout>;
+    const reset = () => {
+      clearTimeout(timer);
+      timer = setTimeout(()=>{
+        showToast("Signed out due to inactivity", "info");
+        signOut();
+      }, TIMEOUT_MS);
+    };
+    const events = ["mousedown","mousemove","keydown","scroll","touchstart"];
+    events.forEach(e=>window.addEventListener(e, reset));
+    reset();
+    return ()=>{
+      clearTimeout(timer);
+      events.forEach(e=>window.removeEventListener(e, reset));
+    };
+  },[user]);
+
   // Loading spinner while checking auth
   if(authLoading) return (
     <div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--sans)"}}>
@@ -4155,7 +5391,8 @@ export default function App() {
     </div>
   );
 
-  // Show auth screen if not logged in
+  // Show landing page first, then auth screen if not logged in
+  if(!user && !showAuthForm) return <Landing onGetStarted={()=>setShowAuthForm(true)} onSignIn={()=>setShowAuthForm(true)}/>;
   if(!user) return <AuthScreen onAuth={()=>{setUser(null);setDataLoaded(false);}}/>;
 
   // Show onboarding if logged in but no profile yet
@@ -4173,19 +5410,24 @@ export default function App() {
         {screen==="add-card" && <AddCard  go={go} onAdd={addCard}/>}
         {screen==="chat"     && <Chat     cards={cards} profile={profile}/>}
         {screen==="travel"   && <Travel   cards={cards}/>}
-        {screen==="goals"    && <Goals/>}
+        {screen==="goals"    && <Goals goals={goals} onAdd={addGoal} onUpdateProgress={updateGoalProgress} onDelete={deleteGoal}/>}
         {screen==="split"    && <Split    cards={cards}/>}
         {screen==="perks"    && <Perks    cards={cards}/>}
         {screen==="settings"      && <Settings go={go} profile={profile} theme={theme} toggleTheme={toggleTheme} onSignOut={signOut}/>}
         {screen==="lifestyle"      && <LifestyleOptimizer go={go} cards={cards} profile={profile}/>}
         {screen==="ai-recommender" && <AIRecommender go={go} cards={cards} profile={profile}/>}
-        {screen==="analytics"      && <Analytics go={go} cards={cards} profile={profile}/>}
+        {screen==="analytics"      && <Analytics go={go} cards={cards} profile={profile} txns={txns} onAddTxn={addTxn} onDeleteTxn={deleteTxn}/>}
         {screen==="notifications"  && <Notifications go={go} cards={cards}/>}
         {screen==="compare"        && <Compare go={go} cards={cards}/>}
         {screen==="edit-profile"   && <EditProfile go={go} profile={profile} onSave={saveProfile}/>}
         {screen==="referral"       && <Referral go={go}/>}
         {screen==="privacy"        && <Privacy go={go}/>}
         {screen==="about"          && <About go={go}/>}
+        {screen==="card-strategy"  && <CardStrategy go={go} cards={cards} applications={cardApplications} onAddApplication={addCardApplication} onDeleteApplication={deleteCardApplication} onUpdateBonus={updateCardBonus}/>}
+        {screen==="debt-planner"   && <DebtPlanner go={go} cards={cards}/>}
+        {screen==="net-worth"      && <NetWorth go={go} cards={cards} assets={assets} onAddAsset={addAsset} onDeleteAsset={deleteAsset}/>}
+        {screen==="achievements"   && <Achievements go={go} cards={cards} profile={profile}/>}
+        {screen==="help"           && <HelpCenter go={go}/>}
       </div>
       {!isChat && <MobileNav active={screen} go={go}/>}
     </div>
