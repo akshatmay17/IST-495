@@ -266,7 +266,7 @@ select.field { appearance:none; }
 /* ============================================================
    TYPES
    ============================================================ */
-type S = "onboard"|"home"|"cards"|"add-card"|"card-detail"|"chat"|"travel"|"goals"|"split"|"perks"|"settings"|"lifestyle"|"ai-recommender"|"analytics"|"notifications"|"compare"|"edit-profile"|"privacy"|"referral"|"about"|"card-strategy"|"debt-planner"|"net-worth"|"achievements"|"help"|"privacy-policy"|"terms";
+type S = "onboard"|"home"|"cards"|"add-card"|"card-detail"|"chat"|"travel"|"goals"|"split"|"perks"|"settings"|"lifestyle"|"ai-recommender"|"analytics"|"notifications"|"compare"|"edit-profile"|"privacy"|"referral"|"about"|"card-strategy"|"debt-planner"|"net-worth"|"achievements"|"help"|"privacy-policy"|"terms"|"tools";
 type ToastType = "success"|"error"|"info"|"warning";
 interface Toast { id: string; message: string; type: ToastType; }
 
@@ -1133,7 +1133,7 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
   const navItems: [S,string,string][] = [
     ["home","home","Dashboard"],["cards","card","My Cards"],["chat","chat","AI Advisor"],
     ["travel","travel","Travel"],["goals","goal","Goals"],["split","split","Split Bills"],
-    ["perks","perks","Perks"],["analytics","analytics","Analytics"],["lifestyle","optimize","Optimizer"],["ai-recommender","star","AI Picks"],["settings","settings","Settings"],
+    ["perks","perks","Perks"],["analytics","analytics","Analytics"],["lifestyle","optimize","Optimizer"],["ai-recommender","star","AI Picks"],["tools","trophy","Tools"],["settings","settings","Settings"],
   ];
   return (
     <div className="desktop-sidebar" style={{display:"flex",flexDirection:"column",paddingTop:28,paddingBottom:20}}>
@@ -1693,6 +1693,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
           ["goal","Goals","goals"],
           ["split","Split Bill","split"],
           ["optimize","Optimizer","lifestyle"],
+          ["trophy","Tools","tools"],
         ] as [string,string,S][]).map(([icon,label,target])=>(
           <button key={label} onClick={()=>go(target)} className="hover-lift press card-surface" style={{padding:"14px 10px",textAlign:"center",width:"100%"}}>
             <span style={{display:"flex",justifyContent:"center",marginBottom:6,color:"var(--accent)"}}><Icon name={icon} size={19}/></span>
@@ -2924,28 +2925,8 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
             ["bell","Notifications","Manage alerts and reminders",()=>go("notifications")],
             ["gift","Refer a Friend","Give $20, get $20 in rewards",()=>go("referral")],
             ["lock","Privacy & Security","Data, security and permissions",()=>go("privacy")],
-            ["info","About WiseCard","Version info and changelog",()=>go("about")],
-          ] as [string,string,string,()=>void][]).map(([icon,label,desc,action],i,arr)=>(
-            <button key={label} onClick={action} className="press" style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"13px 16px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",textAlign:"left"}}>
-              <span style={{width:24,display:"flex",justifyContent:"center",flexShrink:0,color:"var(--text2)"}}><Icon name={icon} size={17}/></span>
-              <div style={{flex:1}}>
-                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
-                <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
-              </div>
-              <span style={{color:"var(--text3)",fontSize:13}}>→</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Tools section */}
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Tools</p>
-        <div className="au d2 card-surface" style={{overflow:"hidden",marginBottom:20}}>
-          {([
-            ["gift","Card Strategy","Sign-up bonuses & 5/24 status",()=>go("card-strategy")],
-            ["trend-down","Debt Payoff Planner","Avalanche vs snowball calculator",()=>go("debt-planner")],
-            ["wallet","Net Worth","Assets minus card debt",()=>go("net-worth")],
-            ["trophy","Achievements","Track your progress and badges",()=>go("achievements")],
             ["help","Help Center","FAQs and support",()=>go("help")],
+            ["info","About WiseCard","Version info and changelog",()=>go("about")],
           ] as [string,string,string,()=>void][]).map(([icon,label,desc,action],i,arr)=>(
             <button key={label} onClick={action} className="press" style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"13px 16px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",textAlign:"left"}}>
               <span style={{width:24,display:"flex",justifyContent:"center",flexShrink:0,color:"var(--text2)"}}><Icon name={icon} size={17}/></span>
@@ -4527,12 +4508,45 @@ function Referral({ go }: { go:(s:S)=>void }) {
 /* ============================================================
    PRIVACY & SECURITY SCREEN
    ============================================================ */
-function Privacy({ go }: { go:(s:S)=>void }) {
+function Privacy({ go, profile, cards, goals, assets, txns, cardApplications }: { go:(s:S)=>void; profile:UserProfile; cards:CreditCard[]; goals:Goal[]; assets:Asset[]; txns:Txn[]; cardApplications:CardApplication[] }) {
   const [biometric,setBiometric]=useState(false);
   const [twoFA,setTwoFA]=useState(false);
   const [autoLogout,setAutoLogout]=useState(true);
   const [dataSharing,setDataSharing]=useState(false);
   const [analytics,setAnalytics]=useState(true);
+  const [showPwForm, setShowPwForm] = useState(false);
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState("");
+
+  const changePassword = async () => {
+    setPwError("");
+    if (newPw.length < 8) { setPwError("Password must be at least 8 characters"); return; }
+    if (newPw !== confirmPw) { setPwError("Passwords don't match"); return; }
+    setPwLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: newPw });
+    setPwLoading(false);
+    if (error) { setPwError(error.message); return; }
+    showToast("Password updated successfully");
+    setShowPwForm(false); setNewPw(""); setConfirmPw("");
+  };
+
+  const downloadMyData = () => {
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      profile,
+      cards: cards.map(c=>({...c})),
+      goals, assets, transactions: txns, cardApplications,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `wisecard-data-export-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Your data export has downloaded");
+  };
   return (
     <div className="screen desktop-content screen-enter">
       <PageHead title="Privacy & Security" back={()=>go("settings")}/>
@@ -4563,10 +4577,26 @@ function Privacy({ go }: { go:(s:S)=>void }) {
             <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Auto Sign-Out</p><p style={{color:"var(--text2)",fontSize:11}}>Sign out automatically after 15 minutes idle</p></div>
             <Toggle on={autoLogout} set={()=>setAutoLogout(v=>!v)}/>
           </div>
-          <button className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
+          <button onClick={()=>setShowPwForm(s=>!s)} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
             <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Change Password</p>
-            <span style={{color:"var(--text3)",fontSize:14}}>→</span>
+            <span style={{color:"var(--text3)",fontSize:14}}>{showPwForm?"−":"→"}</span>
           </button>
+          {showPwForm && (
+            <div style={{padding:"4px 16px 16px",borderTop:"1px solid var(--border)"}}>
+              <div style={{marginTop:12,marginBottom:10}}>
+                <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>New Password</label>
+                <input className="field" type="password" placeholder="At least 8 characters" value={newPw} onChange={e=>setNewPw(e.target.value)} style={{padding:"10px 12px"}}/>
+              </div>
+              <div style={{marginBottom:12}}>
+                <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Confirm New Password</label>
+                <input className="field" type="password" placeholder="Re-enter password" value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} style={{padding:"10px 12px"}}/>
+              </div>
+              {pwError && <p style={{color:"var(--red)",fontSize:12,marginBottom:10}}>{pwError}</p>}
+              <button onClick={changePassword} disabled={pwLoading} className="btn-gold press" style={{width:"100%",padding:"11px",fontSize:13,opacity:pwLoading?0.7:1}}>
+                {pwLoading?"Updating...":"Update Password"}
+              </button>
+            </div>
+          )}
         </div>
         <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Data & Privacy</p>
         <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
@@ -4577,9 +4607,9 @@ function Privacy({ go }: { go:(s:S)=>void }) {
               <Toggle on={val} set={()=>setVal((v:boolean)=>!v)}/>
             </div>
           ))}
-          <button className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid var(--border)",textAlign:"left"}}>
+          <button onClick={downloadMyData} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid var(--border)",textAlign:"left"}}>
             <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Download My Data</p>
-            <span style={{color:"var(--text3)",fontSize:14}}>→</span>
+            <span style={{color:"var(--text3)",display:"flex"}}><Icon name="download" size={15}/></span>
           </button>
         </div>
         <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
@@ -5397,6 +5427,37 @@ function TermsOfService({ go }: { go:(s:S)=>void }) {
   );
 }
 
+
+/* ============================================================
+   TOOLS HUB -- financial calculators and trackers (not settings)
+   ============================================================ */
+function ToolsHub({ go }: { go:(s:S)=>void }) {
+  const tools: [string,string,string,()=>void,string][] = [
+    ["gift","Card Strategy","Sign-up bonuses & 5/24 status",()=>go("card-strategy"),"#F59E0B"],
+    ["trend-down","Debt Payoff Planner","Avalanche vs snowball calculator",()=>go("debt-planner"),"#EF4444"],
+    ["wallet","Net Worth","Assets minus card debt",()=>go("net-worth"),"#22C55E"],
+    ["trophy","Achievements","Track your progress and badges",()=>go("achievements"),"#8B5CF6"],
+  ];
+  return (
+    <div className="screen desktop-content screen-enter">
+      <PageHead title="Tools" sub="Calculators and trackers for your finances" back={()=>go("home")}/>
+      <div className="px">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          {tools.map(([icon,label,desc,action,color])=>(
+            <button key={label} onClick={action} className="press hover-lift card-surface" style={{padding:"20px 16px",textAlign:"left",width:"100%"}}>
+              <div style={{width:42,height:42,borderRadius:12,background:`${color}18`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,color}}>
+                <Icon name={icon} size={20}/>
+              </div>
+              <p style={{color:"var(--text)",fontSize:14,fontWeight:700,marginBottom:4}}>{label}</p>
+              <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.4}}>{desc}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AuthScreen({onAuth}:{onAuth:(user:any)=>void}) {
   const [mode, setMode] = useState<"login"|"signup"|"forgot">("login");
   const [email, setEmail] = useState("");
@@ -5896,9 +5957,10 @@ export default function App() {
         {screen==="compare"        && <Compare go={go} cards={cards}/>}
         {screen==="edit-profile"   && <EditProfile go={go} profile={profile} onSave={saveProfile}/>}
         {screen==="referral"       && <Referral go={go}/>}
-        {screen==="privacy"        && <Privacy go={go}/>}
+        {screen==="privacy"        && <Privacy go={go} profile={profile} cards={cards} goals={goals} assets={assets} txns={txns} cardApplications={cardApplications}/>}
         {screen==="privacy-policy" && <PrivacyPolicy go={go}/>}
         {screen==="terms"          && <TermsOfService go={go}/>}
+        {screen==="tools"          && <ToolsHub go={go}/>}
         {screen==="about"          && <About go={go}/>}
         {screen==="card-strategy"  && <CardStrategy go={go} cards={cards} applications={cardApplications} onAddApplication={addCardApplication} onDeleteApplication={deleteCardApplication} onUpdateBonus={updateCardBonus}/>}
         {screen==="debt-planner"   && <DebtPlanner go={go} cards={cards}/>}
