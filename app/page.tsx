@@ -30,8 +30,9 @@ const DARK_CSS = `
   --bg2:       #181C25;
   --surface:   #1E2130;
   --surface2:  #252A3A;
-  --border:    rgba(255,255,255,.08);
+  --border:    rgba(255,255,255,.07);
   --border2:   rgba(255,255,255,.12);
+  --border-soft: rgba(255,255,255,.05);
   --text:      #F0F2F5;
   --text2:     #8B93A5;
   --text3:     #3D4455;
@@ -45,9 +46,9 @@ const DARK_CSS = `
   --amber:     #F59E0B;
   --amberbg:   rgba(245,158,11,.1);
   --sans:      'Inter', system-ui, -apple-system, sans-serif;
-  --shadow:    0 1px 4px rgba(0,0,0,.3);
-  --shadow-lg: 0 4px 20px rgba(0,0,0,.4);
-  --radius:    10px;
+  --shadow:    0 2px 10px rgba(0,0,0,.25);
+  --shadow-lg: 0 8px 28px rgba(0,0,0,.35);
+  --radius:    14px;
 `;
 
 const LIGHT_CSS = `
@@ -55,8 +56,9 @@ const LIGHT_CSS = `
   --bg2:       #E8EDF5;
   --surface:   #FFFFFF;
   --surface2:  #F7F9FC;
-  --border:    #E2E8F0;
-  --border2:   #C9D3E0;
+  --border:    #EAEDF2;
+  --border2:   #D8DEE8;
+  --border-soft: #F0F2F6;
   --text:      #1A202C;
   --text2:     #718096;
   --text3:     #BEC8D6;
@@ -70,9 +72,9 @@ const LIGHT_CSS = `
   --amber:     #B7791F;
   --amberbg:   #FFFFF0;
   --sans:      'Inter', system-ui, -apple-system, sans-serif;
-  --shadow:    0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
-  --shadow-lg: 0 6px 20px rgba(0,0,0,.08);
-  --radius:    8px;
+  --shadow:    0 1px 2px rgba(20,30,50,.04), 0 2px 8px rgba(20,30,50,.04);
+  --shadow-lg: 0 10px 32px rgba(20,30,50,.09);
+  --radius:    14px;
 `;
 
 const BASE_CSS = `
@@ -135,11 +137,11 @@ select.field { appearance:none; }
 .pill-accent  { background:var(--accentbg); color:var(--accent); border:1px solid rgba(37,99,235,.15); }
 .pill-gray    { background:var(--surface2); color:var(--text2);  border:1px solid var(--border); }
 
-/* Surfaces */
-.card-s        { background:var(--surface);  border:1px solid var(--border); border-radius:var(--radius); }
-.card-s2       { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); }
-.card-surface  { background:var(--surface);  border:1px solid var(--border); border-radius:var(--radius); }
-.card-surface-2{ background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); }
+/* Surfaces -- tonal separation + soft shadow instead of hard borders, for a premium feel */
+.card-s        { background:var(--surface);  border:1px solid var(--border-soft); border-radius:var(--radius); box-shadow:var(--shadow); }
+.card-s2       { background:var(--surface2); border:1px solid var(--border-soft); border-radius:var(--radius); }
+.card-surface  { background:var(--surface);  border:1px solid var(--border-soft); border-radius:var(--radius); box-shadow:var(--shadow); }
+.card-surface-2{ background:var(--surface2); border:1px solid var(--border-soft); border-radius:var(--radius); }
 
 /* Utilities */
 .divider { height:1px; background:var(--border); width:100%; }
@@ -858,15 +860,15 @@ const CARD_DB = [
    SAMPLE DATA
    ============================================================ */
 const SAMPLE_GOALS: Goal[] = [
-  { id:"sample-1", emoji:"📊", title:"Keep Utilization Under 30%", target:30, current:18, unit:"%", color:"#C9A84C", due:"Ongoing", tips:["Pay $400 on Chase before the 18th -> drops to 9%","Pay Amex balance before statement closes","Keep Venture X under $6,000 at all times"] },
-  { id:"sample-2", emoji:"💰", title:"Save $6,000 This Year", target:6000, current:3240, unit:"$", color:"#2DC8A0", due:"Dec 31, 2025", tips:["Cancel 4 unused subscriptions -> $840/yr saved","Switch groceries to Amex Gold (4x) -> $300/yr extra","Cut takeout from $340 -> $190/month -> $1,800/yr"] },
-  { id:"sample-3", emoji:"📈", title:"Reach 750 Credit Score", target:750, current:698, unit:"pts", color:"#4F6EF7", due:"Sep 2025", tips:["Bring all cards under 10% utilization -> +12-18 pts","Zero missed payments for 6 months","No new applications for 4 months"] },
+  { id:"sample-1", emoji:"analytics", title:"Keep Utilization Under 30%", target:30, current:18, unit:"%", color:"#C9A84C", due:"Ongoing", tips:["Pay $400 on Chase before the 18th -> drops to 9%","Pay Amex balance before statement closes","Keep Venture X under $6,000 at all times"] },
+  { id:"sample-2", emoji:"wallet", title:"Save $6,000 This Year", target:6000, current:3240, unit:"$", color:"#2DC8A0", due:"Dec 31, 2025", tips:["Cancel 4 unused subscriptions -> $840/yr saved","Switch groceries to Amex Gold (4x) -> $300/yr extra","Cut takeout from $340 -> $190/month -> $1,800/yr"] },
+  { id:"sample-3", emoji:"trend-down", title:"Reach 750 Credit Score", target:750, current:698, unit:"pts", color:"#4F6EF7", due:"Sep 2025", tips:["Bring all cards under 10% utilization -> +12-18 pts","Zero missed payments for 6 months","No new applications for 4 months"] },
 ];
 
 const SAMPLE_BILLS: Bill[] = [
-  { id:1, name:"Nobu Restaurant", emoji:"🍽", amount:247, people:["You","Sarah","Mike","Priya"], date:"Today", done:false, card:"Amex Gold", pts:988 },
-  { id:2, name:"Airbnb Miami Beach", emoji:"🏖", amount:840, people:["You","James","Leila"], date:"Yesterday", done:false, card:"Sapphire Reserve", pts:2520 },
-  { id:3, name:"Whole Foods Run", emoji:"🛒", amount:120, people:["You","Roommate"], date:"May 10", done:true, card:"Amex Gold", pts:480 },
+  { id:1, name:"Nobu Restaurant", emoji:"dining", amount:247, people:["You","Sarah","Mike","Priya"], date:"Today", done:false, card:"Amex Gold", pts:988 },
+  { id:2, name:"Airbnb Miami Beach", emoji:"travel", amount:840, people:["You","James","Leila"], date:"Yesterday", done:false, card:"Sapphire Reserve", pts:2520 },
+  { id:3, name:"Whole Foods Run", emoji:"groceries", amount:120, people:["You","Roommate"], date:"May 10", done:true, card:"Amex Gold", pts:480 },
 ];
 
 const QCHIPS = ["Which card for groceries?","Best card for dining?","How to reach 750 score?","Should I apply for Amex Gold?","Best use of my Chase points?","Which card for Amazon?"];
@@ -927,6 +929,68 @@ const cardNetwork = (issuer: string): "Visa"|"Mastercard"|"Amex"|"Discover" => {
   if (issuer === "Citi" || issuer === "Capital One") return "Mastercard"; // most common for these issuers
   return "Visa"; // Chase, BoA, Wells Fargo, US Bank default to Visa for most consumer cards
 };
+
+
+/* ============================================================
+   ICON SYSTEM -- clean, minimal line icons (replaces emoji)
+   Apple-style: thin stroke, rounded caps, monochrome, inherits color
+   ============================================================ */
+function Icon({ name, size=18, color="currentColor", strokeWidth=1.8 }: { name:string; size?:number; color?:string; strokeWidth?:number }) {
+  const p = { width:size, height:size, viewBox:"0 0 24 24", fill:"none" as const, style:{stroke:color}, strokeWidth, strokeLinecap:"round" as const, strokeLinejoin:"round" as const };
+  switch(name) {
+    case "card": return <svg {...p}><rect x="2" y="5" width="20" height="14" rx="2.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>;
+    case "chat": return <svg {...p}><path d="M21 11.5a8.5 8.5 0 1 1-3.8-7.1"/><path d="M21 11.5L13 11.5"/><path d="M3 21l3.5-3.5"/><circle cx="13" cy="11.5" r="8.5" strokeDasharray="0"/></svg>;
+    case "analytics": return <svg {...p}><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>;
+    case "travel": return <svg {...p}><path d="M3 13l8-2 5-8 2 1-3 8 5 1.5-1 2L13 15l-3 5-2-.5.5-4-6-2.5z"/></svg>;
+    case "goal": return <svg {...p}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>;
+    case "split": return <svg {...p}><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><line x1="8.5" y1="7.5" x2="10" y2="15.5"/><line x1="15.5" y1="7.5" x2="14" y2="15.5"/></svg>;
+    case "optimize": return <svg {...p}><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/><circle cx="12" cy="12" r="4"/></svg>;
+    case "perks": return <svg {...p}><path d="M20 7h-3.6a2.5 2.5 0 0 0 0-3.5C15.5 2.5 14 3 12 5c-2-2-3.5-2.5-4.4-1.5a2.5 2.5 0 0 0 0 3.5H4a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/><path d="M12 7v14"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>;
+    case "settings": return <svg {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+    case "search": return <svg {...p}><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>;
+    case "bell": return <svg {...p}><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>;
+    case "lock": return <svg {...p}><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>;
+    case "unlock": return <svg {...p}><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.2-2.4"/></svg>;
+    case "gift": return <svg {...p}><rect x="3" y="9" width="18" height="11" rx="1.5"/><path d="M12 9v11M3 13h18"/><path d="M12 9C9 9 8 7.5 8 6a2 2 0 0 1 4 0 2 2 0 0 1 4 0c0 1.5-1 3-4 3z"/></svg>;
+    case "trophy": return <svg {...p}><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 2 4M17 6h3a2 2 0 0 1-2 4"/><path d="M9 19h6M12 14v5"/></svg>;
+    case "dollar": return <svg {...p}><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 6.5C17 5 15.4 4 12 4S7 5.3 7 7s1.8 2.5 5 3 5 1.5 5 3.5-2 3.5-5 3.5-5-1-5-2.5"/></svg>;
+    case "trend-down": return <svg {...p}><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>;
+    case "help": return <svg {...p}><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.5-1 1-1 2"/><line x1="12" y1="17" x2="12" y2="17.1"/></svg>;
+    case "info": return <svg {...p}><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8.1"/></svg>;
+    case "warning": return <svg {...p}><path d="M12 3.5L21.5 20H2.5L12 3.5z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17" x2="12" y2="17.1"/></svg>;
+    case "alert": return <svg {...p}><circle cx="12" cy="12" r="9"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="12" y1="16" x2="12" y2="16.1"/></svg>;
+    case "check": return <svg {...p}><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>;
+    case "check-circle": return <svg {...p}><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>;
+    case "arrow-right": return <svg {...p}><line x1="4" y1="12" x2="20" y2="12"/><polyline points="13 5 20 12 13 19"/></svg>;
+    case "plus": return <svg {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+    case "edit": return <svg {...p}><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>;
+    case "trash": return <svg {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>;
+    case "calendar": return <svg {...p}><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>;
+    case "clock": return <svg {...p}><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>;
+    case "shield": return <svg {...p}><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>;
+    case "key": return <svg {...p}><circle cx="8" cy="14" r="4.5"/><path d="M11.3 10.7L20 2M16 6l3 3M13 9l2.5 2.5"/></svg>;
+    case "mail": return <svg {...p}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M3 6.5l9 6 9-6"/></svg>;
+    case "star": return <svg {...p}><path d="M12 3l2.7 6 6.3.6-4.8 4.3 1.4 6.3L12 17l-5.6 3.2 1.4-6.3-4.8-4.3 6.3-.6z"/></svg>;
+    case "home": return <svg {...p}><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>;
+    case "wallet": return <svg {...p}><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M16 14h.01"/><path d="M7 7V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v2"/></svg>;
+    case "percent": return <svg {...p}><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>;
+    case "users": return <svg {...p}><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17" cy="9" r="2.8"/><path d="M21.5 20c0-2.6-1.7-4.7-4-5.5"/></svg>;
+    case "dining": return <svg {...p}><path d="M7 2v8a2 2 0 0 0 4 0V2M9 10v12M16 2c-1.5 1-2 3-2 5s.5 4 2 5V2zM16 12v10"/></svg>;
+    case "groceries": return <svg {...p}><path d="M3 6h2l2.5 11.5h10L20 9H6"/><circle cx="9" cy="20" r="1.3"/><circle cx="16" cy="20" r="1.3"/></svg>;
+    case "gas": return <svg {...p}><path d="M4 21V9l5-5h4v17"/><path d="M4 13h9"/><path d="M17 8l2.5 2.5a2 2 0 0 1 .5 1.3V18a1.5 1.5 0 0 1-3 0v-3"/></svg>;
+    case "shopping": return <svg {...p}><path d="M6 8h12l1.5 12h-15z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>;
+    case "streaming": return <svg {...p}><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/><polygon points="10 8 10 14 15 11"/></svg>;
+    case "drugstore": return <svg {...p}><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>;
+    case "other": return <svg {...p}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
+    case "download": return <svg {...p}><path d="M12 3v13"/><polyline points="6 11 12 17 18 11"/><path d="M4 20h16"/></svg>;
+    case "logout": return <svg {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
+    case "fire": return <svg {...p}><path d="M12 2c2 3-2 5 0 8 1.5 2 4 2.5 4 5.5a4 4 0 0 1-8 0c0-1 .3-1.8.8-2.6C8 14 7 15.5 7 17a5 5 0 0 0 10 0c0-6-5-7-5-15z"/></svg>;
+    case "rocket": return <svg {...p}><path d="M12 2c3 2 5 6 5 10-1 1-2 2-2 2H9s-1-1-2-2c0-4 2-8 5-10z"/><path d="M9 14l-3 3 1 4 4-1M15 14l3 3-1 4-4-1"/></svg>;
+    case "globe": return <svg {...p}><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3c2.5 2.5 4 5.8 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.8-4-9s1.5-6.5 4-9z"/></svg>;
+    case "refresh": return <svg {...p}><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0 0 20.5 15"/></svg>;
+    default: return <svg {...p}><circle cx="12" cy="12" r="9"/></svg>;
+  }
+}
 
 function NetworkBadge({ issuer, size=22 }: { issuer:string; size?:number }) {
   const network = cardNetwork(issuer);
@@ -1008,7 +1072,7 @@ function CardSkeleton() {
 function EmptyState({ icon, title, sub, action, onAction }: { icon:string; title:string; sub:string; action?:string; onAction?:()=>void }) {
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 24px",textAlign:"center",gap:12}}>
-      <div style={{fontSize:40,marginBottom:4}}>{icon}</div>
+      <div style={{width:64,height:64,borderRadius:"50%",background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:6,color:"var(--accent)"}}><Icon name={icon} size={28}/></div>
       <h3 style={{fontSize:17,fontWeight:700,color:"var(--text)",margin:0}}>{title}</h3>
       <p style={{fontSize:14,color:"var(--text2)",margin:0,maxWidth:260,lineHeight:1.5}}>{sub}</p>
       {action && onAction && (
@@ -1067,9 +1131,9 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
   active:S; go:(s:S)=>void; theme:"dark"|"light"; toggleTheme:()=>void; profile:UserProfile; onSignOut?:()=>void;
 }) {
   const navItems: [S,string,string][] = [
-    ["home","","Dashboard"],["cards","","My Cards"],["chat","","AI Advisor"],
-    ["travel","","Travel"],["goals","","Goals"],["split","","Split Bills"],
-    ["perks","","Perks"],["analytics","📊","Analytics"],["lifestyle","","Optimizer"],["ai-recommender","","AI Picks"],["settings","","Settings"],
+    ["home","home","Dashboard"],["cards","card","My Cards"],["chat","chat","AI Advisor"],
+    ["travel","travel","Travel"],["goals","goal","Goals"],["split","split","Split Bills"],
+    ["perks","perks","Perks"],["analytics","analytics","Analytics"],["lifestyle","optimize","Optimizer"],["ai-recommender","star","AI Picks"],["settings","settings","Settings"],
   ];
   return (
     <div className="desktop-sidebar" style={{display:"flex",flexDirection:"column",paddingTop:28,paddingBottom:20}}>
@@ -1111,7 +1175,7 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
               transition:"background .12s, color .12s",
               borderLeft:on?"2px solid var(--accent)":"2px solid transparent",
             }}>
-              <span style={{fontSize:14,width:18,textAlign:"center",opacity:on?1:.7}}>{icon}</span>
+              <span style={{width:18,display:"flex",alignItems:"center",justifyContent:"center",opacity:on?1:.7}}><Icon name={icon} size={15}/></span>
               {label}
             </button>
           );
@@ -1141,7 +1205,7 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
    ============================================================ */
 function MobileNav({ active, go }: { active:S; go:(s:S)=>void }) {
   const tabs: [S,string,string][] = [
-    ["home","","Home"],["cards","","Cards"],["chat","","AI"],["travel","","Travel"],["goals","","Goals"],
+    ["home","home","Home"],["cards","card","Cards"],["chat","chat","AI"],["travel","travel","Travel"],["goals","goal","Goals"],
   ];
   return (
     <nav className="mobile-nav nav-safe" style={{
@@ -1156,7 +1220,7 @@ function MobileNav({ active, go }: { active:S; go:(s:S)=>void }) {
             flex:1,padding:"8px 0 10px",background:"none",border:"none",
             display:"flex",flexDirection:"column",alignItems:"center",gap:4,
           }}>
-            <span style={{fontSize:17,color:on?"var(--accent)":"var(--text3)",transition:"color .15s"}}>{icon}</span>
+            <span style={{color:on?"var(--accent)":"var(--text3)",transition:"color .15s"}}><Icon name={icon} size={19}/></span>
             <span style={{fontSize:10,fontWeight:on?600:400,color:on?"var(--accent)":"var(--text3)"}}>{label}</span>
           </button>
         );
@@ -1179,15 +1243,15 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
   const toggleLife = (l: string) => set("lifestyles", (p.lifestyles||[]).includes(l) ? p.lifestyles.filter(x=>x!==l) : [...p.lifestyles,l]);
   const setSp = (k: keyof typeof p.spending, v: string) => set("spending", {...p.spending,[k]:v});
 
-  const LIFESTYLES = [" Frequent Traveler","🍽 Foodie","💼 Business Professional","🏠 Homebody","🎮 Tech Enthusiast","🛍 Fashion & Shopping","🎓 Student","🏋 Fitness & Health"];
+  const LIFESTYLES = ["Frequent Traveler","Foodie","Business Professional","Homebody","Tech Enthusiast","Fashion & Shopping","Student","Fitness & Health"];
   const INCOMES = ["Under $30,000","$30,000-$60,000","$60,000-$100,000","$100,000-$150,000","$150,000-$250,000","$250,000+"];
   const SCORES = ["300-579 (Poor)","580-669 (Fair)","670-739 (Good)","740-799 (Very Good)","800+ (Exceptional)"];
   const GOALS = [
-    ["","Maximize Travel Rewards","Earn points for free flights & hotels"],
-    ["💰","Save More Money","Reduce spend and build savings"],
-    ["📈","Build Credit Score","Reach 750+ and unlock premium cards"],
-    ["💳","Optimize Card Portfolio","Get the right cards for my lifestyle"],
-    ["💸","Pay Off Debt","Become debt free efficiently"],
+    ["travel","Maximize Travel Rewards","Earn points for free flights & hotels"],
+    ["wallet","Save More Money","Reduce spend and build savings"],
+    ["trend-down","Build Credit Score","Reach 750+ and unlock premium cards"],
+    ["card","Optimize Card Portfolio","Get the right cards for my lifestyle"],
+    ["dollar","Pay Off Debt","Become debt free efficiently"],
   ];
 
   const GoldBtn = ({ label, disabled, onClick }: { label:string; disabled?:boolean; onClick:()=>void }) => (
@@ -1283,9 +1347,9 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
           <h2 className="serif" style={{fontSize:36,fontWeight:400,marginBottom:8,lineHeight:1.2}}>Monthly<br/>spending</h2>
           <p style={{color:"var(--text2)",fontSize:14,marginBottom:28,lineHeight:1.6}}>Approximate is fine. We use this to find your highest-earning card combinations.</p>
           {([
-            ["dining","🍽 Dining & Takeout"],["groceries","🛒 Groceries"],
-            ["travel"," Travel & Hotels"],["gas"," Gas & Transport"],
-            ["shopping","🛍 Shopping"],["other","💡 Everything Else"],
+            ["dining","Dining & Takeout"],["groceries","Groceries"],
+            ["travel","Travel & Hotels"],["gas","Gas & Transport"],
+            ["shopping","Shopping"],["other","Everything Else"],
           ] as [keyof typeof p.spending, string][]).map(([k,label]) => (
             <div key={k} style={{marginBottom:16}}>
               <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:6}}>{label}</label>
@@ -1310,7 +1374,7 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
               borderRadius:16,textAlign:"left",display:"flex",gap:14,alignItems:"center",
               transition:"all .15s",
             }}>
-              <span style={{fontSize:28}}>{emoji}</span>
+              <div style={{width:44,height:44,borderRadius:13,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"var(--accent)"}}><Icon name={emoji} size={20}/></div>
               <div style={{flex:1}}>
                 <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{title}</p>
                 <p style={{color:"var(--text2)",fontSize:12,marginTop:2}}>{desc}</p>
@@ -1505,12 +1569,12 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
           <h1 style={{fontSize:26,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px",color:"var(--text)"}}>{profile.name||"Welcome"}</h1>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={()=>setShowSearch(s=>!s)} className="press" style={{width:40,height:40,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",fontSize:16,color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center"}}>🔍</button>
-          <button onClick={()=>go("notifications")} className="press" style={{width:40,height:40,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",fontSize:16,color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-            🔔
+          <button onClick={()=>setShowSearch(s=>!s)} className="press" style={{width:40,height:40,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="search" size={17}/></button>
+          <button onClick={()=>go("notifications")} className="press" style={{width:40,height:40,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+            <Icon name="bell" size={17}/>
             {dueSoon.length>0&&<span style={{position:"absolute",top:6,right:6,width:7,height:7,borderRadius:"50%",background:"var(--red)"}}/>}
           </button>
-          <button onClick={()=>go("settings")} className="press" style={{width:40,height:40,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",fontSize:16,color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center"}}>⚙️</button>
+          <button onClick={()=>go("settings")} className="press" style={{width:40,height:40,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="settings" size={17}/></button>
         </div>
       </div>
 
@@ -1520,13 +1584,13 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
           <input className="field" autoFocus placeholder="Search cards, screens, features..." value={search} onChange={e=>setSearch(e.target.value)}
             onKeyDown={e=>e.key==="Escape"&&(setShowSearch(false),setSearch(""))}
             style={{paddingLeft:40,paddingRight:36}}/>
-          <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:15,pointerEvents:"none"}}>🔍</span>
+          <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",color:"var(--text3)"}}><Icon name="search" size={15}/></span>
           {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"var(--text3)",fontSize:18,cursor:"pointer",padding:0}}>✕</button>}
           {searchResults.length>0&&(
             <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,right:0,background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,boxShadow:"var(--shadow-lg)",zIndex:100,overflow:"hidden"}}>
               {searchResults.map((r,i)=>(
                 <button key={i} onClick={()=>{r.action();setShowSearch(false);setSearch("");}} className="press" style={{width:"100%",padding:"12px 16px",background:"none",border:"none",borderBottom:i<searchResults.length-1?"1px solid var(--border)":"none",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{fontSize:14}}>{r.type==="card"?"💳":"📱"}</span>
+                  <span style={{display:"flex",color:"var(--text2)"}}><Icon name={r.type==="card"?"card":"home"} size={13}/></span>
                   <div>
                     <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{r.label}</p>
                     <p style={{color:"var(--text2)",fontSize:11}}>{r.sub}</p>
@@ -1541,7 +1605,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
       {/* Alerts */}
       {dueSoon.length>0&&(
         <div className="au" style={{background:"var(--redbg)",border:"1px solid rgba(220,38,38,.2)",borderRadius:14,padding:"13px 16px",marginBottom:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("cards")}>
-          <span style={{fontSize:18,flexShrink:0}}>⏰</span>
+          <span style={{flexShrink:0,color:"var(--red)"}}><Icon name="clock" size={18}/></span>
           <div style={{flex:1}}>
             <p style={{color:"var(--red)",fontSize:13,fontWeight:600}}>Payment due in {daysUntil(dueSoon[0].dueDate)} days</p>
             <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{dueSoon[0].name} — minimum ${f(dueSoon[0].minPayment)}</p>
@@ -1551,7 +1615,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
       )}
       {highUtil.length>0&&!dueSoon.length&&(
         <div className="au" style={{background:"var(--amberbg)",border:"1px solid rgba(217,119,6,.2)",borderRadius:14,padding:"13px 16px",marginBottom:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("cards")}>
-          <span style={{fontSize:18,flexShrink:0}}>📊</span>
+          <span style={{flexShrink:0,color:"var(--amber)"}}><Icon name="analytics" size={18}/></span>
           <div style={{flex:1}}>
             <p style={{color:"var(--amber)",fontSize:13,fontWeight:600}}>High utilization on {highUtil[0].name}</p>
             <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{pct(highUtil[0].balance,highUtil[0].limit)}% used — pay down to protect your score</p>
@@ -1561,7 +1625,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
       )}
       {missingRewards>0&&cards.length>0&&(
         <div className="au" style={{background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)",borderRadius:14,padding:"13px 16px",marginBottom:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("ai-recommender")}>
-          <span style={{fontSize:18,flexShrink:0}}>💡</span>
+          <span style={{flexShrink:0,color:"var(--accent)"}}><Icon name="rocket" size={18}/></span>
           <div style={{flex:1}}>
             <p style={{color:"var(--accent)",fontSize:13,fontWeight:600}}>You could earn ~${f(missingRewards)}/year more</p>
             <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>See which card to add for your spending</p>
@@ -1573,7 +1637,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
       {/* Spending insight */}
       {totalSpend>0&&topCat&&(
         <div className="au" style={{background:"var(--greenbg)",border:"1px solid rgba(39,103,73,.15)",borderRadius:14,padding:"13px 16px",marginBottom:16,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("analytics")}>
-          <span style={{fontSize:18,flexShrink:0}}>📈</span>
+          <span style={{flexShrink:0,color:"var(--green)"}}><Icon name="analytics" size={18}/></span>
           <div style={{flex:1}}>
             <p style={{color:"var(--green)",fontSize:13,fontWeight:600}}>Your biggest spend: {topCat[0].charAt(0).toUpperCase()+topCat[0].slice(1)}</p>
             <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>${f(Number(topCat[1]))}/mo · ${f(Number(topCat[1])*12)}/yr — see full breakdown</p>
@@ -1623,15 +1687,15 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
       {/* Quick actions */}
       <div className="au" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:20}}>
         {([
-          ["💬","AI Advisor","chat"],
-          ["📊","Analytics","analytics"],
-          ["✈️","Travel","travel"],
-          ["🎯","Goals","goals"],
-          ["🍽️","Split Bill","split"],
-          ["💡","Optimizer","lifestyle"],
+          ["chat","AI Advisor","chat"],
+          ["analytics","Analytics","analytics"],
+          ["travel","Travel","travel"],
+          ["goal","Goals","goals"],
+          ["split","Split Bill","split"],
+          ["optimize","Optimizer","lifestyle"],
         ] as [string,string,S][]).map(([icon,label,target])=>(
-          <button key={label} onClick={()=>go(target)} className="hover-lift press card-surface" style={{padding:"14px 10px",textAlign:"center",width:"100%",border:"1px solid var(--border)"}}>
-            <span style={{fontSize:20,display:"block",marginBottom:5}}>{icon}</span>
+          <button key={label} onClick={()=>go(target)} className="hover-lift press card-surface" style={{padding:"14px 10px",textAlign:"center",width:"100%"}}>
+            <span style={{display:"flex",justifyContent:"center",marginBottom:6,color:"var(--accent)"}}><Icon name={icon} size={19}/></span>
             <p style={{color:"var(--text)",fontSize:11,fontWeight:600}}>{label}</p>
           </button>
         ))}
@@ -1641,15 +1705,15 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
       {cards.length > 0 && (
         <div className="au card-surface" style={{padding:"16px 18px",marginBottom:20,border:"1.5px solid var(--accent)"}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <span style={{fontSize:16}}>⚡</span>
+            <span style={{color:"var(--accent)",display:"flex"}}><Icon name="optimize" size={16}/></span>
             <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>What card should I use right now?</p>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
             {([
-              ["🍽️","Dining","dining"],["🛒","Groceries","groceries"],
-              ["⛽","Gas","gas"],["✈️","Travel","travel"],
-              ["🛍️","Shopping","shopping"],["📱","Streaming","streaming"],
-              ["💊","Drugstore","drugstore"],["📦","Other","other"],
+              ["dining","Dining","dining"],["groceries","Groceries","groceries"],
+              ["gas","Gas","gas"],["travel","Travel","travel"],
+              ["shopping","Shopping","shopping"],["streaming","Streaming","streaming"],
+              ["drugstore","Drugstore","drugstore"],["other","Other","other"],
             ] as [string,string,string][]).map(([icon,label,cat])=>{
               // Score each owned card for this category based on its rewardRate text
               const scored = cards.map(c=>{
@@ -1672,7 +1736,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
                   padding:"10px 6px",borderRadius:10,background:"var(--surface2)",border:"1px solid var(--border)",
                   textAlign:"center",cursor:"pointer",
                 }}>
-                  <span style={{fontSize:16,display:"block",marginBottom:3}}>{icon}</span>
+                  <span style={{display:"flex",justifyContent:"center",marginBottom:4,color:"var(--text2)"}}><Icon name={icon} size={15}/></span>
                   <span style={{color:"var(--text2)",fontSize:9,fontWeight:600}}>{label}</span>
                 </button>
               );
@@ -1696,7 +1760,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
             width:"100%",padding:"28px 20px",background:"var(--surface)",
             border:"2px dashed var(--accent)",borderRadius:18,textAlign:"center",cursor:"pointer",
           }}>
-            <p style={{fontSize:26,marginBottom:8}}>💳</p>
+            <div style={{display:"flex",justifyContent:"center",marginBottom:8,color:"var(--accent)"}}><Icon name="card" size={24}/></div>
             <p style={{color:"var(--accent)",fontSize:15,fontWeight:700,marginBottom:4}}>Add your first card</p>
             <p style={{color:"var(--text2)",fontSize:12}}>Search 50+ cards and track everything in one place.</p>
           </button>
@@ -1860,8 +1924,8 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
                       </div>
                     ))}
                     {(card as any).signupBonus && (
-                      <p style={{color:"var(--amber)",fontSize:10,marginTop:6,fontWeight:500}}>
-                        🎁 {(card as any).signupBonus.split(" -- ")[0]}
+                      <p style={{color:"var(--amber)",fontSize:10,marginTop:6,fontWeight:500,display:"flex",alignItems:"center",gap:4}}>
+                        <Icon name="gift" size={10}/> {(card as any).signupBonus.split(" -- ")[0]}
                       </p>
                     )}
                   </div>
@@ -1891,7 +1955,7 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
             {/* Signup Bonus */}
             {selected.signupBonus && (
               <div style={{background:"rgba(240,164,41,.08)",border:"1px solid rgba(240,164,41,.25)",borderRadius:14,padding:"12px 16px",marginBottom:16}}>
-                <p style={{color:"var(--amber)",fontSize:12,fontWeight:700,marginBottom:4}}>🎁 Welcome Bonus</p>
+                <p style={{color:"var(--amber)",fontSize:12,fontWeight:700,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Icon name="gift" size={13}/> Welcome Bonus</p>
                 <p style={{color:"var(--text)",fontSize:13,lineHeight:1.5}}>{selected.signupBonus}</p>
               </div>
             )}
@@ -1925,10 +1989,10 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
             {/* Best Places */}
             {selected.bestPlaces && selected.bestPlaces.length > 0 && (
               <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.2)",borderRadius:14,padding:"12px 16px",marginBottom:16}}>
-                <p style={{color:"var(--accent)",fontSize:12,fontWeight:700,marginBottom:8}}>📍 Where to Use It</p>
+                <p style={{color:"var(--accent)",fontSize:12,fontWeight:700,marginBottom:8,display:"flex",alignItems:"center",gap:6}}><Icon name="globe" size={13}/> Where to Use It</p>
                 {(selected.bestPlaces||[]).map((b:string,i:number)=>(
                   <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<selected.bestPlaces.length-1?6:0}}>
-                    <span style={{fontSize:10,flexShrink:0,marginTop:2}}>📌</span>
+                    <span style={{flexShrink:0,marginTop:2,color:"var(--accent)"}}><Icon name="check" size={10}/></span>
                     <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
                   </div>
                 ))}
@@ -1974,7 +2038,7 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
               <button onClick={handleAdd} className="btn-gold press" style={{width:"100%"}}>
                 Add {selected.name} ->
               </button>
-              <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:10}}>🔒 Encrypted  Never shared  You can update anytime</p>
+              <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:10,display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><Icon name="lock" size={10}/> Encrypted · Never shared · You can update anytime</p>
             </div>
           </div>
         )}
@@ -1995,7 +2059,7 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
         right={<button onClick={()=>go("add-card")} className="btn-gold press" style={{padding:"10px 18px",fontSize:13}}>+ Add Card</button>}/>
       <div className="px">
         {cards.length === 0 ? (
-          <EmptyState icon="💳" title="No cards yet" sub="Add your credit cards to track balances, points, due dates, and get personalized recommendations." action="Add Your First Card" onAction={()=>go("add-card")}/>
+          <EmptyState icon="card" title="No cards yet" sub="Add your credit cards to track balances, points, due dates, and get personalized recommendations." action="Add Your First Card" onAction={()=>go("add-card")}/>
         ) : (
           cards.map((card,i)=>{
             const u = pct(card.balance, card.limit);
@@ -2012,7 +2076,7 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
                   <div style={{position:"absolute",top:-25,right:-25,width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,.07)"}}/>
                   {card.isFrozen && (
                     <div style={{position:"absolute",top:14,left:14,background:"rgba(0,0,0,.5)",borderRadius:99,padding:"4px 10px",display:"flex",alignItems:"center",gap:5,zIndex:2}}>
-                      <span style={{fontSize:11}}>🔒</span>
+                      <Icon name="lock" size={11} color="white"/>
                       <span style={{color:"#fff",fontSize:10,fontWeight:700,letterSpacing:.5}}>FROZEN</span>
                     </div>
                   )}
@@ -2068,7 +2132,7 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
                     <p style={{color:"var(--text2)",fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:10,marginTop:14}}>Active Offers & Cashback</p>
                     {(card.offers||[]).map((offer,oi)=>(
                       <div key={oi} style={{background:"var(--surface2)",borderRadius:12,padding:"10px 14px",marginBottom:8,display:"flex",gap:10,alignItems:"center"}}>
-                        <span style={{fontSize:18}}>🎁</span>
+                        <span style={{color:"var(--amber)",display:"flex"}}><Icon name="gift" size={17}/></span>
                         <div style={{flex:1}}>
                           <p style={{color:"var(--text)",fontSize:12,fontWeight:600}}>{offer.title}</p>
                           <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{offer.merchant}  Expires {offer.expires}</p>
@@ -2098,7 +2162,7 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
 
                     {/* AI tip */}
                     <div style={{background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",borderRadius:14,padding:"12px 16px",marginTop:14}}>
-                      <p style={{color:"var(--accent)",fontSize:12,fontWeight:600,marginBottom:4}}>💡 AI Payment Tip</p>
+                      <p style={{color:"var(--accent)",fontSize:12,fontWeight:600,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Icon name="rocket" size={13}/> AI Payment Tip</p>
                       <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>
                         Pay ${f(Math.round(card.balance*.5))} before your statement closes to reduce reported utilization by {Math.round(u/2)}%. This could boost your credit score by 8-12 points within 30 days.
                       </p>
@@ -2160,7 +2224,7 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
                           color:card.isFrozen?"var(--green)":"var(--text)",
                           display:"flex",alignItems:"center",justifyContent:"center",gap:8,
                         }}>
-                          <span>{card.isFrozen?"🔓":"🔒"}</span>
+                          <Icon name={card.isFrozen?"unlock":"lock"} size={15}/>
                           {card.isFrozen ? "Unfreeze Card" : "Freeze Card"}
                         </button>
                         <p style={{color:"var(--text3)",fontSize:10,marginTop:6,textAlign:"center"}}>{card.isFrozen?"New purchases would be blocked while frozen":"Instantly block new purchases if your card is lost or stolen"}</p>
@@ -2308,7 +2372,7 @@ PORTFOLIO: ${f(totalPts)} total points worth ~$${f(Math.round(totalPts*0.015))} 
               }}>
                 {m.searched && (
                   <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:8,paddingBottom:8,borderBottom:"1px solid var(--border)"}}>
-                    <span style={{fontSize:11}}>🔍</span>
+                    <span style={{color:"var(--accent)",display:"flex"}}><Icon name="search" size={12}/></span>
                     <span style={{fontSize:11,color:"var(--accent)",fontWeight:600}}>Searched the web for current info</span>
                   </div>
                 )}
@@ -2409,7 +2473,7 @@ function Travel({ cards }: { cards:CreditCard[] }) {
         </div>}
 
         {tab===1&&<div className="ai">
-          <p style={{color:"var(--text2)",fontSize:13,marginBottom:16}}>🔥 Best redemptions with your current points</p>
+          <p style={{color:"var(--text2)",fontSize:13,marginBottom:16,display:"flex",alignItems:"center",gap:6}}><Icon name="fire" size={14}/> Best redemptions with your current points</p>
           {[
             {route:"US -> Europe Business Class",pts:"55,000 pts",via:"Air France via Chase UR",val:"~$3,200 ticket",cpp:"5.8/pt"},
             {route:"US -> Japan Economy",pts:"35,000 pts",via:"ANA via Amex MR",val:"~$1,100 ticket",cpp:"3.1/pt"},
@@ -2433,7 +2497,7 @@ function Travel({ cards }: { cards:CreditCard[] }) {
         {tab===2&&<div className="ai">
           {ownedPrograms.length>0 && (
             <div style={{background:"var(--accentbg)",borderRadius:12,padding:"10px 14px",marginBottom:16,border:"1px solid rgba(37,99,235,.15)"}}>
-              <p style={{color:"var(--accent)",fontSize:12,fontWeight:600}}>📌 Showing programs based on your {cards.length} card{cards.length!==1?"s":""}</p>
+              <p style={{color:"var(--accent)",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6}}><Icon name="check" size={13}/> Showing programs based on your {cards.length} card{cards.length!==1?"s":""}</p>
             </div>
           )}
 
@@ -2465,11 +2529,11 @@ function Travel({ cards }: { cards:CreditCard[] }) {
           {/* Airlines/Hotels toggle */}
           <div style={{display:"flex",gap:8,marginBottom:14}}>
             <button onClick={()=>setSelPartnerType("airlines")} className="press" style={{flex:1,padding:"9px",borderRadius:10,border:"1px solid var(--border)",background:selPartnerType==="airlines"?"var(--surface2)":"none",fontSize:12,fontWeight:selPartnerType==="airlines"?700:500,color:selPartnerType==="airlines"?"var(--text)":"var(--text2)"}}>
-              ✈️ Airlines ({activeProgram.airlines.length})
+              <span style={{display:"inline-flex",alignItems:"center",gap:6}}><Icon name="travel" size={13}/> Airlines ({activeProgram.airlines.length})</span>
             </button>
             {activeProgram.hotels.length>0 && (
               <button onClick={()=>setSelPartnerType("hotels")} className="press" style={{flex:1,padding:"9px",borderRadius:10,border:"1px solid var(--border)",background:selPartnerType==="hotels"?"var(--surface2)":"none",fontSize:12,fontWeight:selPartnerType==="hotels"?700:500,color:selPartnerType==="hotels"?"var(--text)":"var(--text2)"}}>
-                🏨 Hotels ({activeProgram.hotels.length})
+                <span style={{display:"inline-flex",alignItems:"center",gap:6}}><Icon name="home" size={13}/> Hotels ({activeProgram.hotels.length})</span>
               </button>
             )}
           </div>
@@ -2485,7 +2549,7 @@ function Travel({ cards }: { cards:CreditCard[] }) {
                 <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.4}}>{partner.best}</p>
                 {(partner as any).flag && (
                   <p style={{color:"var(--amber)",fontSize:11,marginTop:5,lineHeight:1.4,display:"flex",gap:5}}>
-                    <span>⚠️</span><span>{(partner as any).flag}</span>
+                    <Icon name="warning" size={12}/><span>{(partner as any).flag}</span>
                   </p>
                 )}
               </div>
@@ -2511,12 +2575,12 @@ function Goals({ goals, onAdd, onUpdateProgress, onDelete }: { goals:Goal[]; onA
   const [progressInput, setProgressInput] = useState("");
 
   const GOAL_TYPES: [string,string,string,number,"$"|"%"|"pts",string,string[]][] = [
-    ["📊","Utilization","Keep cards under 30%",30,"%","#C9A84C",["Pay down your highest-balance card first","Keep each card under 30% individually, not just overall","Consider asking for a credit limit increase"]],
-    ["💰","Save Money","Hit a savings target",1000,"$","#2DC8A0",["Set up an automatic transfer on payday","Track spending in Analytics to find where to cut back","Move savings to a high-yield account"]],
-    ["📈","Credit Score","Reach a target score",750,"pts","#4F6EF7",["Pay every bill on time, every time","Keep utilization under 10% before statement closes","Don't apply for new cards while building score"]],
-    ["✈️","Travel","Earn points for a trip",100000,"pts","#F59E0B",["Use the Travel & Points screen to find transfer bonuses","Put everyday spend on your highest-multiplier card","Watch for limited-time transfer bonuses (20-30%)"]],
-    ["💳","Pay Off Debt","Become debt free",5000,"$","#EF4444",["Use the Debt Payoff Planner to pick avalanche or snowball","Put any extra cash toward your highest-APR card first","Avoid adding new charges while paying down debt"]],
-    ["🛡️","Emergency Fund","3-6 months expenses",10000,"$","#8B5CF6",["Start with a goal of 1 month of expenses, then build up","Keep this separate from everyday checking","Automate a fixed amount each payday"]],
+    ["analytics","Utilization","Keep cards under 30%",30,"%","#C9A84C",["Pay down your highest-balance card first","Keep each card under 30% individually, not just overall","Consider asking for a credit limit increase"]],
+    ["wallet","Save Money","Hit a savings target",1000,"$","#2DC8A0",["Set up an automatic transfer on payday","Track spending in Analytics to find where to cut back","Move savings to a high-yield account"]],
+    ["trend-down","Credit Score","Reach a target score",750,"pts","#4F6EF7",["Pay every bill on time, every time","Keep utilization under 10% before statement closes","Don't apply for new cards while building score"]],
+    ["travel","Travel","Earn points for a trip",100000,"pts","#F59E0B",["Use the Travel & Points screen to find transfer bonuses","Put everyday spend on your highest-multiplier card","Watch for limited-time transfer bonuses (20-30%)"]],
+    ["card","Pay Off Debt","Become debt free",5000,"$","#EF4444",["Use the Debt Payoff Planner to pick avalanche or snowball","Put any extra cash toward your highest-APR card first","Avoid adding new charges while paying down debt"]],
+    ["shield","Emergency Fund","3-6 months expenses",10000,"$","#8B5CF6",["Start with a goal of 1 month of expenses, then build up","Keep this separate from everyday checking","Automate a fixed amount each payday"]],
   ];
   const [customTitle, setCustomTitle] = useState("");
   const [customTarget, setCustomTarget] = useState("");
@@ -2543,7 +2607,7 @@ function Goals({ goals, onAdd, onUpdateProgress, onDelete }: { goals:Goal[]; onA
         right={<button onClick={()=>setAdd(a=>!a)} className="pill pill-gold press" style={{fontSize:12,fontWeight:700}}>+ Add Goal</button>}/>
       <div className="px">
         {goals.length === 0 && !add && (
-          <EmptyState icon="🎯" title="No goals yet" sub="Set financial goals — pay off debt, boost your credit score, or save points for a trip." action="Set Your First Goal" onAction={()=>setAdd(true)}/>
+          <EmptyState icon="goal" title="No goals yet" sub="Set financial goals — pay off debt, boost your credit score, or save points for a trip." action="Set Your First Goal" onAction={()=>setAdd(true)}/>
         )}
         {add&&(
           <div className="ap card-surface" style={{border:"1.5px solid var(--accent)",padding:20,marginBottom:20}}>
@@ -2553,7 +2617,7 @@ function Goals({ goals, onAdd, onUpdateProgress, onDelete }: { goals:Goal[]; onA
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                   {GOAL_TYPES.map(gt=>(
                     <button key={gt[1]} onClick={()=>setSelectedType(gt)} className="press hover-lift card-surface-2" style={{padding:"14px 12px",textAlign:"left"}}>
-                      <p style={{fontSize:22,marginBottom:5}}>{gt[0]}</p>
+                      <p style={{marginBottom:7,color:gt[5]}}><Icon name={gt[0]} size={22}/></p>
                       <p style={{color:"var(--text)",fontSize:12,fontWeight:700}}>{gt[1]}</p>
                       <p style={{color:"var(--text2)",fontSize:11,marginTop:2}}>{gt[2]}</p>
                     </button>
@@ -2585,12 +2649,12 @@ function Goals({ goals, onAdd, onUpdateProgress, onDelete }: { goals:Goal[]; onA
           return (
             <div key={g.id} className="card-surface" style={{padding:"20px",marginBottom:16}}>
               <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:16}}>
-                <div style={{width:52,height:52,borderRadius:16,flexShrink:0,background:`${g.color}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{g.emoji}</div>
+                <div style={{width:52,height:52,borderRadius:16,flexShrink:0,background:`${g.color}18`,display:"flex",alignItems:"center",justifyContent:"center",color:g.color}}><Icon name={g.emoji} size={24}/></div>
                 <div style={{flex:1}}>
                   <p style={{color:"var(--text)",fontSize:15,fontWeight:600,marginBottom:2}}>{g.title}</p>
                   <p style={{color:"var(--text2)",fontSize:12}}>{g.due}</p>
                 </div>
-                <button onClick={()=>onDelete(g.id)} style={{background:"none",border:"none",color:"var(--text3)",fontSize:16,cursor:"pointer",flexShrink:0}}>✕</button>
+                <button onClick={()=>onDelete(g.id)} style={{background:"none",border:"none",color:"var(--text3)",cursor:"pointer",flexShrink:0,display:"flex"}}><Icon name="trash" size={15}/></button>
               </div>
               <Bar v={g.current} max={g.target} color={g.color} h={7}/>
               <div style={{display:"flex",justifyContent:"space-between",marginTop:8,marginBottom:14}}>
@@ -2645,7 +2709,7 @@ function Split({ cards }: { cards:CreditCard[] }) {
           <div className="ap card-surface" style={{border:"1.5px solid var(--accent)",padding:20,marginBottom:20,position:"relative"}}>
             <button onClick={()=>setPopup(false)} style={{position:"absolute",top:14,right:16,background:"none",border:"none",color:"var(--text3)",fontSize:20}}></button>
             <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:14}}>
-              <span style={{fontSize:32}}>🍽</span>
+              <div style={{width:48,height:48,borderRadius:14,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--accent)"}}><Icon name="dining" size={22}/></div>
               <div>
                 <p style={{color:"var(--text)",fontSize:17,fontWeight:600,marginBottom:2}}>$247 at Nobu</p>
                 <p style={{color:"var(--text2)",fontSize:12}}>
@@ -2654,7 +2718,7 @@ function Split({ cards }: { cards:CreditCard[] }) {
               </div>
             </div>
             <div style={{background:"rgba(45,200,160,.07)",border:"1px solid rgba(45,200,160,.2)",borderRadius:12,padding:"10px 14px",marginBottom:14}}>
-              <p style={{color:"var(--green)",fontSize:12,lineHeight:1.5}}>💡 Great choice using {cards.length>0?cards[0].name:"your card"} -- maximizing your dining rewards!</p>
+              <p style={{color:"var(--green)",fontSize:12,lineHeight:1.5,display:"flex",alignItems:"flex-start",gap:6}}><Icon name="rocket" size={13}/><span>Great choice using {cards.length>0?cards[0].name:"your card"} -- maximizing your dining rewards!</span></p>
             </div>
             <p style={{color:"var(--text2)",fontSize:13,fontWeight:500,marginBottom:10}}>Who did you dine with? <span style={{color:"var(--text3)",fontWeight:400}}>(select multiple)</span></p>
             <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16}}>
@@ -2682,7 +2746,7 @@ function Split({ cards }: { cards:CreditCard[] }) {
           <div key={bill.id} className={`au d${i+1} card-surface`} style={{padding:"16px 18px",marginBottom:12}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <span style={{fontSize:24}}>{bill.emoji}</span>
+                <div style={{width:40,height:40,borderRadius:12,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--accent)",flexShrink:0}}><Icon name={bill.emoji} size={18}/></div>
                 <div>
                   <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{bill.name}</p>
                   <p style={{color:"var(--text2)",fontSize:11,marginTop:2}}>{bill.date}  {bill.card}</p>
@@ -2697,7 +2761,7 @@ function Split({ cards }: { cards:CreditCard[] }) {
               {bill.people.map(p=><span key={p} className={`pill ${bill.done?"pill-emerald":"pill-gold"}`} style={{fontSize:10}}>{p}</span>)}
             </div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <p style={{color:"var(--text2)",fontSize:12}}>💳 {f(bill.pts)} pts earned</p>
+              <p style={{color:"var(--text2)",fontSize:12,display:"flex",alignItems:"center",gap:5}}><Icon name="card" size={11}/> {f(bill.pts)} pts earned</p>
               {!bill.done?<div style={{display:"flex",gap:7}}>
                 <button className="btn-ghost press" style={{padding:"7px 12px",fontSize:11}}>Remind</button>
                 <button className="press" style={{padding:"7px 16px",background:"rgba(45,200,160,.1)",border:"1.5px solid rgba(45,200,160,.3)",borderRadius:9,color:"var(--green)",fontSize:11,fontWeight:700}}>Settle via Venmo</button>
@@ -2716,10 +2780,10 @@ function Split({ cards }: { cards:CreditCard[] }) {
 function Perks({ cards }: { cards:CreditCard[] }) {
   const allOffers = cards.flatMap(c => c.offers.map(o=>({...o,cardName:c.name,cardGradient:c.gradient})));
   const perks = [
-    {card:"Chase Sapphire Reserve",name:"Annual Travel Credit",emoji:"",used:180,total:300,resets:"Jan 1",urgent:false},
-    {card:"Amex Gold Card",name:"Monthly Dining Credit",emoji:"🍽",used:60,total:120,resets:"Dec 31",urgent:true},
-    {card:"Amex Gold Card",name:"Monthly Uber Cash",emoji:"🚗",used:45,total:120,resets:"Monthly",urgent:true},
-    {card:"Capital One Venture X",name:"Annual Travel Portal",emoji:"🌍",used:0,total:300,resets:"Jan 1",urgent:false},
+    {card:"Chase Sapphire Reserve",name:"Annual Travel Credit",emoji:"travel",used:180,total:300,resets:"Jan 1",urgent:false},
+    {card:"Amex Gold Card",name:"Monthly Dining Credit",emoji:"dining",used:60,total:120,resets:"Dec 31",urgent:true},
+    {card:"Amex Gold Card",name:"Monthly Uber Cash",emoji:"gas",used:45,total:120,resets:"Monthly",urgent:true},
+    {card:"Capital One Venture X",name:"Annual Travel Portal",emoji:"globe",used:0,total:300,resets:"Jan 1",urgent:false},
   ];
   const totalLeft = perks.reduce((s,p)=>s+(p.total-p.used),0);
   return (
@@ -2732,7 +2796,7 @@ function Perks({ cards }: { cards:CreditCard[] }) {
               <p style={{color:"var(--amber)",fontSize:12,fontWeight:600,marginBottom:4}}>Credits remaining</p>
               <h2 className="serif" style={{fontSize:34,fontWeight:400,color:"var(--text)"}}>${f(totalLeft)}</h2>
             </div>
-            <span style={{fontSize:44}}>💎</span>
+            <span style={{color:"var(--amber)",display:"flex"}}><Icon name="perks" size={36}/></span>
           </div>
           <p style={{color:"var(--text2)",fontSize:13}}>Money you've already paid for -- use it before it resets.</p>
         </div>
@@ -2763,7 +2827,7 @@ function Perks({ cards }: { cards:CreditCard[] }) {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
                 <div>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
-                    <span style={{fontSize:18}}>{perk.emoji}</span>
+                    <span style={{color:"var(--accent)",display:"flex"}}><Icon name={perk.emoji} size={16}/></span>
                     <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>{perk.name}</p>
                     {perk.urgent&&<span className="pill pill-amber">Expiring</span>}
                   </div>
@@ -2800,7 +2864,7 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
         {/* Profile card */}
         <div className="au card-surface" style={{padding:"18px 20px",marginBottom:20,background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.12)"}}>
           <div style={{display:"flex",alignItems:"center",gap:14}}>
-            <div style={{width:52,height:52,borderRadius:14,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>👤</div>
+            <div style={{width:52,height:52,borderRadius:14,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"white"}}><Icon name="users" size={22}/></div>
             <div style={{flex:1}}>
               <p style={{color:"var(--text)",fontSize:17,fontWeight:700}}>{profile.name||"Your Account"}</p>
               {profile.creditScore&&<p style={{color:"var(--green)",fontSize:12,marginTop:2,fontWeight:500}}>{profile.creditScore}</p>}
@@ -2818,9 +2882,9 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
               <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{theme==="dark"?"Dark mode":"Light mode"}</p>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:14}}>🌙</span>
+              <span style={{color:"var(--text2)",display:"flex"}}><Icon name="globe" size={14}/></span>
               <Toggle on={theme==="light"} set={toggleTheme}/>
-              <span style={{fontSize:14}}>☀️</span>
+              <span style={{color:"var(--amber)",display:"flex"}}><Icon name="star" size={14}/></span>
             </div>
           </div>
         </div>
@@ -2829,18 +2893,18 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
         <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Features</p>
         <div className="au card-surface" style={{overflow:"hidden",marginBottom:20}}>
           {([
-            ["ai","🤖","AI Advisor","Personalized financial intelligence"],
-            ["approvals","📊","Approval Chances","AI card approval predictions"],
-            ["geo","📍","Location Tips","Card suggestions near stores"],
-            ["digest","📧","Weekly Digest","Monday morning financial recap"],
-            ["split","🍽️","Bill Splitting","Smart group expense splitting"],
-            ["travel","✈️","Travel & Points","Points booking and transfers"],
-            ["perks","💎","Perks Tracker","Credits, offers and benefits"],
-            ["fraud","🛡️","Fraud Alerts","Real-time security notifications"],
-            ["goals","🎯","Goal Engine","Financial target tracking"],
+            ["ai","chat","AI Advisor","Personalized financial intelligence"],
+            ["approvals","analytics","Approval Chances","AI card approval predictions"],
+            ["geo","globe","Location Tips","Card suggestions near stores"],
+            ["digest","mail","Weekly Digest","Monday morning financial recap"],
+            ["split","split","Bill Splitting","Smart group expense splitting"],
+            ["travel","travel","Travel & Points","Points booking and transfers"],
+            ["perks","perks","Perks Tracker","Credits, offers and benefits"],
+            ["fraud","shield","Fraud Alerts","Real-time security notifications"],
+            ["goals","goal","Goal Engine","Financial target tracking"],
           ] as [keyof typeof feats,string,string,string][]).map(([key,icon,label,desc],i,arr)=>(
             <div key={key} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
-              <span style={{fontSize:17,width:24,textAlign:"center"}}>{icon}</span>
+              <span style={{width:24,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name={icon} size={16}/></span>
               <div style={{flex:1}}>
                 <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
                 <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
@@ -2854,16 +2918,16 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
         <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Account</p>
         <div className="au d2 card-surface" style={{overflow:"hidden",marginBottom:20}}>
           {([
-            ["✏️","Edit Profile","Update your info and spending",()=>go("edit-profile")],
-            ["📊","Spending Analytics","See where your money goes",()=>go("analytics")],
-            ["⚖️","Compare Cards","Side-by-side card comparison",()=>go("compare")],
-            ["🔔","Notifications","Manage alerts and reminders",()=>go("notifications")],
-            ["🎁","Refer a Friend","Give $20, get $20 in rewards",()=>go("referral")],
-            ["🔒","Privacy & Security","Data, security and permissions",()=>go("privacy")],
-            ["ℹ️","About WiseCard","Version info and changelog",()=>go("about")],
+            ["edit","Edit Profile","Update your info and spending",()=>go("edit-profile")],
+            ["analytics","Spending Analytics","See where your money goes",()=>go("analytics")],
+            ["percent","Compare Cards","Side-by-side card comparison",()=>go("compare")],
+            ["bell","Notifications","Manage alerts and reminders",()=>go("notifications")],
+            ["gift","Refer a Friend","Give $20, get $20 in rewards",()=>go("referral")],
+            ["lock","Privacy & Security","Data, security and permissions",()=>go("privacy")],
+            ["info","About WiseCard","Version info and changelog",()=>go("about")],
           ] as [string,string,string,()=>void][]).map(([icon,label,desc,action],i,arr)=>(
             <button key={label} onClick={action} className="press" style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"13px 16px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",textAlign:"left"}}>
-              <span style={{fontSize:18,width:24,textAlign:"center",flexShrink:0}}>{icon}</span>
+              <span style={{width:24,display:"flex",justifyContent:"center",flexShrink:0,color:"var(--text2)"}}><Icon name={icon} size={17}/></span>
               <div style={{flex:1}}>
                 <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
                 <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
@@ -2877,14 +2941,14 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
         <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Tools</p>
         <div className="au d2 card-surface" style={{overflow:"hidden",marginBottom:20}}>
           {([
-            ["🎁","Card Strategy","Sign-up bonuses & 5/24 status",()=>go("card-strategy")],
-            ["📉","Debt Payoff Planner","Avalanche vs snowball calculator",()=>go("debt-planner")],
-            ["💰","Net Worth","Assets minus card debt",()=>go("net-worth")],
-            ["🏆","Achievements","Track your progress and badges",()=>go("achievements")],
-            ["❓","Help Center","FAQs and support",()=>go("help")],
+            ["gift","Card Strategy","Sign-up bonuses & 5/24 status",()=>go("card-strategy")],
+            ["trend-down","Debt Payoff Planner","Avalanche vs snowball calculator",()=>go("debt-planner")],
+            ["wallet","Net Worth","Assets minus card debt",()=>go("net-worth")],
+            ["trophy","Achievements","Track your progress and badges",()=>go("achievements")],
+            ["help","Help Center","FAQs and support",()=>go("help")],
           ] as [string,string,string,()=>void][]).map(([icon,label,desc,action],i,arr)=>(
             <button key={label} onClick={action} className="press" style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"13px 16px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",textAlign:"left"}}>
-              <span style={{fontSize:18,width:24,textAlign:"center",flexShrink:0}}>{icon}</span>
+              <span style={{width:24,display:"flex",justifyContent:"center",flexShrink:0,color:"var(--text2)"}}><Icon name={icon} size={17}/></span>
               <div style={{flex:1}}>
                 <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
                 <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
@@ -2896,7 +2960,7 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
 
         <div className="card-surface" style={{overflow:"hidden",marginBottom:24}}>
           <button onClick={onSignOut} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
-            <span style={{fontSize:18,width:24,textAlign:"center"}}>🚪</span>
+            <span style={{width:24,display:"flex",justifyContent:"center"}}><Icon name="logout" size={17}/></span>
             <p style={{color:"var(--red)",fontSize:13,fontWeight:600,flex:1}}>Sign Out</p>
             <span style={{color:"var(--red)",fontSize:13}}>→</span>
           </button>
@@ -3045,13 +3109,13 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
   const [detectedCategory, setDetectedCategory] = useState("");
 
   const CATEGORY_MAP: Record<string, {keywords:string[]; label:string; emoji:string}> = {
-    dining:    {keywords:["restaurant","cafe","coffee","starbucks","mcdonald","pizza","sushi","dining","food","eat","lunch","dinner","breakfast","bar","pub","chipotle","subway","doordash","grubhub","ubereats","taco","burger"],        label:"Dining & Restaurants", emoji:"🍽"},
-    groceries: {keywords:["grocery","supermarket","whole foods","trader joe","safeway","kroger","costco","walmart","target","food store","market","aldi","publix","wegmans"],                                                            label:"Groceries",             emoji:"🛒"},
-    travel:    {keywords:["flight","airline","hotel","airbnb","uber","lyft","train","amtrak","rental car","hertz","avis","delta","united","american airlines","southwest","hilton","marriott","hyatt","booking","expedia","kayak"],    label:"Travel",                emoji:""},
-    gas:       {keywords:["gas","shell","exxon","bp","chevron","mobil","fuel","petrol","sunoco"],                                                                                                                                        label:"Gas & Fuel",            emoji:""},
-    shopping:  {keywords:["amazon","apple","best buy","walmart","target","online","shop","store","nike","h&m","zara","nordstrom","macy","newegg","ebay","etsy"],                                                                        label:"Shopping",              emoji:"🛍"},
-    streaming: {keywords:["netflix","spotify","hulu","disney","apple tv","hbo","amazon prime","youtube premium","tidal","peacock","paramount","stream"],                                                                                label:"Streaming",             emoji:"📺"},
-    pharmacy:  {keywords:["cvs","walgreens","rite aid","pharmacy","drug store","medicine","prescription"],                                                                                                                              label:"Drugstore & Pharmacy",  emoji:"💊"},
+    dining:    {keywords:["restaurant","cafe","coffee","starbucks","mcdonald","pizza","sushi","dining","food","eat","lunch","dinner","breakfast","bar","pub","chipotle","subway","doordash","grubhub","ubereats","taco","burger"],        label:"Dining & Restaurants", emoji:"dining"},
+    groceries: {keywords:["grocery","supermarket","whole foods","trader joe","safeway","kroger","costco","walmart","target","food store","market","aldi","publix","wegmans"],                                                            label:"Groceries",             emoji:"groceries"},
+    travel:    {keywords:["flight","airline","hotel","airbnb","uber","lyft","train","amtrak","rental car","hertz","avis","delta","united","american airlines","southwest","hilton","marriott","hyatt","booking","expedia","kayak"],    label:"Travel",                emoji:"travel"},
+    gas:       {keywords:["gas","shell","exxon","bp","chevron","mobil","fuel","petrol","sunoco"],                                                                                                                                        label:"Gas & Fuel",            emoji:"gas"},
+    shopping:  {keywords:["amazon","apple","best buy","walmart","target","online","shop","store","nike","h&m","zara","nordstrom","macy","newegg","ebay","etsy"],                                                                        label:"Shopping",              emoji:"shopping"},
+    streaming: {keywords:["netflix","spotify","hulu","disney","apple tv","hbo","amazon prime","youtube premium","tidal","peacock","paramount","stream"],                                                                                label:"Streaming",             emoji:"streaming"},
+    pharmacy:  {keywords:["cvs","walgreens","rite aid","pharmacy","drug store","medicine","prescription"],                                                                                                                              label:"Drugstore & Pharmacy",  emoji:"drugstore"},
   };
 
   const detectCategory = (query: string): string => {
@@ -3170,7 +3234,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
             {/* Loading */}
             {applyLoading && (
               <div style={{textAlign:"center",padding:"40px 20px"}}>
-                <div style={{fontSize:40,marginBottom:16,animation:"pulse 1s ease infinite"}}>🤖</div>
+                <div style={{display:"flex",justifyContent:"center",marginBottom:16,color:"var(--accent)",animation:"pulse 1s ease infinite"}}><Icon name="chat" size={36}/></div>
                 <p style={{color:"var(--text2)",fontSize:15,fontWeight:500,marginBottom:6}}>AI is analysing your profile...</p>
                 <p style={{color:"var(--text3)",fontSize:12}}>Scoring {CARD_DB.length} cards against your income, credit score, lifestyle and spending</p>
               </div>
@@ -3245,7 +3309,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                           {/* Signup bonus */}
                           {rec.card.signupBonus && (
                             <div style={{background:"rgba(240,164,41,.08)",border:"1px solid rgba(240,164,41,.2)",borderRadius:12,padding:"10px 14px",marginTop:14,marginBottom:10}}>
-                              <p style={{color:"var(--amber)",fontSize:11,fontWeight:700,marginBottom:3}}>🎁 Welcome Bonus</p>
+                              <p style={{color:"var(--amber)",fontSize:11,fontWeight:700,marginBottom:3,display:"flex",alignItems:"center",gap:5}}><Icon name="gift" size={11}/> Welcome Bonus</p>
                               <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>{rec.card.signupBonus}</p>
                             </div>
                           )}
@@ -3279,7 +3343,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                           {/* Best places */}
                           {rec.card.bestPlaces && rec.card.bestPlaces.length > 0 && (
                             <div style={{marginTop:10}}>
-                              <p style={{color:"var(--accent)",fontSize:11,fontWeight:700,marginBottom:8}}>📍 Best places to use it</p>
+                              <p style={{color:"var(--accent)",fontSize:11,fontWeight:700,marginBottom:8,display:"flex",alignItems:"center",gap:5}}><Icon name="globe" size={11}/> Best places to use it</p>
                               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                                 {(rec.card.bestPlaces||[]).slice(0,6).map((p:string,pi:number)=>(
                                   <span key={pi} style={{background:"rgba(201,168,76,.1)",border:"1px solid rgba(201,168,76,.2)",borderRadius:20,padding:"3px 9px",fontSize:10,color:"var(--accent)"}}>
@@ -3325,7 +3389,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
 
               {cards.length === 0 ? (
                 <div style={{textAlign:"center",padding:"20px"}}>
-                  <p style={{fontSize:32,marginBottom:10}}>💳</p>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:10,color:"var(--text3)"}}><Icon name="card" size={28}/></div>
                   <p style={{color:"var(--text2)",fontSize:14,marginBottom:16}}>Add your cards first to get personalised recommendations</p>
                   <button onClick={()=>go("add-card")} className="btn-gold press" style={{padding:"12px 24px"}}>Add Your Cards</button>
                 </div>
@@ -3379,7 +3443,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
             {/* Loading */}
             {useLoading && (
               <div style={{textAlign:"center",padding:"30px 20px"}}>
-                <div style={{fontSize:36,marginBottom:12,animation:"pulse 1s ease infinite"}}>🔍</div>
+                <div style={{display:"flex",justifyContent:"center",marginBottom:12,color:"var(--accent)",animation:"pulse 1s ease infinite"}}><Icon name="search" size={32}/></div>
                 <p style={{color:"var(--text2)",fontSize:14}}>Ranking your {cards.length} cards...</p>
               </div>
             )}
@@ -3389,7 +3453,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
               <div>
                 {/* Category detected */}
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-                  <span style={{fontSize:20}}>{CATEGORY_MAP[detectedCategory]?.emoji||"🛒"}</span>
+                  <span style={{color:"var(--accent)",display:"flex"}}><Icon name={CATEGORY_MAP[detectedCategory]?.emoji||"groceries"} size={18}/></span>
                   <div>
                     <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{purchaseInput}</p>
                     <p style={{color:"var(--text2)",fontSize:12}}>Category: {CATEGORY_MAP[detectedCategory]?.label||"General purchase"}{purchaseAmount?`  $${purchaseAmount}`:""}</p>
@@ -3440,7 +3504,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                 {/* Insight */}
                 {useResults.length > 1 && purchaseAmount && (
                   <div style={{background:"rgba(45,200,160,.06)",border:"1px solid rgba(45,200,160,.2)",borderRadius:14,padding:"12px 16px",marginTop:8}}>
-                    <p style={{color:"var(--green)",fontSize:12,fontWeight:600,marginBottom:4}}>💡 Smart insight</p>
+                    <p style={{color:"var(--green)",fontSize:12,fontWeight:600,marginBottom:4,display:"flex",alignItems:"center",gap:5}}><Icon name="rocket" size={12}/> Smart insight</p>
                     <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.6}}>
                       Using {useResults[0].card.name} vs {useResults[useResults.length-1].card.name} on a ${purchaseAmount} purchase earns ${Math.round((useResults[0].cashValue - useResults[useResults.length-1].cashValue)*100)/100} more in rewards value. Over a year of similar weekly purchases that is <strong style={{color:"var(--green)"}}>${f2(Math.round((useResults[0].cashValue - useResults[useResults.length-1].cashValue)*52))}</strong> extra.
                     </p>
@@ -3543,14 +3607,14 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
   });
 
   const HABIT_SUGGESTIONS = [
-    {name:"Starbucks coffee", cost:"6", home:"0.50", freq:"daily" as const, emoji:""},
-    {name:"Gym membership", cost:"80", home:"0", freq:"monthly" as const, emoji:"🏋"},
-    {name:"Lunch out", cost:"15", home:"4", freq:"daily" as const, emoji:"🍽"},
-    {name:"Cigarettes", cost:"12", home:"0", freq:"daily" as const, emoji:"🚬"},
-    {name:"Uber to work", cost:"18", home:"3", freq:"daily" as const, emoji:"🚗"},
-    {name:"Wine bottle", cost:"25", home:"8", freq:"weekly" as const, emoji:"🍷"},
-    {name:"Takeout dinner", cost:"35", home:"10", freq:"weekly" as const, emoji:"🍕"},
-    {name:"Streaming services", cost:"60", home:"15", freq:"monthly" as const, emoji:"📺"},
+    {name:"Starbucks coffee", cost:"6", home:"0.50", freq:"daily" as const},
+    {name:"Gym membership", cost:"80", home:"0", freq:"monthly" as const},
+    {name:"Lunch out", cost:"15", home:"4", freq:"daily" as const},
+    {name:"Cigarettes", cost:"12", home:"0", freq:"daily" as const},
+    {name:"Uber to work", cost:"18", home:"3", freq:"daily" as const},
+    {name:"Wine bottle", cost:"25", home:"8", freq:"weekly" as const},
+    {name:"Takeout dinner", cost:"35", home:"10", freq:"weekly" as const},
+    {name:"Streaming services", cost:"60", home:"15", freq:"monthly" as const},
   ];
 
   const calculateSavings = () => {
@@ -3591,11 +3655,11 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
       <div className="px">
         {/* Tab switcher */}
         <div className="au" style={{display:"flex",gap:5,marginBottom:24,background:"var(--surface2)",padding:4,borderRadius:14}}>
-          <button onClick={()=>setTab(0)} className="press" style={{flex:1,padding:"11px",borderRadius:11,border:"none",background:tab===0?"var(--accent)":"none",color:tab===0?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===0?700:500,transition:"all .2s"}}>
-            🛒 Price Comparator
+          <button onClick={()=>setTab(0)} className="press" style={{flex:1,padding:"11px",borderRadius:11,border:"none",background:tab===0?"var(--accent)":"none",color:tab===0?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===0?700:500,transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
+            <Icon name="groceries" size={14}/> Price Comparator
           </button>
-          <button onClick={()=>setTab(1)} className="press" style={{flex:1,padding:"11px",borderRadius:11,border:"none",background:tab===1?"var(--accent)":"none",color:tab===1?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===1?700:500,transition:"all .2s"}}>
-            💡 Habit Savings
+          <button onClick={()=>setTab(1)} className="press" style={{flex:1,padding:"11px",borderRadius:11,border:"none",background:tab===1?"var(--accent)":"none",color:tab===1?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===1?700:500,transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
+            <Icon name="rocket" size={14}/> Habit Savings
           </button>
         </div>
 
@@ -3646,7 +3710,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
             {/* Loading state */}
             {comparing && (
               <div style={{textAlign:"center",padding:"40px 20px"}}>
-                <div style={{fontSize:32,marginBottom:12,animation:"pulse 1s ease infinite"}}>🔍</div>
+                <div style={{display:"flex",justifyContent:"center",marginBottom:12,color:"var(--accent)",animation:"pulse 1s ease infinite"}}><Icon name="search" size={28}/></div>
                 <p style={{color:"var(--text2)",fontSize:14}}>Comparing prices across 8 stores...</p>
                 <p style={{color:"var(--text3)",fontSize:12,marginTop:4}}>Factoring in your card rewards</p>
               </div>
@@ -3677,8 +3741,8 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
                             <p style={{color:"var(--text)",fontSize:15,fontWeight:700}}>{r.store}</p>
                             {r.badge && (
-                              <span className={`pill ${i===0?"pill-gold":"pill-emerald"}`} style={{fontSize:10}}>
-                                {i===0?"🏆 ":""}{r.badge}
+                              <span className={`pill ${i===0?"pill-gold":"pill-emerald"}`} style={{fontSize:10,display:"inline-flex",alignItems:"center",gap:4}}>
+                                {i===0&&<Icon name="trophy" size={10}/>}{r.badge}
                               </span>
                             )}
                           </div>
@@ -3699,10 +3763,9 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                       </div>
                       {i===0 && (
                         <div style={{background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",borderRadius:10,padding:"8px 12px",marginTop:4}}>
-                          <p style={{color:"var(--accent)",fontSize:12,lineHeight:1.5}}>
-                            💡 Best deal after card rewards. You save ${f2(priceResults[priceResults.length-1].price - r.price)} vs most expensive option.
+                          <p style={{color:"var(--accent)",fontSize:12,lineHeight:1.5,display:"flex",gap:6}}><Icon name="rocket" size={13}/><span>Best deal after card rewards. You save ${f2(priceResults[priceResults.length-1].price - r.price)} vs most expensive option.
                             {r.cardEarning > 0 ? ` Using ${r.card} gives you $${r.cardEarning} back on this purchase.` : " Add a cashback card to save even more."}
-                          </p>
+                          </span></p>
                         </div>
                       )}
                     </div>
@@ -3734,7 +3797,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                 <button key={h.name} onClick={()=>{setHabitName(h.name);setHabitCost(h.cost);setHomeCost(h.home);setHabitFreq(h.freq);setCalculated(false);}} className="press" style={{flexShrink:0,padding:"8px 14px",borderRadius:20,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",fontSize:12,whiteSpace:"nowrap",transition:"all .15s"}}
                   onMouseOver={e=>{e.currentTarget.style.borderColor="var(--accent)";e.currentTarget.style.color="var(--accent)"}}
                   onMouseOut={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text2)"}}>
-                  {h.emoji} {h.name}
+                  {h.name}
                 </button>
               ))}
             </div>
@@ -3806,7 +3869,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
 
                 {/* Investment projection */}
                 <div style={{background:"rgba(79,110,247,.08)",border:"1px solid rgba(79,110,247,.2)",borderRadius:16,padding:"14px 18px",marginBottom:12}}>
-                  <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,marginBottom:4}}>📈 If you invested those savings</p>
+                  <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Icon name="analytics" size={13}/> If you invested those savings</p>
                   <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.6}}>
                     Investing ${f2(savings.yearly)}/year at 7% average market returns (S&P 500) for 5 years would grow to <strong style={{color:"var(--accent)",fontSize:16}}>${f2(savings.withInvestment)}</strong>.
                   </p>
@@ -3817,14 +3880,14 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                   <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,marginBottom:12}}> What you could do instead</p>
                   <div style={{display:"flex",flexDirection:"column",gap:10}}>
                     {[
-                      {emoji:"", label:"International vacations", value:`${savings.vacations} round trips to Europe`, show:savings.vacations > 0},
-                      {emoji:"📱", label:"iPhones", value:`Buy ${savings.iphones} iPhone 15 Pro over 3 years`, show:savings.iphones > 0},
-                      {emoji:"💳", label:"Credit card fee offset", value:`Covers ${Math.floor(savings.yearly / 95)} premium card annual fees per year`, show:true},
-                      {emoji:"🏦", label:"Emergency fund", value:`Full 3-month emergency fund in ${Math.ceil(savings.yearly > 0 ? (savings.yearly*3)/savings.yearly : 0)} years`, show:savings.yearly > 0},
-                      {emoji:"", label:"The math on coffee", value:`${Math.round(savings.yearly / (parseFloat(habitCost)||6))} fewer ${savings.coffeeLabel} purchases per year`, show:true},
+                      {emoji:"travel", label:"International vacations", value:`${savings.vacations} round trips to Europe`, show:savings.vacations > 0},
+                      {emoji:"other", label:"iPhones", value:`Buy ${savings.iphones} iPhone 15 Pro over 3 years`, show:savings.iphones > 0},
+                      {emoji:"card", label:"Credit card fee offset", value:`Covers ${Math.floor(savings.yearly / 95)} premium card annual fees per year`, show:true},
+                      {emoji:"shield", label:"Emergency fund", value:`Full 3-month emergency fund in ${Math.ceil(savings.yearly > 0 ? (savings.yearly*3)/savings.yearly : 0)} years`, show:savings.yearly > 0},
+                      {emoji:"analytics", label:"The math on coffee", value:`${Math.round(savings.yearly / (parseFloat(habitCost)||6))} fewer ${savings.coffeeLabel} purchases per year`, show:true},
                     ].filter(i=>i.show).map(({emoji,label,value})=>(
                       <div key={label} style={{display:"flex",gap:12,alignItems:"center"}}>
-                        <span style={{fontSize:22,flexShrink:0}}>{emoji}</span>
+                        <div style={{width:36,height:36,borderRadius:10,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"var(--accent)"}}><Icon name={emoji} size={16}/></div>
                         <div>
                           <p style={{color:"var(--text)",fontSize:12,fontWeight:600}}>{label}</p>
                           <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{value}</p>
@@ -3837,7 +3900,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                 {/* Card rewards angle */}
                 {cards.length > 0 && (
                   <div style={{background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",borderRadius:16,padding:"14px 18px",marginBottom:12}}>
-                    <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,marginBottom:6}}>💳 WiseCard tip</p>
+                    <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,marginBottom:6,display:"flex",alignItems:"center",gap:6}}><Icon name="card" size={13}/> WiseCard tip</p>
                     <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.6}}>
                       If you still buy {savings.coffeeLabel} occasionally, always use {cards[0].name} -- it earns {cards[0].rewardRate}. On ${f2(savings.monthly)} monthly spending that earns roughly ${f2(Math.round(savings.monthly * 0.04))} back per month in rewards.
                     </p>
@@ -3872,12 +3935,12 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
    ============================================================ */
 function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:S)=>void; cards:CreditCard[]; profile:UserProfile; txns:Txn[]; onAddTxn:(cat:string,amount:number,desc:string,card:string,date:string)=>void; onDeleteTxn:(id:string)=>void }) {
   const CATS = [
-    {label:"Dining",    key:"dining",    color:"#3B82F6", icon:"🍽️"},
-    {label:"Groceries", key:"groceries", color:"#22C55E", icon:"🛒"},
-    {label:"Travel",    key:"travel",    color:"#F59E0B", icon:"✈️"},
-    {label:"Gas",       key:"gas",       color:"#EF4444", icon:"⛽"},
-    {label:"Shopping",  key:"shopping",  color:"#8B5CF6", icon:"🛍️"},
-    {label:"Other",     key:"other",     color:"#6B7280", icon:"📦"},
+    {label:"Dining",    key:"dining",    color:"#3B82F6", icon:"dining"},
+    {label:"Groceries", key:"groceries", color:"#22C55E", icon:"groceries"},
+    {label:"Travel",    key:"travel",    color:"#F59E0B", icon:"travel"},
+    {label:"Gas",       key:"gas",       color:"#EF4444", icon:"gas"},
+    {label:"Shopping",  key:"shopping",  color:"#8B5CF6", icon:"shopping"},
+    {label:"Other",     key:"other",     color:"#6B7280", icon:"other"},
   ];
   const [showAdd, setShowAdd] = useState(false);
   const [amt, setAmt] = useState(""); const [desc, setDesc] = useState(""); const [cat, setCat] = useState("dining"); const [card, setCard] = useState(cards[0]?.name||"");
@@ -3999,7 +4062,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
       <div className="px">
         {merged.filter(c=>c.cap>0&&c.capPct>=80).map(c=>(
           <div key={c.key} className="au" style={{background:c.capPct>=100?"var(--redbg)":"var(--amberbg)",border:`1px solid ${c.capPct>=100?"rgba(220,38,38,.2)":"rgba(217,119,6,.2)"}`,borderRadius:12,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:15}}>{c.capPct>=100?"🚨":"⚠️"}</span>
+            <span style={{display:"flex",color:c.capPct>=100?"var(--red)":"var(--amber)"}}><Icon name={c.capPct>=100?"alert":"warning"} size={15}/></span>
             <p style={{color:c.capPct>=100?"var(--red)":"var(--amber)",fontSize:12,fontWeight:600,flex:1}}>
               {c.capPct>=100 ? `Over budget on ${c.label}` : `Close to your ${c.label} cap`} — ${f(c.val)} of ${f(c.cap)} ({c.capPct}%)
             </p>
@@ -4016,7 +4079,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
               <div>
                 <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Category</label>
                 <select className="field" value={cat} onChange={e=>setCat(e.target.value)} style={{padding:"10px 12px",fontSize:13}}>
-                  {CATS.map(c=><option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
+                  {CATS.map(c=><option key={c.key} value={c.key}>{c.label}</option>)}
                 </select>
               </div>
             </div>
@@ -4041,7 +4104,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
 
         {total===0?(
           <div className="card-surface" style={{marginBottom:20}}>
-            <EmptyState icon="📊" title="No spending data yet" sub="Fill in monthly spending in Edit Profile, or tap + Log to add a transaction." action="Edit Profile" onAction={()=>go("edit-profile")}/>
+            <EmptyState icon="analytics" title="No spending data yet" sub="Fill in monthly spending in Edit Profile, or tap + Log to add a transaction." action="Edit Profile" onAction={()=>go("edit-profile")}/>
           </div>
         ):(
           <div className="au card-surface" style={{padding:"22px 16px 16px",marginBottom:20}}>
@@ -4063,7 +4126,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
               <div className="ai" style={{marginTop:14,background:"var(--surface2)",borderRadius:10,padding:"13px 15px",border:`1px solid ${selCat.color}25`}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <span style={{fontSize:20}}>{selCat.icon}</span>
+                    <span style={{color:selCat.color}}><Icon name={selCat.icon} size={20}/></span>
                     <div>
                       <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{selCat.label}</p>
                       <p style={{color:"var(--text2)",fontSize:11}}>{Math.round(selCat.val/total*100)}% of monthly spend</p>
@@ -4105,7 +4168,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
                 }}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
                     <div style={{display:"flex",alignItems:"center",gap:9}}>
-                      <span style={{fontSize:16}}>{cat.icon}</span>
+                      <span style={{color:cat.color}}><Icon name={cat.icon} size={16}/></span>
                       <span style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{cat.label}</span>
                     </div>
                     <span style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${f(cat.val)}<span style={{color:"var(--text3)",fontSize:10,fontWeight:400}}>/mo</span></span>
@@ -4133,14 +4196,14 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
 
         {subscriptions.length>0 && (
           <>
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>🔁 Detected Recurring Charges</p>
+            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10,display:"flex",alignItems:"center",gap:6}}><Icon name="refresh" size={11}/> Detected Recurring Charges</p>
             <div className="card-surface" style={{overflow:"hidden",marginBottom:20,border:"1px solid rgba(217,119,6,.2)"}}>
               {subscriptions.map((s,i,arr)=>{
                 const c=CATS.find(x=>x.key===s.cat);
                 return (
                   <div key={i} style={{padding:"12px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{fontSize:16}}>{c?.icon||"🔁"}</span>
+                      <span style={{display:"flex",color:c?.color||"var(--text2)"}}><Icon name={c?.icon||"refresh"} size={15}/></span>
                       <div>
                         <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{s.desc}</p>
                         <p style={{color:"var(--amber)",fontSize:11}}>Seen {s.count}× — looks recurring</p>
@@ -4163,7 +4226,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
                 return (
                   <div key={t.id} style={{padding:"12px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{fontSize:16,width:26,textAlign:"center"}}>{c?.icon}</span>
+                      <span style={{width:26,display:"flex",justifyContent:"center",color:c?.color||"var(--text2)"}}>{c&&<Icon name={c.icon} size={15}/>}</span>
                       <div>
                         <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{t.desc}</p>
                         <p style={{color:"var(--text2)",fontSize:11}}>{t.card} · {t.date}</p>
@@ -4228,7 +4291,8 @@ function Notifications({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
     {type:"info" as const,title:"Weekly digest ready",desc:"Your WiseCard financial recap for this week is ready",time:"Mon"},
     {type:"success" as const,title:"New cashback offer",desc:"5% back on gas activated on your Chase card",time:"Yesterday"},
   ];
-  const ico=(t:string)=>t==="warning"?"⚠️":t==="error"?"🔴":t==="success"?"✅":"ℹ️";
+  const ico=(t:string)=>t==="warning"?"warning":t==="error"?"alert":t==="success"?"check-circle":"info";
+  const icoColor=(t:string)=>t==="warning"?"var(--amber)":t==="error"?"var(--red)":t==="success"?"var(--green)":"var(--accent)";
   return (
     <div className="screen desktop-content screen-enter">
       <PageHead title="Notifications" back={()=>go("settings")}/>
@@ -4239,7 +4303,7 @@ function Notifications({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
             <div className="card-surface" style={{marginBottom:24,overflow:"hidden"}}>
               {alerts.map((a,i)=>(
                 <div key={i} style={{padding:"14px 16px",borderBottom:i<alerts.length-1?"1px solid var(--border)":"none",display:"flex",gap:12,alignItems:"flex-start"}}>
-                  <span style={{fontSize:18,flexShrink:0}}>{ico(a.type)}</span>
+                  <span style={{flexShrink:0,color:icoColor(a.type)}}><Icon name={ico(a.type)} size={18}/></span>
                   <div style={{flex:1}}>
                     <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{a.title}</p>
                     <p style={{color:"var(--text2)",fontSize:12,marginTop:2,lineHeight:1.4}}>{a.desc}</p>
@@ -4253,17 +4317,17 @@ function Notifications({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
         <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Preferences</p>
         <div className="card-surface" style={{overflow:"hidden"}}>
           {([
-            ["paymentDue","💳","Payment Reminders","7 and 3 days before due dates"],
-            ["utilizationHigh","📊","Utilization Warnings","When any card exceeds 30%"],
-            ["perkExpiring","💎","Perk Expiry Alerts","Before credits and offers expire"],
-            ["scoreChange","📈","Score Changes","When your credit score changes"],
-            ["newOffer","🎁","New Offers","When new cashback offers activate"],
-            ["weeklyDigest","📧","Weekly Digest","Monday morning financial recap"],
-            ["annualFeeRenewal","💳","Annual Fee Reminders","30 days before your card's fee renews"],
-            ["appUpdates","🔔","App Updates","New features and improvements"],
+            ["paymentDue","card","Payment Reminders","7 and 3 days before due dates"],
+            ["utilizationHigh","analytics","Utilization Warnings","When any card exceeds 30%"],
+            ["perkExpiring","perks","Perk Expiry Alerts","Before credits and offers expire"],
+            ["scoreChange","trend-down","Score Changes","When your credit score changes"],
+            ["newOffer","gift","New Offers","When new cashback offers activate"],
+            ["weeklyDigest","mail","Weekly Digest","Monday morning financial recap"],
+            ["annualFeeRenewal","card","Annual Fee Reminders","30 days before your card's fee renews"],
+            ["appUpdates","bell","App Updates","New features and improvements"],
           ] as [keyof typeof prefs,string,string,string][]).map(([key,icon,label,desc],i,arr)=>(
             <div key={key} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
-              <span style={{fontSize:18,width:26,textAlign:"center"}}>{icon}</span>
+              <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name={icon} size={16}/></span>
               <div style={{flex:1}}>
                 <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
                 <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
@@ -4393,7 +4457,7 @@ function EditProfile({ go, profile, onSave }: { go:(s:S)=>void; profile:UserProf
         <div className="card-surface" style={{padding:"20px",marginBottom:20}}>
           <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>Monthly Spending</p>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            {([["dining","🍽️ Dining"],["groceries","🛒 Groceries"],["travel","✈️ Travel"],["gas","⛽ Gas"],["shopping","🛍️ Shopping"],["other","📦 Other"]] as [keyof typeof p.spending,string][]).map(([k,label])=>(
+            {([["dining","Dining"],["groceries","Groceries"],["travel","Travel"],["gas","Gas"],["shopping","Shopping"],["other","Other"]] as [keyof typeof p.spending,string][]).map(([k,label])=>(
               <div key={k}>
                 <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:5}}>{label} / month</label>
                 <input className="field" type="number" placeholder="$0" value={p.spending[k]} onChange={e=>setSp(k,e.target.value)}/>
@@ -4406,7 +4470,7 @@ function EditProfile({ go, profile, onSave }: { go:(s:S)=>void; profile:UserProf
           <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Budget Caps</p>
           <p style={{color:"var(--text2)",fontSize:12,marginBottom:14,lineHeight:1.5}}>Set a monthly limit per category. We'll warn you in Analytics when you're close to going over.</p>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            {([["dining","🍽️ Dining"],["groceries","🛒 Groceries"],["travel","✈️ Travel"],["gas","⛽ Gas"],["shopping","🛍️ Shopping"],["other","📦 Other"]] as [keyof typeof p.spending,string][]).map(([k,label])=>(
+            {([["dining","Dining"],["groceries","Groceries"],["travel","Travel"],["gas","Gas"],["shopping","Shopping"],["other","Other"]] as [keyof typeof p.spending,string][]).map(([k,label])=>(
               <div key={k}>
                 <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:5}}>{label} cap / month</label>
                 <input className="field" type="number" placeholder="No cap set" value={p.budgetCaps?.[k]||""} onChange={e=>setCap(k,e.target.value)}/>
@@ -4433,7 +4497,7 @@ function Referral({ go }: { go:(s:S)=>void }) {
       <PageHead title="Refer a Friend" back={()=>go("settings")}/>
       <div className="px">
         <div className="card-surface au" style={{padding:"28px 22px",textAlign:"center",marginBottom:16,background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)"}}>
-          <div style={{fontSize:46,marginBottom:12}}>🎁</div>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:14,color:"var(--accent)"}}><Icon name="gift" size={40}/></div>
           <h2 style={{fontSize:22,fontWeight:700,color:"var(--text)",marginBottom:8}}>Give $20, Get $20</h2>
           <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.6,maxWidth:280,margin:"0 auto 22px"}}>Share WiseCard with a friend. When they sign up and add their first card, you both get $20 in rewards.</p>
           <div style={{background:"var(--surface)",border:"2px dashed var(--accent)",borderRadius:12,padding:"16px",marginBottom:14}}>
@@ -4453,7 +4517,7 @@ function Referral({ go }: { go:(s:S)=>void }) {
         </div>
         <div className="card-surface" style={{padding:"16px 20px"}}>
           <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>Your Referrals</p>
-          <EmptyState icon="👥" title="No referrals yet" sub="Share your code to start earning when friends join WiseCard."/>
+          <EmptyState icon="users" title="No referrals yet" sub="Share your code to start earning when friends join WiseCard."/>
         </div>
       </div>
     </div>
@@ -4475,7 +4539,7 @@ function Privacy({ go }: { go:(s:S)=>void }) {
       <div className="px">
         <div className="card-surface au" style={{padding:"15px 18px",marginBottom:16,background:"var(--greenbg)",border:"1px solid rgba(39,103,73,.2)"}}>
           <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-            <span style={{fontSize:18,flexShrink:0}}>🔒</span>
+            <span style={{flexShrink:0,color:"var(--green)"}}><Icon name="shield" size={18}/></span>
             <div>
               <p style={{color:"var(--green)",fontSize:13,fontWeight:700}}>Your data is secure</p>
               <p style={{color:"var(--text2)",fontSize:12,marginTop:2,lineHeight:1.5}}>WiseCard uses AES-256 encryption. We never store card numbers. Your data is never sold.</p>
@@ -4485,17 +4549,17 @@ function Privacy({ go }: { go:(s:S)=>void }) {
         <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Security</p>
         <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
           <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)"}}>
-            <span style={{fontSize:18,width:26,textAlign:"center"}}>🔑</span>
+            <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name="key" size={16}/></span>
             <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Biometric Login</p><p style={{color:"var(--text2)",fontSize:11}}>Face ID or fingerprint sign-in</p></div>
             <Toggle on={biometric} set={()=>setBiometric(v=>!v)}/>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)"}}>
-            <span style={{fontSize:18,width:26,textAlign:"center"}}>🛡️</span>
+            <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name="shield" size={16}/></span>
             <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Two-Factor Authentication</p><p style={{color:"var(--text2)",fontSize:11}}>Require a code from your phone at sign-in</p></div>
             <Toggle on={twoFA} set={()=>{setTwoFA(v=>!v);showToast(twoFA?"Two-factor authentication disabled":"Two-factor authentication enabled");}}/>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)"}}>
-            <span style={{fontSize:18,width:26,textAlign:"center"}}>⏱️</span>
+            <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name="clock" size={16}/></span>
             <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Auto Sign-Out</p><p style={{color:"var(--text2)",fontSize:11}}>Sign out automatically after 15 minutes idle</p></div>
             <Toggle on={autoLogout} set={()=>setAutoLogout(v=>!v)}/>
           </div>
@@ -4506,9 +4570,9 @@ function Privacy({ go }: { go:(s:S)=>void }) {
         </div>
         <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Data & Privacy</p>
         <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
-          {([[dataSharing,setDataSharing,"📤","Share Anonymous Data","Help improve WiseCard with anonymized usage data"],[analytics,setAnalytics,"📊","Usage Analytics","Allow analytics to improve your experience"]] as [boolean,any,string,string,string][]).map(([val,setVal,icon,label,desc],i)=>(
+          {([[dataSharing,setDataSharing,"download","Share Anonymous Data","Help improve WiseCard with anonymized usage data"],[analytics,setAnalytics,"analytics","Usage Analytics","Allow analytics to improve your experience"]] as [boolean,any,string,string,string][]).map(([val,setVal,icon,label,desc],i)=>(
             <div key={label} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:i===0?"1px solid var(--border)":"none"}}>
-              <span style={{fontSize:18,width:26,textAlign:"center"}}>{icon}</span>
+              <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name={icon} size={16}/></span>
               <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p><p style={{color:"var(--text2)",fontSize:11}}>{desc}</p></div>
               <Toggle on={val} set={()=>setVal((v:boolean)=>!v)}/>
             </div>
@@ -4655,7 +4719,7 @@ function CardStrategy({ go, cards, applications, onAddApplication, onDeleteAppli
 
         {tab==="bonus" && (
           cardsWithBonus.length===0 ? (
-            <EmptyState icon="🎁" title="No bonuses to track" sub="Add a card with a sign-up bonus to start tracking your progress toward the minimum spend." action="Add a Card" onAction={()=>go("add-card")}/>
+            <EmptyState icon="gift" title="No bonuses to track" sub="Add a card with a sign-up bonus to start tracking your progress toward the minimum spend." action="Add a Card" onAction={()=>go("add-card")}/>
           ) : (
             <>
               {cardsWithBonus.map(card=>{
@@ -4693,7 +4757,7 @@ function CardStrategy({ go, cards, applications, onAddApplication, onDeleteAppli
                     </div>
                     <Bar v={progress} max={target} color={pct2>=100?"var(--green)":"var(--accent)"} h={6}/>
                     {pct2>=100 && <p style={{color:"var(--green)",fontSize:11,marginTop:8,fontWeight:600}}>✓ Bonus requirement met!</p>}
-                    {daysLeft!==null && daysLeft>=0 && daysLeft<=14 && pct2<100 && <p style={{color:"var(--red)",fontSize:11,marginTop:8,fontWeight:600}}>⚠️ {daysLeft} days left — spend ${f(target-progress)} more</p>}
+                    {daysLeft!==null && daysLeft>=0 && daysLeft<=14 && pct2<100 && <p style={{color:"var(--red)",fontSize:11,marginTop:8,fontWeight:600,display:"flex",alignItems:"center",gap:5}}><Icon name="warning" size={12}/> {daysLeft} days left — spend ${f(target-progress)} more</p>}
                     <button onClick={()=>saveBonus(card.id)} className="press" style={{marginTop:10,width:"100%",padding:"8px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Save Progress</button>
                   </div>
                 );
@@ -4837,7 +4901,7 @@ function DebtPlanner({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
       <PageHead title="Debt Payoff Planner" sub="See exactly when you'll be debt-free" back={()=>go("settings")}/>
       <div className="px">
         {debtCards.length===0 ? (
-          <EmptyState icon="🎉" title="No debt to pay off!" sub="None of your cards carry a balance. Keep it that way!"/>
+          <EmptyState icon="check-circle" title="No debt to pay off!" sub="None of your cards carry a balance. Keep it that way!"/>
         ) : (
           <>
             <div className="au card-surface" style={{padding:"20px 18px",marginBottom:18,background:"var(--redbg)",border:"1px solid rgba(220,38,38,.15)"}}>
@@ -4850,7 +4914,7 @@ function DebtPlanner({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
             <div style={{display:"flex",gap:8,marginBottom:16}}>
               {(["avalanche","snowball"] as const).map(m=>(
                 <button key={m} onClick={()=>setMethod(m)} className="press" style={{flex:1,padding:"12px",borderRadius:12,border:`1.5px solid ${method===m?"var(--accent)":"var(--border)"}`,background:method===m?"var(--accentbg)":"var(--surface)",textAlign:"left"}}>
-                  <p style={{color:method===m?"var(--accent)":"var(--text)",fontSize:13,fontWeight:700,marginBottom:2}}>{m==="avalanche"?"❄️ Avalanche":"⛄ Snowball"}</p>
+                  <p style={{color:method===m?"var(--accent)":"var(--text)",fontSize:13,fontWeight:700,marginBottom:2,display:"flex",alignItems:"center",gap:6}}>{m==="avalanche"?<><Icon name="trend-down" size={14}/> Avalanche</>:<><Icon name="trophy" size={14}/> Snowball</>}</p>
                   <p style={{color:"var(--text2)",fontSize:10,lineHeight:1.3}}>{m==="avalanche"?"Highest APR first — saves the most money":"Smallest balance first — quick wins, motivation"}</p>
                 </button>
               ))}
@@ -4950,7 +5014,7 @@ function NetWorth({ go, cards, assets, onAddAsset, onDeleteAsset }: { go:(s:S)=>
 
         <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Your Assets</p>
         {assets.length===0 ? (
-          <div className="card-surface"><EmptyState icon="💰" title="No assets added" sub="Add savings, investments, or other assets to see your full net worth." action="+ Add Asset" onAction={()=>setShowAdd(true)}/></div>
+          <div className="card-surface"><EmptyState icon="wallet" title="No assets added" sub="Add savings, investments, or other assets to see your full net worth." action="+ Add Asset" onAction={()=>setShowAdd(true)}/></div>
         ) : (
           <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
             {assets.map((a,i,arr)=>(
@@ -4958,7 +5022,7 @@ function NetWorth({ go, cards, assets, onAddAsset, onDeleteAsset }: { go:(s:S)=>
                 <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{a.name}</p>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   <p style={{color:"var(--green)",fontSize:13,fontWeight:700}}>${f(Number(a.value))}</p>
-                  <button onClick={()=>removeAsset(a.id)} style={{background:"none",border:"none",color:"var(--text3)",fontSize:15,cursor:"pointer"}}>✕</button>
+                  <button onClick={()=>removeAsset(a.id)} style={{background:"none",border:"none",color:"var(--text3)",cursor:"pointer",display:"flex"}}><Icon name="trash" size={14}/></button>
                 </div>
               </div>
             ))}
@@ -4990,14 +5054,14 @@ function Achievements({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard
   const spendingFilled = Object.values(profile.spending||{}).some(v=>Number(v)>0);
 
   const badges = [
-    {id:"first-card",icon:"💳",title:"First Card Added",desc:"Added your first card to WiseCard",unlocked:cards.length>=1},
-    {id:"diversified",icon:"🃏",title:"Diversified Wallet",desc:"Own 3 or more cards",unlocked:cards.length>=3},
-    {id:"low-util",icon:"📊",title:"Utilization Master",desc:"Overall utilization under 30%",unlocked:cards.length>0 && util<30},
-    {id:"debt-free-card",icon:"🎉",title:"Debt Crusher",desc:"Paid a card down to $0",unlocked:paidOffCards.length>=1},
-    {id:"profile-complete",icon:"✏️",title:"Profile Pro",desc:"Filled in your spending profile",unlocked:spendingFilled},
-    {id:"five-cards",icon:"👑",title:"Card Collector",desc:"Own 5 or more cards",unlocked:cards.length>=5},
-    {id:"perfect-util",icon:"💎",title:"Pristine Credit",desc:"Utilization under 10%",unlocked:cards.length>0 && util<10},
-    {id:"high-points",icon:"⭐",title:"Points Powerhouse",desc:"10,000+ total points across cards",unlocked:cards.reduce((s,c)=>s+c.points,0)>=10000},
+    {id:"first-card",icon:"card",title:"First Card Added",desc:"Added your first card to WiseCard",unlocked:cards.length>=1},
+    {id:"diversified",icon:"wallet",title:"Diversified Wallet",desc:"Own 3 or more cards",unlocked:cards.length>=3},
+    {id:"low-util",icon:"analytics",title:"Utilization Master",desc:"Overall utilization under 30%",unlocked:cards.length>0 && util<30},
+    {id:"debt-free-card",icon:"check-circle",title:"Debt Crusher",desc:"Paid a card down to $0",unlocked:paidOffCards.length>=1},
+    {id:"profile-complete",icon:"edit",title:"Profile Pro",desc:"Filled in your spending profile",unlocked:spendingFilled},
+    {id:"five-cards",icon:"trophy",title:"Card Collector",desc:"Own 5 or more cards",unlocked:cards.length>=5},
+    {id:"perfect-util",icon:"shield",title:"Pristine Credit",desc:"Utilization under 10%",unlocked:cards.length>0 && util<10},
+    {id:"high-points",icon:"star",title:"Points Powerhouse",desc:"10,000+ total points across cards",unlocked:cards.reduce((s,c)=>s+c.points,0)>=10000},
   ];
   const unlockedCount = badges.filter(b=>b.unlocked).length;
 
@@ -5015,10 +5079,10 @@ function Achievements({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           {badges.map(b=>(
             <div key={b.id} className="card-surface" style={{padding:"16px 14px",textAlign:"center",opacity:b.unlocked?1:0.45,border:b.unlocked?"1.5px solid var(--accent)":"1px solid var(--border)"}}>
-              <p style={{fontSize:32,marginBottom:8,filter:b.unlocked?"none":"grayscale(1)"}}>{b.icon}</p>
+              <div style={{width:48,height:48,borderRadius:"50%",background:b.unlocked?"var(--accentbg)":"var(--surface2)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 10px",color:b.unlocked?"var(--accent)":"var(--text3)"}}><Icon name={b.icon} size={22}/></div>
               <p style={{color:"var(--text)",fontSize:12,fontWeight:700,marginBottom:4}}>{b.title}</p>
               <p style={{color:"var(--text2)",fontSize:10,lineHeight:1.3}}>{b.desc}</p>
-              {b.unlocked && <p style={{color:"var(--green)",fontSize:10,fontWeight:700,marginTop:6}}>✓ UNLOCKED</p>}
+              {b.unlocked && <p style={{color:"var(--green)",fontSize:10,fontWeight:700,marginTop:6}}>UNLOCKED</p>}
             </div>
           ))}
         </div>
@@ -5058,7 +5122,7 @@ function HelpCenter({ go }: { go:(s:S)=>void }) {
         </div>
 
         <div className="card-surface au" style={{padding:"20px",textAlign:"center"}}>
-          <p style={{fontSize:28,marginBottom:8}}>💬</p>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:8,color:"var(--accent)"}}><Icon name="chat" size={26}/></div>
           <p style={{color:"var(--text)",fontSize:14,fontWeight:700,marginBottom:6}}>Still need help?</p>
           <p style={{color:"var(--text2)",fontSize:12,marginBottom:14}}>Our support team typically responds within 24 hours.</p>
           <a href="mailto:support@wisecard.app" className="btn-gold press" style={{display:"inline-block",padding:"11px 28px",fontSize:13,textDecoration:"none"}}>Email Support</a>
@@ -5109,15 +5173,15 @@ function Landing({ onGetStarted, onSignIn }: { onGetStarted:()=>void; onSignIn:(
       <div style={{maxWidth:1000,margin:"0 auto",padding:"20px 24px 80px"}}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16}}>
           {[
-            {icon:"🤖",title:"AI Financial Advisor",desc:"Get personalized advice on which card to use, debt payoff strategy, and credit score improvement — anytime."},
-            {icon:"📊",title:"Real Spending Analytics",desc:"Interactive speedometer dashboards show exactly where your money goes, down to the category."},
-            {icon:"✈️",title:"Maximize Travel Points",desc:"Real, accurate transfer ratios across Chase, Amex, Citi, and Capital One — know exactly where to send your points."},
-            {icon:"⚖️",title:"Compare Any Two Cards",desc:"Side-by-side comparison of annual fees, perks, and net value across 45+ real cards."},
-            {icon:"📉",title:"Debt Payoff Planner",desc:"Avalanche or snowball calculator shows exactly when you'll be debt-free and how much interest you'll save."},
-            {icon:"🎁",title:"Sign-up Bonus Tracker",desc:"Never miss a minimum-spend deadline again — track every bonus in one place."},
+            {icon:"chat",title:"AI Financial Advisor",desc:"Get personalized advice on which card to use, debt payoff strategy, and credit score improvement — anytime."},
+            {icon:"analytics",title:"Real Spending Analytics",desc:"Interactive speedometer dashboards show exactly where your money goes, down to the category."},
+            {icon:"travel",title:"Maximize Travel Points",desc:"Real, accurate transfer ratios across Chase, Amex, Citi, and Capital One — know exactly where to send your points."},
+            {icon:"percent",title:"Compare Any Two Cards",desc:"Side-by-side comparison of annual fees, perks, and net value across 45+ real cards."},
+            {icon:"trend-down",title:"Debt Payoff Planner",desc:"Avalanche or snowball calculator shows exactly when you'll be debt-free and how much interest you'll save."},
+            {icon:"gift",title:"Sign-up Bonus Tracker",desc:"Never miss a minimum-spend deadline again — track every bonus in one place."},
           ].map(f=>(
             <div key={f.title} className="card-surface" style={{padding:"22px 20px"}}>
-              <p style={{fontSize:26,marginBottom:12}}>{f.icon}</p>
+              <div style={{width:44,height:44,borderRadius:13,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,color:"var(--accent)"}}><Icon name={f.icon} size={20}/></div>
               <p style={{color:"var(--text)",fontSize:14,fontWeight:700,marginBottom:6}}>{f.title}</p>
               <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>{f.desc}</p>
             </div>
@@ -5220,7 +5284,7 @@ function PrivacyPolicy({ go }: { go:(s:S)=>void }) {
       <PageHead title="Privacy Policy" back={()=>go("privacy")}/>
       <div className="px">
         <div className="card-surface au" style={{padding:"14px 16px",marginBottom:20,background:"var(--amberbg)",border:"1px solid rgba(217,119,6,.2)"}}>
-          <p style={{color:"var(--amber)",fontSize:12,fontWeight:600,marginBottom:3}}>⚠️ Student project notice</p>
+          <p style={{color:"var(--amber)",fontSize:12,fontWeight:600,marginBottom:3,display:"flex",alignItems:"center",gap:6}}><Icon name="warning" size={12}/> Student project notice</p>
           <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.5}}>This policy accurately describes how WiseCard's current prototype handles data. It has not been reviewed by a lawyer and should be professionally reviewed before any commercial launch with real users.</p>
         </div>
         <p style={{color:"var(--text2)",fontSize:12,marginBottom:20}}>Last updated: June 2026</p>
@@ -5316,7 +5380,7 @@ function TermsOfService({ go }: { go:(s:S)=>void }) {
       <PageHead title="Terms of Service" back={()=>go("privacy")}/>
       <div className="px">
         <div className="card-surface au" style={{padding:"14px 16px",marginBottom:20,background:"var(--amberbg)",border:"1px solid rgba(217,119,6,.2)"}}>
-          <p style={{color:"var(--amber)",fontSize:12,fontWeight:600,marginBottom:3}}>⚠️ Student project notice</p>
+          <p style={{color:"var(--amber)",fontSize:12,fontWeight:600,marginBottom:3,display:"flex",alignItems:"center",gap:6}}><Icon name="warning" size={12}/> Student project notice</p>
           <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.5}}>These terms accurately describe WiseCard's current prototype. They have not been reviewed by a lawyer and should be professionally reviewed before any commercial launch with real users.</p>
         </div>
         <p style={{color:"var(--text2)",fontSize:12,marginBottom:20}}>Last updated: June 2026</p>
@@ -5581,7 +5645,7 @@ export default function App() {
       const {data:goalData} = await supabase.from("goals").select("*").eq("user_id",user.id);
       if(goalData) {
         setGoals(goalData.map((g:any):Goal=>({
-          id:g.id, emoji:g.emoji||"🎯", title:g.title, target:g.target, current:g.current,
+          id:g.id, emoji:g.emoji||"goal", title:g.title, target:g.target, current:g.current,
           unit:g.unit||"$", color:g.color||"#2563EB", due:g.due||"", tips:g.tips||[],
         })));
       }
