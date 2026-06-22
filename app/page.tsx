@@ -46,6 +46,7 @@ const DARK_CSS = `
   --amber:     #F59E0B;
   --amberbg:   rgba(245,158,11,.1);
   --sans:      'Inter', system-ui, -apple-system, sans-serif;
+  --serif:     'Fraunces', Georgia, 'Times New Roman', serif;
   --shadow:    0 2px 10px rgba(0,0,0,.25);
   --shadow-lg: 0 8px 28px rgba(0,0,0,.35);
   --radius:    14px;
@@ -72,6 +73,7 @@ const LIGHT_CSS = `
   --amber:     #B7791F;
   --amberbg:   #FFFFF0;
   --sans:      'Inter', system-ui, -apple-system, sans-serif;
+  --serif:     'Fraunces', Georgia, 'Times New Roman', serif;
   --shadow:    0 1px 2px rgba(20,30,50,.04), 0 2px 8px rgba(20,30,50,.04);
   --shadow-lg: 0 10px 32px rgba(20,30,50,.09);
   --radius:    14px;
@@ -147,7 +149,7 @@ select.field { appearance:none; }
 .divider { height:1px; background:var(--border); width:100%; }
 .screen  { min-height:100vh; padding-bottom:88px; }
 .px      { padding-left:20px; padding-right:20px; }
-.serif   { font-family:var(--sans); }
+.serif   { font-family:var(--serif); font-weight:500; letter-spacing:-0.02em; }
 .nav-safe{ padding-bottom:max(12px,env(safe-area-inset-bottom)); }
 .track   { background:var(--border2); border-radius:99px; overflow:hidden; }
 .fill    { height:100%; border-radius:99px; transition:width .6s ease; }
@@ -261,6 +263,44 @@ select.field { appearance:none; }
   to   { opacity:1; transform:translateY(0); }
 }
 .screen-enter { animation: screenFade .2s ease both; }
+
+/* Landing page motion */
+@keyframes meshDrift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(3%,-4%) scale(1.08); }
+  66%  { transform: translate(-3%,3%) scale(0.96); }
+  100% { transform: translate(0,0) scale(1); }
+}
+@keyframes heroFadeUp {
+  from { opacity:0; transform:translateY(22px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes floatCard {
+  0%,100% { transform: translateY(0) rotate(-4deg); }
+  50%     { transform: translateY(-14px) rotate(-2deg); }
+}
+@keyframes floatCard2 {
+  0%,100% { transform: translateY(0) rotate(5deg); }
+  50%     { transform: translateY(-10px) rotate(7deg); }
+}
+@keyframes wordCycleIn {
+  from { opacity:0; transform:translateY(100%); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes wordCycleOut {
+  from { opacity:1; transform:translateY(0); }
+  to   { opacity:0; transform:translateY(-100%); }
+}
+@keyframes revealUp {
+  from { opacity:0; transform:translateY(30px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes softPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,.25); }
+  50%     { box-shadow: 0 0 0 14px rgba(37,99,235,0); }
+}
+.reveal-on-scroll { opacity:0; transform:translateY(30px); transition:opacity .7s ease, transform .7s ease; }
+.reveal-on-scroll.is-visible { opacity:1; transform:translateY(0); }
 `;
 
 /* ============================================================
@@ -1046,8 +1086,8 @@ function ToastContainer() {
           boxShadow:"0 4px 20px rgba(0,0,0,.15)", minWidth:240, maxWidth:320,
           animation:"toastIn .25s ease", pointerEvents:"all"
         }}>
-          <span style={{width:20,height:20,borderRadius:"50%",background:bg(t.type),color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>{icon(t.type)}</span>
-          <span style={{fontSize:13,color:"var(--text)",fontWeight:500,lineHeight:1.4}}>{t.message}</span>
+          <span style={{width:20,height:20,borderRadius:"50%",background:bg(t.type),color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,flexShrink:0}}>{icon(t.type)}</span>
+          <span style={{fontSize:14,color:"var(--text)",fontWeight:500,lineHeight:1.4}}>{t.message}</span>
         </div>
       ))}
     </div>
@@ -1121,10 +1161,10 @@ function PageHead({ title, sub, right, back }: { title:string; sub?:string; righ
   return (
     <div className="px" style={{paddingTop:60,paddingBottom:28,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
       <div style={{display:"flex",alignItems:"flex-end",gap:12}}>
-        {back && <button onClick={back} className="btn-ghost press" style={{padding:"8px 14px",fontSize:13}}> Back</button>}
+        {back && <button onClick={back} className="btn-ghost press" style={{padding:"8px 14px",fontSize:14}}> Back</button>}
         <div>
-          <h1 className="serif" style={{fontSize:24,fontWeight:700,lineHeight:1.2,letterSpacing:"-.3px",marginBottom:sub?4:0}}>{title}</h1>
-          {sub && <p style={{fontSize:13,color:"var(--text2)"}}>{sub}</p>}
+          <h1 className="serif" style={{fontSize:32,fontWeight:600,lineHeight:1.15,letterSpacing:"-.5px",marginBottom:sub?5:0}}>{title}</h1>
+          {sub && <p style={{fontSize:14,color:"var(--text2)"}}>{sub}</p>}
         </div>
       </div>
       {right}
@@ -1152,7 +1192,7 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
           </div>
           <div>
             <div style={{fontSize:15,fontWeight:700,color:"var(--text)",letterSpacing:"-.3px",lineHeight:1.2}}>WiseCard</div>
-            <div style={{fontSize:10,color:"var(--text2)",fontWeight:500,letterSpacing:.6,textTransform:"uppercase"}}>Elite</div>
+            <div style={{fontSize:11,color:"var(--text2)",fontWeight:500,letterSpacing:.6,textTransform:"uppercase"}}>Elite</div>
           </div>
         </div>
       </div>
@@ -1160,9 +1200,9 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
       {profile.name && (
         <div style={{padding:"0 16px 20px"}}>
           <div style={{background:"var(--accentbg)",borderRadius:8,padding:"10px 12px",border:"1px solid rgba(37,99,235,.12)"}}>
-            <div style={{fontSize:11,color:"var(--accent)",marginBottom:2,fontWeight:500}}>Signed in as</div>
+            <div style={{fontSize:12,color:"var(--accent)",marginBottom:2,fontWeight:500}}>Signed in as</div>
             <div style={{fontSize:14,fontWeight:600,color:"var(--text)",letterSpacing:"-.1px"}}>{profile.name}</div>
-            {profile.creditScore && <div style={{fontSize:11,color:"var(--green)",marginTop:2,fontWeight:500}}>{profile.creditScore}</div>}
+            {profile.creditScore && <div style={{fontSize:12,color:"var(--green)",marginTop:2,fontWeight:500}}>{profile.creditScore}</div>}
           </div>
         </div>
       )}
@@ -1178,7 +1218,7 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
               padding:"9px 10px",borderRadius:7,border:"none",
               background:on?"var(--accentbg)":"transparent",
               color:on?"var(--accent)":"var(--text2)",
-              fontSize:13.5,fontWeight:on?600:400,
+              fontSize:14.5,fontWeight:on?600:400,
               textAlign:"left",marginBottom:1,
               transition:"background .12s, color .12s",
               borderLeft:on?"2px solid var(--accent)":"2px solid transparent",
@@ -1195,7 +1235,7 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
       <div style={{padding:"0 16px"}}>
         {onSignOut && (
           <button onClick={onSignOut} className="press" style={{
-            width:"100%",padding:"9px 14px",fontSize:13,
+            width:"100%",padding:"9px 14px",fontSize:14,
             color:"var(--red)",background:"transparent",
             border:"1px solid rgba(197,48,48,.25)",borderRadius:7,
             fontWeight:500,cursor:"pointer",fontFamily:"var(--sans)",
@@ -1229,7 +1269,7 @@ function MobileNav({ active, go }: { active:S; go:(s:S)=>void }) {
             display:"flex",flexDirection:"column",alignItems:"center",gap:4,
           }}>
             <span style={{color:on?"var(--accent)":"var(--text3)",transition:"color .15s"}}><Icon name={icon} size={19}/></span>
-            <span style={{fontSize:10,fontWeight:on?600:400,color:on?"var(--accent)":"var(--text3)"}}>{label}</span>
+            <span style={{fontSize:11,fontWeight:on?600:400,color:on?"var(--accent)":"var(--text3)"}}>{label}</span>
           </button>
         );
       })}
@@ -1288,11 +1328,11 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
           <div style={{width:64,height:64,borderRadius:16,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:24,boxShadow:"0 4px 16px rgba(37,99,235,.25)"}}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           </div>
-          <div style={{fontSize:11,letterSpacing:2.5,marginBottom:10,fontWeight:600,color:"var(--accent)",textTransform:"uppercase"}}>WiseCard</div>
+          <div style={{fontSize:12,letterSpacing:2.5,marginBottom:10,fontWeight:600,color:"var(--accent)",textTransform:"uppercase"}}>WiseCard</div>
           <h1 style={{fontSize:34,lineHeight:1.15,marginBottom:14,fontWeight:700,color:"var(--text)",letterSpacing:"-.5px"}}>Your cards,<br/>working harder.</h1>
           <p style={{color:"var(--text2)",fontSize:15,lineHeight:1.7,marginBottom:40,maxWidth:300}}>AI-powered credit card optimization. Maximize rewards, track spending, make smarter decisions.</p>
           <GoldBtn label="Get Started" onClick={()=>setStep(1)}/>
-                    <p style={{color:"var(--text3)",fontSize:12,marginTop:14}}>Free  Takes 3 minutes</p>
+                    <p style={{color:"var(--text3)",fontSize:13,marginTop:14}}>Free  Takes 3 minutes</p>
         </div>
       )}
 
@@ -1300,11 +1340,11 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
       {step===1 && (
         <div className="au" style={{padding:"80px 28px 40px"}}>
           <span className="pill pill-gold" style={{marginBottom:20,display:"inline-flex"}}>Step 1 of 5</span>
-          <h2 className="serif" style={{fontSize:36,fontWeight:400,marginBottom:8,lineHeight:1.2}}>What's your<br/>name?</h2>
+          <h2 className="serif" style={{fontSize:46,fontWeight:400,marginBottom:10,lineHeight:1.1,letterSpacing:"-1px"}}>What's your<br/>name?</h2>
           <p style={{color:"var(--text2)",fontSize:14,marginBottom:32,lineHeight:1.6}}>We personalize every recommendation around you.</p>
-          <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>First Name</label>
+          <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>First Name</label>
           <input className="field" placeholder="Your first name" value={p.name} onChange={e=>set("name",e.target.value)} style={{fontSize:20,padding:"18px 20px",marginBottom:20}} autoFocus onKeyDown={e=>e.key==="Enter"&&p.name.trim()&&setStep(2)}/>
-          <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Age</label>
+          <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Age</label>
           <input className="field" type="number" placeholder="Your age" value={p.age} onChange={e=>set("age",e.target.value)} style={{marginBottom:32}}/>
           <GoldBtn label="Continue ->" disabled={!p.name.trim()} onClick={()=>setStep(2)}/>
         </div>
@@ -1314,31 +1354,31 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
       {step===2 && (
         <div className="au" style={{padding:"80px 28px 40px"}}>
           <span className="pill pill-gold" style={{marginBottom:20,display:"inline-flex"}}>Step 2 of 5</span>
-          <h2 className="serif" style={{fontSize:36,fontWeight:400,marginBottom:8,lineHeight:1.2}}>Financial<br/>profile</h2>
+          <h2 className="serif" style={{fontSize:46,fontWeight:400,marginBottom:10,lineHeight:1.1,letterSpacing:"-1px"}}>Financial<br/>profile</h2>
           <p style={{color:"var(--text2)",fontSize:14,marginBottom:28,lineHeight:1.6}}>Used to calculate approval chances and optimize your strategy.</p>
-          <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Annual Income</label>
+          <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Annual Income</label>
           <select className="field" value={p.income} onChange={e=>set("income",e.target.value)} style={{marginBottom:20,appearance:"none"}}>
             <option value="">Select income range</option>
             {INCOMES.map(o=><option key={o} value={o}>{o}</option>)}
           </select>
-          <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Credit Score (approximate)</label>
+          <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Credit Score (approximate)</label>
           <select className="field" value={p.creditScore} onChange={e=>set("creditScore",e.target.value)} style={{marginBottom:24,appearance:"none"}}>
             <option value="">Select score range</option>
             {SCORES.map(o=><option key={o} value={o}>{o}</option>)}
           </select>
-          <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:10}}>Lifestyle (select all that apply)</label>
+          <label style={{fontSize:13,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:10}}>Lifestyle (select all that apply)</label>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:32}}>
             {LIFESTYLES.map(l => {
               const on = (p.lifestyles||[]).includes(l);
               return (
                 <button key={l} onClick={()=>toggleLife(l)} className="press" style={{
-                  padding:"11px 10px",borderRadius:12,textAlign:"left",fontSize:12,fontWeight:500,
+                  padding:"11px 10px",borderRadius:12,textAlign:"left",fontSize:13,fontWeight:500,
                   border:`1.5px solid ${on?"var(--accent)":"var(--border2)"}`,
                   background:on?"rgba(201,168,76,.1)":"var(--surface)",
                   color:on?"var(--accent)":"var(--text2)",
                   transition:"all .15s",position:"relative",
                 }}>
-                  {on && <span style={{position:"absolute",top:7,right:9,fontSize:10,color:"var(--accent)",fontWeight:800}}></span>}
+                  {on && <span style={{position:"absolute",top:7,right:9,fontSize:11,color:"var(--accent)",fontWeight:800}}></span>}
                   {l}
                 </button>
               );
@@ -1352,7 +1392,7 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
       {step===3 && (
         <div className="au" style={{padding:"80px 28px 40px"}}>
           <span className="pill pill-gold" style={{marginBottom:20,display:"inline-flex"}}>Step 3 of 5</span>
-          <h2 className="serif" style={{fontSize:36,fontWeight:400,marginBottom:8,lineHeight:1.2}}>Monthly<br/>spending</h2>
+          <h2 className="serif" style={{fontSize:46,fontWeight:400,marginBottom:10,lineHeight:1.1,letterSpacing:"-1px"}}>Monthly<br/>spending</h2>
           <p style={{color:"var(--text2)",fontSize:14,marginBottom:28,lineHeight:1.6}}>Approximate is fine. We use this to find your highest-earning card combinations.</p>
           {([
             ["dining","Dining & Takeout"],["groceries","Groceries"],
@@ -1360,7 +1400,7 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
             ["shopping","Shopping"],["other","Everything Else"],
           ] as [keyof typeof p.spending, string][]).map(([k,label]) => (
             <div key={k} style={{marginBottom:16}}>
-              <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:6}}>{label}</label>
+              <label style={{fontSize:13,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:6}}>{label}</label>
               <input className="field" type="number" placeholder="$ per month" value={p.spending[k]} onChange={e=>setSp(k,e.target.value)} style={{padding:"12px 16px"}}/>
             </div>
           ))}
@@ -1372,7 +1412,7 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
       {step===4 && (
         <div className="au" style={{padding:"80px 28px 40px"}}>
           <span className="pill pill-gold" style={{marginBottom:20,display:"inline-flex"}}>Step 4 of 5</span>
-          <h2 className="serif" style={{fontSize:36,fontWeight:400,marginBottom:8,lineHeight:1.2}}>Primary<br/>goal</h2>
+          <h2 className="serif" style={{fontSize:46,fontWeight:400,marginBottom:10,lineHeight:1.1,letterSpacing:"-1px"}}>Primary<br/>goal</h2>
           <p style={{color:"var(--text2)",fontSize:14,marginBottom:24,lineHeight:1.6}}>We build your entire strategy around this.</p>
           {GOALS.map(([emoji,title,desc]) => (
             <button key={title} onClick={()=>{set("goal",title);setStep(5);}} className="press hover-lift" style={{
@@ -1385,7 +1425,7 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
               <div style={{width:44,height:44,borderRadius:13,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"var(--accent)"}}><Icon name={emoji} size={20}/></div>
               <div style={{flex:1}}>
                 <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{title}</p>
-                <p style={{color:"var(--text2)",fontSize:12,marginTop:2}}>{desc}</p>
+                <p style={{color:"var(--text2)",fontSize:13,marginTop:2}}>{desc}</p>
               </div>
               <span style={{color:"var(--text3)",fontSize:20}}>-></span>
             </button>
@@ -1397,9 +1437,9 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
       {step===5 && (
         <div className="au" style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:"40px 28px",textAlign:"center"}}>
           <div style={{width:90,height:90,borderRadius:26,background:"linear-gradient(135deg,var(--green),#1A8A6A)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:42,marginBottom:32,boxShadow:"0 8px 32px rgba(45,200,160,.3)"}}></div>
-          <h2 className="serif" style={{fontSize:40,fontWeight:400,marginBottom:12,lineHeight:1.1}}>Welcome,<br/>{p.name}.</h2>
+          <h2 className="serif" style={{fontSize:52,fontWeight:400,marginBottom:14,lineHeight:1.05,letterSpacing:"-1.2px"}}>Welcome,<br/>{p.name}.</h2>
           <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.8,marginBottom:12,maxWidth:300}}>Your profile is set. Now add your credit cards -- we'll show your balances, due dates, points, offers, and cashback all in one place.</p>
-          <p style={{color:"var(--accent)",fontSize:13,marginBottom:40}}>You'll add your cards on the next screen.</p>
+          <p style={{color:"var(--accent)",fontSize:14,marginBottom:40}}>You'll add your cards on the next screen.</p>
           <GoldBtn label="Enter Dashboard ->" onClick={()=>done(p)}/>
         </div>
       )}
@@ -1526,8 +1566,8 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
               background:selCard===s.card.id?`${s.color}25`:"rgba(255,255,255,.07)",cursor:"pointer",transition:"all .15s"
             }}>
               <span style={{width:7,height:7,borderRadius:"50%",background:s.color,flexShrink:0}}/>
-              <span style={{fontSize:10,fontWeight:600,color:selCard===s.card.id?"white":"rgba(255,255,255,.65)"}}>{s.card.issuer}</span>
-              <span style={{fontSize:10,color:"rgba(255,255,255,.4)"}}>{pct(s.card.balance,s.card.limit)}%</span>
+              <span style={{fontSize:11,fontWeight:600,color:selCard===s.card.id?"white":"rgba(255,255,255,.65)"}}>{s.card.issuer}</span>
+              <span style={{fontSize:11,color:"rgba(255,255,255,.4)"}}>{pct(s.card.balance,s.card.limit)}%</span>
             </button>
           ))}
         </div>
@@ -1536,12 +1576,12 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
           <div className="ai" style={{marginTop:10,background:"rgba(0,0,0,.22)",borderRadius:12,padding:"12px 14px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
-                <p style={{color:"white",fontSize:13,fontWeight:700}}>{sc.name}</p>
-                <p style={{color:"rgba(255,255,255,.5)",fontSize:11,marginTop:1}}>{sc.rewardRate} · {f(sc.points)} pts</p>
+                <p style={{color:"white",fontSize:14,fontWeight:700}}>{sc.name}</p>
+                <p style={{color:"rgba(255,255,255,.5)",fontSize:12,marginTop:1}}>{sc.rewardRate} · {f(sc.points)} pts</p>
               </div>
               <div style={{textAlign:"right"}}>
-                <p style={{color:"#F0D080",fontSize:16,fontWeight:700}}>${f(sc.balance)}<span style={{color:"rgba(255,255,255,.35)",fontSize:10,fontWeight:400}}> used</span></p>
-                <p style={{color:"rgba(255,255,255,.45)",fontSize:11}}>${f(sc.limit-sc.balance)} left</p>
+                <p style={{color:"#F0D080",fontSize:16,fontWeight:700}}>${f(sc.balance)}<span style={{color:"rgba(255,255,255,.35)",fontSize:11,fontWeight:400}}> used</span></p>
+                <p style={{color:"rgba(255,255,255,.45)",fontSize:12}}>${f(sc.limit-sc.balance)} left</p>
               </div>
             </div>
             <div style={{marginTop:8}}>
@@ -1552,13 +1592,13 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
             {/* Quick balance update */}
             {editingCard===sc.id?(
               <div style={{marginTop:10,display:"flex",gap:8,alignItems:"center"}}>
-                <input className="field" type="number" placeholder="New balance" value={editBal} onChange={e=>setEditBal(e.target.value)} style={{flex:1,padding:"7px 10px",fontSize:12,background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"white"}}/>
-                <input className="field" type="number" placeholder="Points" value={editPts} onChange={e=>setEditPts(e.target.value)} style={{flex:1,padding:"7px 10px",fontSize:12,background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"white"}}/>
-                <button onClick={()=>{onUpdateCard&&onUpdateCard(sc.id,Number(editBal)||sc.balance,Number(editPts)||sc.points);setEditingCard(null);showToast("Card updated");}} style={{background:"#22C55E",border:"none",borderRadius:7,padding:"7px 12px",color:"white",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Save</button>
-                <button onClick={()=>setEditingCard(null)} style={{background:"rgba(255,255,255,.1)",border:"none",borderRadius:7,padding:"7px 10px",color:"rgba(255,255,255,.6)",fontSize:12,cursor:"pointer"}}>✕</button>
+                <input className="field" type="number" placeholder="New balance" value={editBal} onChange={e=>setEditBal(e.target.value)} style={{flex:1,padding:"7px 10px",fontSize:13,background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"white"}}/>
+                <input className="field" type="number" placeholder="Points" value={editPts} onChange={e=>setEditPts(e.target.value)} style={{flex:1,padding:"7px 10px",fontSize:13,background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"white"}}/>
+                <button onClick={()=>{onUpdateCard&&onUpdateCard(sc.id,Number(editBal)||sc.balance,Number(editPts)||sc.points);setEditingCard(null);showToast("Card updated");}} style={{background:"#22C55E",border:"none",borderRadius:7,padding:"7px 12px",color:"white",fontSize:13,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Save</button>
+                <button onClick={()=>setEditingCard(null)} style={{background:"rgba(255,255,255,.1)",border:"none",borderRadius:7,padding:"7px 10px",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer"}}>✕</button>
               </div>
             ):(
-              <button onClick={()=>{setEditBal(String(sc.balance));setEditPts(String(sc.points));setEditingCard(sc.id);}} style={{marginTop:8,background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.12)",borderRadius:7,padding:"6px 12px",color:"rgba(255,255,255,.6)",fontSize:11,cursor:"pointer",fontFamily:"var(--sans)"}}>
+              <button onClick={()=>{setEditBal(String(sc.balance));setEditPts(String(sc.points));setEditingCard(sc.id);}} style={{marginTop:8,background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.12)",borderRadius:7,padding:"6px 12px",color:"rgba(255,255,255,.6)",fontSize:12,cursor:"pointer",fontFamily:"var(--sans)"}}>
                 Update balance & points
               </button>
             )}
@@ -1573,7 +1613,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
       {/* Header with search */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
         <div>
-          <p style={{color:"var(--text2)",fontSize:13,fontWeight:500,marginBottom:3}}>{greet}</p>
+          <p style={{color:"var(--text2)",fontSize:14,fontWeight:500,marginBottom:3}}>{greet}</p>
           <h1 style={{fontSize:26,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px",color:"var(--text)"}}>{profile.name||"Welcome"}</h1>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -1600,8 +1640,8 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
                 <button key={i} onClick={()=>{r.action();setShowSearch(false);setSearch("");}} className="press" style={{width:"100%",padding:"12px 16px",background:"none",border:"none",borderBottom:i<searchResults.length-1?"1px solid var(--border)":"none",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
                   <span style={{display:"flex",color:"var(--text2)"}}><Icon name={r.type==="card"?"card":"home"} size={13}/></span>
                   <div>
-                    <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{r.label}</p>
-                    <p style={{color:"var(--text2)",fontSize:11}}>{r.sub}</p>
+                    <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{r.label}</p>
+                    <p style={{color:"var(--text2)",fontSize:12}}>{r.sub}</p>
                   </div>
                 </button>
               ))}
@@ -1615,8 +1655,8 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         <div className="au" style={{background:"var(--redbg)",border:"1px solid rgba(220,38,38,.2)",borderRadius:14,padding:"13px 16px",marginBottom:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("cards")}>
           <span style={{flexShrink:0,color:"var(--red)"}}><Icon name="clock" size={18}/></span>
           <div style={{flex:1}}>
-            <p style={{color:"var(--red)",fontSize:13,fontWeight:600}}>Payment due in {daysUntil(dueSoon[0].dueDate)} days</p>
-            <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{dueSoon[0].name} — minimum ${f(dueSoon[0].minPayment)}</p>
+            <p style={{color:"var(--red)",fontSize:14,fontWeight:600}}>Payment due in {daysUntil(dueSoon[0].dueDate)} days</p>
+            <p style={{color:"var(--text2)",fontSize:13,marginTop:1}}>{dueSoon[0].name} — minimum ${f(dueSoon[0].minPayment)}</p>
           </div>
           <span style={{color:"var(--red)",fontSize:14,fontWeight:600}}>Pay →</span>
         </div>
@@ -1625,8 +1665,8 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         <div className="au" style={{background:"var(--amberbg)",border:"1px solid rgba(217,119,6,.2)",borderRadius:14,padding:"13px 16px",marginBottom:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("cards")}>
           <span style={{flexShrink:0,color:"var(--amber)"}}><Icon name="analytics" size={18}/></span>
           <div style={{flex:1}}>
-            <p style={{color:"var(--amber)",fontSize:13,fontWeight:600}}>High utilization on {highUtil[0].name}</p>
-            <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{pct(highUtil[0].balance,highUtil[0].limit)}% used — pay down to protect your score</p>
+            <p style={{color:"var(--amber)",fontSize:14,fontWeight:600}}>High utilization on {highUtil[0].name}</p>
+            <p style={{color:"var(--text2)",fontSize:13,marginTop:1}}>{pct(highUtil[0].balance,highUtil[0].limit)}% used — pay down to protect your score</p>
           </div>
           <span style={{color:"var(--amber)",fontSize:14}}>→</span>
         </div>
@@ -1635,8 +1675,8 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         <div className="au" style={{background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)",borderRadius:14,padding:"13px 16px",marginBottom:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("ai-recommender")}>
           <span style={{flexShrink:0,color:"var(--accent)"}}><Icon name="rocket" size={18}/></span>
           <div style={{flex:1}}>
-            <p style={{color:"var(--accent)",fontSize:13,fontWeight:600}}>You could earn ~${f(missingRewards)}/year more</p>
-            <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>See which card to add for your spending</p>
+            <p style={{color:"var(--accent)",fontSize:14,fontWeight:600}}>You could earn ~${f(missingRewards)}/year more</p>
+            <p style={{color:"var(--text2)",fontSize:13,marginTop:1}}>See which card to add for your spending</p>
           </div>
           <span style={{color:"var(--accent)",fontSize:14}}>→</span>
         </div>
@@ -1647,8 +1687,8 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         <div className="au" style={{background:"var(--greenbg)",border:"1px solid rgba(39,103,73,.15)",borderRadius:14,padding:"13px 16px",marginBottom:16,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("analytics")}>
           <span style={{flexShrink:0,color:"var(--green)"}}><Icon name="analytics" size={18}/></span>
           <div style={{flex:1}}>
-            <p style={{color:"var(--green)",fontSize:13,fontWeight:600}}>Your biggest spend: {topCat[0].charAt(0).toUpperCase()+topCat[0].slice(1)}</p>
-            <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>${f(Number(topCat[1]))}/mo · ${f(Number(topCat[1])*12)}/yr — see full breakdown</p>
+            <p style={{color:"var(--green)",fontSize:14,fontWeight:600}}>Your biggest spend: {topCat[0].charAt(0).toUpperCase()+topCat[0].slice(1)}</p>
+            <p style={{color:"var(--text2)",fontSize:13,marginTop:1}}>${f(Number(topCat[1]))}/mo · ${f(Number(topCat[1])*12)}/yr — see full breakdown</p>
           </div>
           <span style={{color:"var(--green)",fontSize:14}}>→</span>
         </div>
@@ -1663,19 +1703,19 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         <div style={{position:"absolute",top:-50,right:-50,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,.02)"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
           <div>
-            <p style={{color:"rgba(255,255,255,.45)",fontSize:10,letterSpacing:1.2,textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Portfolio</p>
-            <h2 style={{fontSize:30,fontWeight:800,color:"#F0D080",letterSpacing:"-1px",lineHeight:1}}>{f(totalPts)}<span style={{fontSize:13,fontWeight:300,opacity:.5}}> pts</span></h2>
-            <p style={{color:"rgba(255,255,255,.45)",fontSize:11,marginTop:2}}>≈ <strong style={{color:"#F0D080"}}>${f(ptsVal)}</strong> value</p>
+            <p style={{color:"rgba(255,255,255,.45)",fontSize:11,letterSpacing:1.2,textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Portfolio</p>
+            <h2 style={{fontSize:30,fontWeight:800,color:"#F0D080",letterSpacing:"-1px",lineHeight:1}}>{f(totalPts)}<span style={{fontSize:14,fontWeight:300,opacity:.5}}> pts</span></h2>
+            <p style={{color:"rgba(255,255,255,.45)",fontSize:12,marginTop:2}}>≈ <strong style={{color:"#F0D080"}}>${f(ptsVal)}</strong> value</p>
           </div>
           <div style={{textAlign:"right"}}>
-            <p style={{color:"rgba(255,255,255,.4)",fontSize:9,textTransform:"uppercase",letterSpacing:.8,marginBottom:3}}>{cards.length} Card{cards.length!==1?"s":""}</p>
-            <p style={{color:"white",fontSize:11,fontWeight:600}}>${f(totalLim-totalBal)} available</p>
+            <p style={{color:"rgba(255,255,255,.4)",fontSize:10,textTransform:"uppercase",letterSpacing:.8,marginBottom:3}}>{cards.length} Card{cards.length!==1?"s":""}</p>
+            <p style={{color:"white",fontSize:12,fontWeight:600}}>${f(totalLim-totalBal)} available</p>
           </div>
         </div>
         {cards.length>0?<HomeGauge/>:(
           <div style={{textAlign:"center",padding:"16px 0"}}>
-            <p style={{color:"rgba(255,255,255,.3)",fontSize:13}}>Add a card to see your portfolio gauge</p>
-            <button onClick={()=>go("add-card")} style={{marginTop:10,background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",borderRadius:8,padding:"8px 18px",color:"white",fontSize:12,cursor:"pointer",fontFamily:"var(--sans)"}}>+ Add Card</button>
+            <p style={{color:"rgba(255,255,255,.3)",fontSize:14}}>Add a card to see your portfolio gauge</p>
+            <button onClick={()=>go("add-card")} style={{marginTop:10,background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",borderRadius:8,padding:"8px 18px",color:"white",fontSize:13,cursor:"pointer",fontFamily:"var(--sans)"}}>+ Add Card</button>
           </div>
         )}
         <div style={{display:"flex",background:"rgba(0,0,0,.2)",borderRadius:12,padding:"11px 14px",gap:0,marginTop:12}}>
@@ -1685,7 +1725,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
             {l:"Available",v:`$${f(totalLim-totalBal)}`,c:"rgba(255,255,255,.75)"},
           ].map(({l,v,c},i)=>(
             <div key={l} style={{flex:1,textAlign:"center",borderLeft:i>0?"1px solid rgba(255,255,255,.08)":"none"}}>
-              <p style={{color:"rgba(255,255,255,.35)",fontSize:9,marginBottom:3,letterSpacing:.6,textTransform:"uppercase"}}>{l}</p>
+              <p style={{color:"rgba(255,255,255,.35)",fontSize:10,marginBottom:3,letterSpacing:.6,textTransform:"uppercase"}}>{l}</p>
               <p style={{color:c,fontSize:14,fontWeight:700}}>{v}</p>
             </div>
           ))}
@@ -1705,7 +1745,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         ] as [string,string,S][]).map(([icon,label,target])=>(
           <button key={label} onClick={()=>go(target)} className="hover-lift press card-surface" style={{padding:"14px 10px",textAlign:"center",width:"100%"}}>
             <span style={{display:"flex",justifyContent:"center",marginBottom:6,color:"var(--accent)"}}><Icon name={icon} size={19}/></span>
-            <p style={{color:"var(--text)",fontSize:11,fontWeight:600}}>{label}</p>
+            <p style={{color:"var(--text)",fontSize:12,fontWeight:600}}>{label}</p>
           </button>
         ))}
       </div>
@@ -1746,7 +1786,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
                   textAlign:"center",cursor:"pointer",
                 }}>
                   <span style={{display:"flex",justifyContent:"center",marginBottom:4,color:"var(--text2)"}}><Icon name={icon} size={15}/></span>
-                  <span style={{color:"var(--text2)",fontSize:9,fontWeight:600}}>{label}</span>
+                  <span style={{color:"var(--text2)",fontSize:10,fontWeight:600}}>{label}</span>
                 </button>
               );
             })}
@@ -1758,7 +1798,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
       <div className="au" style={{marginBottom:20}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
           <h3 style={{fontSize:17,fontWeight:700,color:"var(--text)"}}>My Cards</h3>
-          <button onClick={()=>go("cards")} style={{color:"var(--accent)",fontSize:12,fontWeight:600,background:"none",border:"none",cursor:"pointer"}}>
+          <button onClick={()=>go("cards")} style={{color:"var(--accent)",fontSize:13,fontWeight:600,background:"none",border:"none",cursor:"pointer"}}>
             {cards.length>0?"See all →":"Add a card →"}
           </button>
         </div>
@@ -1771,7 +1811,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
           }}>
             <div style={{display:"flex",justifyContent:"center",marginBottom:8,color:"var(--accent)"}}><Icon name="card" size={24}/></div>
             <p style={{color:"var(--accent)",fontSize:15,fontWeight:700,marginBottom:4}}>Add your first card</p>
-            <p style={{color:"var(--text2)",fontSize:12}}>Search 50+ cards and track everything in one place.</p>
+            <p style={{color:"var(--text2)",fontSize:13}}>Search 50+ cards and track everything in one place.</p>
           </button>
         ):(
           <>
@@ -1789,18 +1829,18 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
                         <NetworkBadge issuer={card.issuer} size={9}/>
                       </div>
                       <div>
-                        <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>{card.name}</p>
-                        <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{card.issuer} · {card.rewardRate}</p>
+                        <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{card.name}</p>
+                        <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{card.issuer} · {card.rewardRate}</p>
                       </div>
                     </div>
                     <div style={{textAlign:"right"}}>
-                      <p style={{color:"var(--accent)",fontSize:13,fontWeight:700}}>{f(card.points)} <span style={{fontSize:10,opacity:.6}}>pts</span></p>
-                      {days>=0&&days<=7&&<p style={{color:"var(--red)",fontSize:10,marginTop:1}}>Due in {days}d</p>}
+                      <p style={{color:"var(--accent)",fontSize:14,fontWeight:700}}>{f(card.points)} <span style={{fontSize:11,opacity:.6}}>pts</span></p>
+                      {days>=0&&days<=7&&<p style={{color:"var(--red)",fontSize:11,marginTop:1}}>Due in {days}d</p>}
                     </div>
                   </div>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                    <span style={{color:"var(--text2)",fontSize:11}}>${f(card.balance)} of ${f(card.limit)}</span>
-                    <span style={{color:uc(u),fontSize:11,fontWeight:600}}>{u}% used</span>
+                    <span style={{color:"var(--text2)",fontSize:12}}>${f(card.balance)} of ${f(card.limit)}</span>
+                    <span style={{color:uc(u),fontSize:12,fontWeight:600}}>{u}% used</span>
                   </div>
                   <Bar v={card.balance} max={card.limit} color={uc(u)} h={4}/>
                 </div>
@@ -1809,7 +1849,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
             <button onClick={()=>go("add-card")} className="press" style={{
               width:"100%",padding:"12px",background:"none",
               border:"2px dashed var(--border2)",borderRadius:14,
-              color:"var(--text3)",fontSize:12,fontWeight:500,cursor:"pointer",
+              color:"var(--text3)",fontSize:13,fontWeight:500,cursor:"pointer",
             }}>+ Add another card</button>
           </>
         )}
@@ -1819,7 +1859,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
       <div className="au card-surface" style={{padding:"18px 20px",marginBottom:20}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <h3 style={{fontSize:16,fontWeight:700,color:"var(--text)"}}>Approval Chances</h3>
-          <span className="pill pill-gold" style={{fontSize:10}}>AI estimate</span>
+          <span className="pill pill-gold" style={{fontSize:11}}>AI estimate</span>
         </div>
         {[
           {name:"Chase Sapphire Preferred",chance:89,color:"var(--green)"},
@@ -1828,13 +1868,13 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         ].map(({name,chance,color})=>(
           <div key={name} style={{marginBottom:12}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-              <span style={{color:"var(--text)",fontSize:12,fontWeight:500}}>{name}</span>
-              <span style={{color,fontSize:12,fontWeight:700}}>{chance}%</span>
+              <span style={{color:"var(--text)",fontSize:13,fontWeight:500}}>{name}</span>
+              <span style={{color,fontSize:13,fontWeight:700}}>{chance}%</span>
             </div>
             <Bar v={chance} max={100} color={color} h={5}/>
           </div>
         ))}
-        <button onClick={()=>go("ai-recommender")} style={{marginTop:8,color:"var(--accent)",fontSize:12,fontWeight:600,background:"none",border:"none",cursor:"pointer",padding:0}}>See personalized recommendations →</button>
+        <button onClick={()=>go("ai-recommender")} style={{marginTop:8,color:"var(--accent)",fontSize:13,fontWeight:600,background:"none",border:"none",cursor:"pointer",padding:0}}>See personalized recommendations →</button>
       </div>
     </div>
   );
@@ -1905,7 +1945,7 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
             {/* Categories */}
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
               {["travel","cashback","dining","groceries","hotel","airline"].map(cat=>(
-                <button key={cat} onClick={()=>setSearch(cat)} className="press pill pill-gold" style={{fontSize:11,textTransform:"capitalize"}}>{cat}</button>
+                <button key={cat} onClick={()=>setSearch(cat)} className="press pill pill-gold" style={{fontSize:12,textTransform:"capitalize"}}>{cat}</button>
               ))}
             </div>
 
@@ -1922,18 +1962,18 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
                   <div style={{flex:1}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:3}}>
                       <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{card.name}</p>
-                      <span className="pill pill-emerald" style={{fontSize:10,flexShrink:0,marginLeft:8}}>{card.cashback}</span>
+                      <span className="pill pill-emerald" style={{fontSize:11,flexShrink:0,marginLeft:8}}>{card.cashback}</span>
                     </div>
-                    <p style={{color:"var(--text2)",fontSize:11,marginBottom:3}}>{card.issuer}  ${card.annualFee}/yr fee</p>
-                    <p style={{color:"var(--accent)",fontSize:11,fontWeight:600,marginBottom:6}}>{card.rewardRate}</p>
+                    <p style={{color:"var(--text2)",fontSize:12,marginBottom:3}}>{card.issuer}  ${card.annualFee}/yr fee</p>
+                    <p style={{color:"var(--accent)",fontSize:12,fontWeight:600,marginBottom:6}}>{card.rewardRate}</p>
                     {(card as any).bestFor && (card as any).bestFor.slice(0,2).map((b:string,bi:number)=>(
                       <div key={bi} style={{display:"flex",alignItems:"center",gap:5,marginBottom:2}}>
                         <span style={{width:4,height:4,borderRadius:"50%",background:"var(--green)",flexShrink:0}}/>
-                        <span style={{color:"var(--text2)",fontSize:10}}>{b}</span>
+                        <span style={{color:"var(--text2)",fontSize:11}}>{b}</span>
                       </div>
                     ))}
                     {(card as any).signupBonus && (
-                      <p style={{color:"var(--amber)",fontSize:10,marginTop:6,fontWeight:500,display:"flex",alignItems:"center",gap:4}}>
+                      <p style={{color:"var(--amber)",fontSize:11,marginTop:6,fontWeight:500,display:"flex",alignItems:"center",gap:4}}>
                         <Icon name="gift" size={10}/> {(card as any).signupBonus.split(" -- ")[0]}
                       </p>
                     )}
@@ -1950,33 +1990,33 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
             <div style={{background:selected.gradient,borderRadius:20,padding:"24px",marginBottom:24,position:"relative",overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.5)"}}>
               <div style={{position:"absolute",top:-20,right:-20,width:100,height:100,borderRadius:"50%",background:"rgba(255,255,255,.06)"}}/>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                <p style={{color:"rgba(255,255,255,.5)",fontSize:11,letterSpacing:1.2,textTransform:"uppercase",marginBottom:4}}>{selected.issuer}</p>
+                <p style={{color:"rgba(255,255,255,.5)",fontSize:12,letterSpacing:1.2,textTransform:"uppercase",marginBottom:4}}>{selected.issuer}</p>
                 <NetworkBadge issuer={selected.issuer} size={20}/>
               </div>
               <p style={{color:"#fff",fontSize:20,fontWeight:700,marginBottom:12}}>{selected.name}</p>
-              <p style={{color:selected.accentColor,fontSize:13}}>{selected.rewardRate}</p>
+              <p style={{color:selected.accentColor,fontSize:14}}>{selected.rewardRate}</p>
               <div style={{display:"flex",gap:12,marginTop:16}}>
-                <span className="pill" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:11}}>${selected.annualFee}/yr fee</span>
-                <span className="pill" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:11}}>Perks: ${selected.perksValue}/yr</span>
+                <span className="pill" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:12}}>${selected.annualFee}/yr fee</span>
+                <span className="pill" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:12}}>Perks: ${selected.perksValue}/yr</span>
               </div>
             </div>
 
             {/* Signup Bonus */}
             {selected.signupBonus && (
               <div style={{background:"rgba(240,164,41,.08)",border:"1px solid rgba(240,164,41,.25)",borderRadius:14,padding:"12px 16px",marginBottom:16}}>
-                <p style={{color:"var(--amber)",fontSize:12,fontWeight:700,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Icon name="gift" size={13}/> Welcome Bonus</p>
-                <p style={{color:"var(--text)",fontSize:13,lineHeight:1.5}}>{selected.signupBonus}</p>
+                <p style={{color:"var(--amber)",fontSize:13,fontWeight:700,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Icon name="gift" size={13}/> Welcome Bonus</p>
+                <p style={{color:"var(--text)",fontSize:14,lineHeight:1.5}}>{selected.signupBonus}</p>
               </div>
             )}
 
             {/* Best For */}
             {selected.bestFor && selected.bestFor.length > 0 && (
               <div style={{background:"rgba(45,200,160,.06)",border:"1px solid rgba(45,200,160,.2)",borderRadius:14,padding:"12px 16px",marginBottom:16}}>
-                <p style={{color:"var(--green)",fontSize:12,fontWeight:700,marginBottom:8}}> Best Used For</p>
+                <p style={{color:"var(--green)",fontSize:13,fontWeight:700,marginBottom:8}}> Best Used For</p>
                 {(selected.bestFor||[]).map((b:string,i:number)=>(
                   <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<selected.bestFor.length-1?6:0}}>
                     <span style={{width:5,height:5,borderRadius:"50%",background:"var(--green)",flexShrink:0,marginTop:5}}/>
-                    <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
+                    <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.4}}>{b}</p>
                   </div>
                 ))}
               </div>
@@ -1985,11 +2025,11 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
             {/* Key Benefits */}
             {selected.keyBenefits && selected.keyBenefits.length > 0 && (
               <div style={{background:"rgba(79,110,247,.06)",border:"1px solid rgba(79,110,247,.2)",borderRadius:14,padding:"12px 16px",marginBottom:16}}>
-                <p style={{color:"var(--accent)",fontSize:12,fontWeight:700,marginBottom:8}}> Key Benefits</p>
+                <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,marginBottom:8}}> Key Benefits</p>
                 {(selected.keyBenefits||[]).map((b:string,i:number)=>(
                   <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<selected.keyBenefits.length-1?6:0}}>
-                    <span style={{color:"var(--accent)",fontSize:10,flexShrink:0,marginTop:2}}>-></span>
-                    <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
+                    <span style={{color:"var(--accent)",fontSize:11,flexShrink:0,marginTop:2}}>-></span>
+                    <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.4}}>{b}</p>
                   </div>
                 ))}
               </div>
@@ -1998,11 +2038,11 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
             {/* Best Places */}
             {selected.bestPlaces && selected.bestPlaces.length > 0 && (
               <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.2)",borderRadius:14,padding:"12px 16px",marginBottom:16}}>
-                <p style={{color:"var(--accent)",fontSize:12,fontWeight:700,marginBottom:8,display:"flex",alignItems:"center",gap:6}}><Icon name="globe" size={13}/> Where to Use It</p>
+                <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,marginBottom:8,display:"flex",alignItems:"center",gap:6}}><Icon name="globe" size={13}/> Where to Use It</p>
                 {(selected.bestPlaces||[]).map((b:string,i:number)=>(
                   <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<selected.bestPlaces.length-1?6:0}}>
                     <span style={{flexShrink:0,marginTop:2,color:"var(--accent)"}}><Icon name="check" size={10}/></span>
-                    <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
+                    <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.4}}>{b}</p>
                   </div>
                 ))}
               </div>
@@ -2011,11 +2051,11 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
             {/* Not good for */}
             {selected.notGoodFor && selected.notGoodFor.length > 0 && (
               <div style={{background:"rgba(244,97,122,.05)",border:"1px solid rgba(244,97,122,.2)",borderRadius:14,padding:"12px 16px",marginBottom:20}}>
-                <p style={{color:"var(--red)",fontSize:12,fontWeight:700,marginBottom:8}}> Not Great For</p>
+                <p style={{color:"var(--red)",fontSize:13,fontWeight:700,marginBottom:8}}> Not Great For</p>
                 {(selected.notGoodFor||[]).map((b:string,i:number)=>(
                   <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<selected.notGoodFor.length-1?6:0}}>
-                    <span style={{color:"var(--red)",fontSize:10,flexShrink:0,marginTop:2}}></span>
-                    <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
+                    <span style={{color:"var(--red)",fontSize:11,flexShrink:0,marginTop:2}}></span>
+                    <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.4}}>{b}</p>
                   </div>
                 ))}
               </div>
@@ -2032,22 +2072,22 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
               {k:"points" as const, label:"Current Points/Miles Balance", placeholder:"0", type:"number"},
             ].map(({k,label,placeholder,type})=>(
               <div key={k} style={{marginBottom:16}}>
-                <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:6}}>{label}</label>
+                <label style={{fontSize:13,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:6}}>{label}</label>
                 <input className="field" type={type} placeholder={placeholder} value={form[k]} onChange={e=>setF(k,e.target.value)} style={{padding:"13px 16px"}}/>
               </div>
             ))}
 
             <div style={{marginBottom:16}}>
-              <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:6}}>Date You Opened This Card</label>
+              <label style={{fontSize:13,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:6}}>Date You Opened This Card</label>
               <input className="field" type="date" value={openedDate} onChange={e=>setOpenedDate(e.target.value)} style={{padding:"13px 16px"}}/>
-              <p style={{color:"var(--text3)",fontSize:11,marginTop:6}}>Used for annual fee reminders and 5/24 tracking</p>
+              <p style={{color:"var(--text3)",fontSize:12,marginTop:6}}>Used for annual fee reminders and 5/24 tracking</p>
             </div>
 
             <div style={{marginTop:24}}>
               <button onClick={handleAdd} className="btn-gold press" style={{width:"100%"}}>
                 Add {selected.name} ->
               </button>
-              <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:10,display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><Icon name="lock" size={10}/> Encrypted · Never shared · You can update anytime</p>
+              <p style={{color:"var(--text3)",fontSize:12,textAlign:"center",marginTop:10,display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><Icon name="lock" size={10}/> Encrypted · Never shared · You can update anytime</p>
             </div>
           </div>
         )}
@@ -2065,7 +2105,7 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
   return (
     <div className="screen desktop-content">
       <PageHead title="My Cards" sub={cards.length>0?`${cards.length} card${cards.length!==1?"s":""} · ${f(cards.reduce((s,c)=>s+c.points,0))} total points`:"No cards added yet"}
-        right={<button onClick={()=>go("add-card")} className="btn-gold press" style={{padding:"10px 18px",fontSize:13}}>+ Add Card</button>}/>
+        right={<button onClick={()=>go("add-card")} className="btn-gold press" style={{padding:"10px 18px",fontSize:14}}>+ Add Card</button>}/>
       <div className="px">
         {cards.length === 0 ? (
           <EmptyState icon="card" title="No cards yet" sub="Add your credit cards to track balances, points, due dates, and get personalized recommendations." action="Add Your First Card" onAction={()=>go("add-card")}/>
@@ -2086,20 +2126,20 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
                   {card.isFrozen && (
                     <div style={{position:"absolute",top:14,left:14,background:"rgba(0,0,0,.5)",borderRadius:99,padding:"4px 10px",display:"flex",alignItems:"center",gap:5,zIndex:2}}>
                       <Icon name="lock" size={11} color="white"/>
-                      <span style={{color:"#fff",fontSize:10,fontWeight:700,letterSpacing:.5}}>FROZEN</span>
+                      <span style={{color:"#fff",fontSize:11,fontWeight:700,letterSpacing:.5}}>FROZEN</span>
                     </div>
                   )}
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18}}>
                     <div>
-                      <p style={{color:"rgba(255,255,255,.5)",fontSize:11,letterSpacing:1.2,textTransform:"uppercase",marginBottom:3}}>{card.issuer}</p>
+                      <p style={{color:"rgba(255,255,255,.5)",fontSize:12,letterSpacing:1.2,textTransform:"uppercase",marginBottom:3}}>{card.issuer}</p>
                       <p style={{color:"#fff",fontSize:20,fontWeight:700}}>{card.name}</p>
                     </div>
-                    <span className="pill" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:11}}>{card.cashback}</span>
+                    <span className="pill" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:12}}>{card.cashback}</span>
                   </div>
                   <div style={{display:"flex",gap:22,marginBottom:14}}>
                     {[{l:"Balance",v:`$${f(card.balance)}`},{l:"Available",v:`$${f(card.limit-card.balance)}`},{l:"Points",v:f(card.points)}].map(({l,v})=>(
                       <div key={l}>
-                        <p style={{color:"rgba(255,255,255,.4)",fontSize:10,textTransform:"uppercase",letterSpacing:.8,marginBottom:2}}>{l}</p>
+                        <p style={{color:"rgba(255,255,255,.4)",fontSize:11,textTransform:"uppercase",letterSpacing:.8,marginBottom:2}}>{l}</p>
                         <p style={{color:"#fff",fontSize:16,fontWeight:700}}>{v}</p>
                       </div>
                     ))}
@@ -2112,20 +2152,20 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
                 {/* Key info row */}
                 <div style={{padding:"14px 20px",display:"flex",gap:0,borderBottom:"1px solid var(--border)"}}>
                   <div style={{flex:1}}>
-                    <p style={{color:"var(--text3)",fontSize:10,marginBottom:3}}>Utilization</p>
-                    <p style={{color:uc(u),fontSize:13,fontWeight:700}}>{u}%</p>
+                    <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Utilization</p>
+                    <p style={{color:uc(u),fontSize:14,fontWeight:700}}>{u}%</p>
                   </div>
                   <div style={{flex:1}}>
-                    <p style={{color:"var(--text3)",fontSize:10,marginBottom:3}}>Min. Payment</p>
-                    <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>${f(card.minPayment)}</p>
+                    <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Min. Payment</p>
+                    <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${f(card.minPayment)}</p>
                   </div>
                   <div style={{flex:1}}>
-                    <p style={{color:"var(--text3)",fontSize:10,marginBottom:3}}>Due In</p>
-                    <p style={{color:urgencyColor(days),fontSize:13,fontWeight:700}}>{days >= 0 ? `${days} days` : "Overdue"}</p>
+                    <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Due In</p>
+                    <p style={{color:urgencyColor(days),fontSize:14,fontWeight:700}}>{days >= 0 ? `${days} days` : "Overdue"}</p>
                   </div>
                   <div style={{flex:1}}>
-                    <p style={{color:"var(--text3)",fontSize:10,marginBottom:3}}>Rewards</p>
-                    <p style={{color:"var(--accent)",fontSize:13,fontWeight:700}}>${f(Math.round(card.points*.015))}</p>
+                    <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Rewards</p>
+                    <p style={{color:"var(--accent)",fontSize:14,fontWeight:700}}>${f(Math.round(card.points*.015))}</p>
                   </div>
                 </div>
 
@@ -2138,20 +2178,20 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
                 {isOpen && (
                   <div className="ai" style={{padding:"0 20px 20px",borderTop:"1px solid var(--border)"}}>
                     {/* Active offers */}
-                    <p style={{color:"var(--text2)",fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:10,marginTop:14}}>Active Offers & Cashback</p>
+                    <p style={{color:"var(--text2)",fontSize:13,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:10,marginTop:14}}>Active Offers & Cashback</p>
                     {(card.offers||[]).map((offer,oi)=>(
                       <div key={oi} style={{background:"var(--surface2)",borderRadius:12,padding:"10px 14px",marginBottom:8,display:"flex",gap:10,alignItems:"center"}}>
                         <span style={{color:"var(--amber)",display:"flex"}}><Icon name="gift" size={17}/></span>
                         <div style={{flex:1}}>
-                          <p style={{color:"var(--text)",fontSize:12,fontWeight:600}}>{offer.title}</p>
-                          <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{offer.merchant}  Expires {offer.expires}</p>
+                          <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{offer.title}</p>
+                          <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{offer.merchant}  Expires {offer.expires}</p>
                         </div>
-                        <span className="pill pill-emerald" style={{fontSize:10}}>{offer.value}</span>
+                        <span className="pill pill-emerald" style={{fontSize:11}}>{offer.value}</span>
                       </div>
                     ))}
 
                     {/* Detailed metrics */}
-                    <p style={{color:"var(--text2)",fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:10,marginTop:16}}>Card Analytics</p>
+                    <p style={{color:"var(--text2)",fontSize:13,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:10,marginTop:16}}>Card Analytics</p>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                       {[
                         {l:"Annual Fee",v:`$${card.annualFee}`,c:"var(--text)"},
@@ -2162,32 +2202,32 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
                         {l:"Pay Before",v:"Statement close",c:"var(--amber)"},
                       ].map(({l,v,c})=>(
                         <div key={l} style={{background:"var(--surface2)",borderRadius:11,padding:"10px 12px"}}>
-                          <p style={{color:"var(--text3)",fontSize:10,marginBottom:4}}>{l}</p>
-                          <p style={{color:c,fontSize:13,fontWeight:700}}>{v}</p>
+                          <p style={{color:"var(--text3)",fontSize:11,marginBottom:4}}>{l}</p>
+                          <p style={{color:c,fontSize:14,fontWeight:700}}>{v}</p>
                         </div>
                       ))}
                     </div>
-                    <p style={{color:"var(--text3)",fontSize:10,marginTop:8,lineHeight:1.4}}>APR shown is the issuer's published range as of mid-2026. Your actual rate depends on your individual creditworthiness. Sign-up bonuses vary by applicant and may differ from what's shown -- always confirm current terms on the issuer's site before applying.</p>
+                    <p style={{color:"var(--text3)",fontSize:11,marginTop:8,lineHeight:1.4}}>APR shown is the issuer's published range as of mid-2026. Your actual rate depends on your individual creditworthiness. Sign-up bonuses vary by applicant and may differ from what's shown -- always confirm current terms on the issuer's site before applying.</p>
 
                     {/* AI tip */}
                     <div style={{background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",borderRadius:14,padding:"12px 16px",marginTop:14}}>
-                      <p style={{color:"var(--accent)",fontSize:12,fontWeight:600,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Icon name="rocket" size={13}/> AI Payment Tip</p>
-                      <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>
+                      <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Icon name="rocket" size={13}/> AI Payment Tip</p>
+                      <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>
                         Pay ${f(Math.round(card.balance*.5))} before your statement closes to reduce reported utilization by {Math.round(u/2)}%. This could boost your credit score by 8-12 points within 30 days.
                       </p>
                     </div>
 
                     {/* Reward rate */}
                     <div style={{background:"rgba(79,110,247,.08)",border:"1px solid rgba(79,110,247,.2)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
-                      <p style={{color:"var(--accent)",fontSize:12,fontWeight:600,marginBottom:4}}>Earning Rate</p>
-                      <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>{card.rewardRate}</p>
+                      <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,marginBottom:4}}>Earning Rate</p>
+                      <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{card.rewardRate}</p>
                     </div>
                     {card.bestPlaces && card.bestPlaces.length > 0 && (
                       <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.2)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
-                        <p style={{color:"var(--accent)",fontSize:12,fontWeight:600,marginBottom:8}}>Best Places to Use This Card</p>
+                        <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,marginBottom:8}}>Best Places to Use This Card</p>
                         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                           {(card.bestPlaces||[]).map((place:string,pi:number)=>(
-                            <span key={pi} style={{background:"rgba(201,168,76,.1)",border:"1px solid rgba(201,168,76,.2)",borderRadius:20,padding:"3px 10px",fontSize:10,color:"var(--accent)"}}>
+                            <span key={pi} style={{background:"rgba(201,168,76,.1)",border:"1px solid rgba(201,168,76,.2)",borderRadius:20,padding:"3px 10px",fontSize:11,color:"var(--accent)"}}>
                               {place.split(" (")[0]}
                             </span>
                           ))}
@@ -2196,28 +2236,28 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
                     )}
                     {card.keyBenefits && card.keyBenefits.length > 0 && (
                       <div style={{background:"rgba(45,200,160,.06)",border:"1px solid rgba(45,200,160,.2)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
-                        <p style={{color:"var(--green)",fontSize:12,fontWeight:600,marginBottom:8}}>Key Card Benefits</p>
+                        <p style={{color:"var(--green)",fontSize:13,fontWeight:600,marginBottom:8}}>Key Card Benefits</p>
                         {(card.keyBenefits||[]).slice(0,5).map((b:string,bi:number)=>(
                           <div key={bi} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:bi<Math.min(card.keyBenefits.length,5)-1?6:0}}>
-                            <span style={{color:"var(--green)",fontSize:10,flexShrink:0,marginTop:2}}>check</span>
-                            <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.4}}>{b}</p>
+                            <span style={{color:"var(--green)",fontSize:11,flexShrink:0,marginTop:2}}>check</span>
+                            <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
                           </div>
                         ))}
                       </div>
                     )}
                     {card.signupBonus && (
                       <div style={{background:"rgba(240,164,41,.06)",border:"1px solid rgba(240,164,41,.25)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
-                        <p style={{color:"var(--amber)",fontSize:12,fontWeight:600,marginBottom:4}}>Welcome Bonus</p>
-                        <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>{card.signupBonus}</p>
+                        <p style={{color:"var(--amber)",fontSize:13,fontWeight:600,marginBottom:4}}>Welcome Bonus</p>
+                        <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{card.signupBonus}</p>
                       </div>
                     )}
                     {card.notGoodFor && card.notGoodFor.length > 0 && (
                       <div style={{background:"rgba(244,97,122,.05)",border:"1px solid rgba(244,97,122,.15)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
-                        <p style={{color:"var(--red)",fontSize:12,fontWeight:600,marginBottom:8}}>Not Great For</p>
+                        <p style={{color:"var(--red)",fontSize:13,fontWeight:600,marginBottom:8}}>Not Great For</p>
                         {(card.notGoodFor||[]).map((b:string,bi:number)=>(
                           <div key={bi} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:bi<card.notGoodFor.length-1?5:0}}>
-                            <span style={{color:"var(--red)",fontSize:10,flexShrink:0,marginTop:2}}>x</span>
-                            <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.4}}>{b}</p>
+                            <span style={{color:"var(--red)",fontSize:11,flexShrink:0,marginTop:2}}>x</span>
+                            <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
                           </div>
                         ))}
                       </div>
@@ -2227,7 +2267,7 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
                     {onToggleFreeze && (
                       <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--border)"}}>
                         <button onClick={e=>{e.stopPropagation();onToggleFreeze(card.id);}} className="press" style={{
-                          width:"100%",padding:"11px",borderRadius:10,fontSize:13,fontWeight:600,cursor:"pointer",
+                          width:"100%",padding:"11px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",
                           background:card.isFrozen?"var(--greenbg)":"var(--surface2)",
                           border:`1px solid ${card.isFrozen?"rgba(34,197,94,.25)":"var(--border)"}`,
                           color:card.isFrozen?"var(--green)":"var(--text)",
@@ -2236,7 +2276,7 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
                           <Icon name={card.isFrozen?"unlock":"lock"} size={15}/>
                           {card.isFrozen ? "Unfreeze Card" : "Freeze Card"}
                         </button>
-                        <p style={{color:"var(--text3)",fontSize:10,marginTop:6,textAlign:"center"}}>{card.isFrozen?"New purchases would be blocked while frozen":"Instantly block new purchases if your card is lost or stolen"}</p>
+                        <p style={{color:"var(--text3)",fontSize:11,marginTop:6,textAlign:"center"}}>{card.isFrozen?"New purchases would be blocked while frozen":"Instantly block new purchases if your card is lost or stolen"}</p>
                       </div>
                     )}
 
@@ -2245,12 +2285,12 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
                       <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--border)"}}>
                         {confirmDelete===card.id ? (
                           <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                            <span style={{fontSize:12,color:"var(--text2)",flex:1}}>Remove this card permanently?</span>
-                            <button onClick={e=>{e.stopPropagation();onDelete(card.id);setConfirmDelete(null);}} style={{background:"var(--redbg)",border:"1px solid rgba(239,68,68,.3)",color:"var(--red)",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Yes, remove</button>
-                            <button onClick={e=>{e.stopPropagation();setConfirmDelete(null);}} style={{background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text2)",borderRadius:8,padding:"7px 14px",fontSize:12,cursor:"pointer"}}>Cancel</button>
+                            <span style={{fontSize:13,color:"var(--text2)",flex:1}}>Remove this card permanently?</span>
+                            <button onClick={e=>{e.stopPropagation();onDelete(card.id);setConfirmDelete(null);}} style={{background:"var(--redbg)",border:"1px solid rgba(239,68,68,.3)",color:"var(--red)",borderRadius:8,padding:"7px 14px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Yes, remove</button>
+                            <button onClick={e=>{e.stopPropagation();setConfirmDelete(null);}} style={{background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text2)",borderRadius:8,padding:"7px 14px",fontSize:13,cursor:"pointer"}}>Cancel</button>
                           </div>
                         ) : (
-                          <button onClick={e=>{e.stopPropagation();setConfirmDelete(card.id);}} style={{background:"none",border:"none",color:"var(--text3)",fontSize:12,cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:6}}>
+                          <button onClick={e=>{e.stopPropagation();setConfirmDelete(card.id);}} style={{background:"none",border:"none",color:"var(--text3)",fontSize:13,cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:6}}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                             Remove card
                           </button>
@@ -2362,7 +2402,7 @@ PORTFOLIO: ${f(totalPts)} total points worth ~$${f(Math.round(totalPts*0.015))} 
             <h2 style={{fontSize:17,fontWeight:600}}>AI Financial Advisor</h2>
             <div style={{display:"flex",alignItems:"center",gap:5,marginTop:2}}>
               <span style={{width:8,height:8,borderRadius:"50%",background:"var(--green)",display:"inline-block"}}/>
-              <span style={{color:"var(--text2)",fontSize:11}}>Knows your cards, goals & spending profile</span>
+              <span style={{color:"var(--text2)",fontSize:12}}>Knows your cards, goals & spending profile</span>
             </div>
           </div>
         </div>
@@ -2382,7 +2422,7 @@ PORTFOLIO: ${f(totalPts)} total points worth ~$${f(Math.round(totalPts*0.015))} 
                 {m.searched && (
                   <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:8,paddingBottom:8,borderBottom:"1px solid var(--border)"}}>
                     <span style={{color:"var(--accent)",display:"flex"}}><Icon name="search" size={12}/></span>
-                    <span style={{fontSize:11,color:"var(--accent)",fontWeight:600}}>Searched the web for current info</span>
+                    <span style={{fontSize:12,color:"var(--accent)",fontWeight:600}}>Searched the web for current info</span>
                   </div>
                 )}
                 <p style={{color:m.role==="user"?"#ffffff":"var(--text)",fontSize:14,lineHeight:1.7}}>{m.text}</p>
@@ -2410,7 +2450,7 @@ PORTFOLIO: ${f(totalPts)} total points worth ~$${f(Math.round(totalPts*0.015))} 
               <button key={q} onClick={()=>send(q)} className="press" style={{
                 flexShrink:0,padding:"7px 14px",borderRadius:20,
                 background:"var(--surface2)",border:"1px solid var(--border2)",
-                color:"var(--text2)",fontSize:11,fontWeight:500,whiteSpace:"nowrap",transition:"all .15s",
+                color:"var(--text2)",fontSize:12,fontWeight:500,whiteSpace:"nowrap",transition:"all .15s",
               }}
                 onMouseOver={e=>{e.currentTarget.style.borderColor="var(--accent)";e.currentTarget.style.color="var(--accent)"}}
                 onMouseOut={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text2)"}}>
@@ -2456,13 +2496,13 @@ function Travel({ cards }: { cards:CreditCard[] }) {
       <div className="px">
         <div className="au" style={{display:"flex",gap:5,marginBottom:24,background:"var(--surface2)",padding:4,borderRadius:14}}>
           {["Points","Book Travel","Transfers"].map((t,i)=>(
-            <button key={t} onClick={()=>setTab(i)} className="press" style={{flex:1,padding:"10px",borderRadius:11,border:"none",background:tab===i?"var(--accent)":"none",color:tab===i?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===i?700:500,transition:"all .2s"}}>{t}</button>
+            <button key={t} onClick={()=>setTab(i)} className="press" style={{flex:1,padding:"10px",borderRadius:11,border:"none",background:tab===i?"var(--accent)":"none",color:tab===i?"#fff":"var(--text2)",fontSize:14,fontWeight:tab===i?700:500,transition:"all .2s"}}>{t}</button>
           ))}
         </div>
 
         {tab===0&&<div className="ai">
           <div className="card-surface hover-lift" style={{padding:22,marginBottom:16}}>
-            <p style={{color:"var(--text2)",fontSize:12,marginBottom:4}}>Total across all programs</p>
+            <p style={{color:"var(--text2)",fontSize:13,marginBottom:4}}>Total across all programs</p>
             <h2 style={{fontSize:38,fontWeight:700,letterSpacing:"-1px",marginBottom:4}}>{f(totalPts)}</h2>
             <p className="gold-text" style={{fontSize:15,fontWeight:600}}> ${f(Math.round(totalPts*.015))} estimated value</p>
           </div>
@@ -2471,18 +2511,18 @@ function Travel({ cards }: { cards:CreditCard[] }) {
             <div key={c.id} className={`au d${i+1} card-surface hover-lift`} style={{padding:"14px 16px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{display:"flex",alignItems:"center",gap:12}}>
                 <div style={{width:42,height:28,borderRadius:7,background:c.gradient,boxShadow:"0 2px 8px rgba(0,0,0,.5)"}}/>
-                <div><p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px"}}>{c.name}</p><p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{c.issuer}</p></div>
+                <div><p style={{color:"var(--text)",fontSize:14,fontWeight:600,letterSpacing:"-.1px"}}>{c.name}</p><p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{c.issuer}</p></div>
               </div>
               <div style={{textAlign:"right"}}>
                 <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{f(c.points)}</p>
-                <p className="gold-text" style={{fontSize:11,marginTop:1}}> ${f(Math.round(c.points*.015))}</p>
+                <p className="gold-text" style={{fontSize:12,marginTop:1}}> ${f(Math.round(c.points*.015))}</p>
               </div>
             </div>
           ))}
         </div>}
 
         {tab===1&&<div className="ai">
-          <p style={{color:"var(--text2)",fontSize:13,marginBottom:16,display:"flex",alignItems:"center",gap:6}}><Icon name="fire" size={14}/> Best redemptions with your current points</p>
+          <p style={{color:"var(--text2)",fontSize:14,marginBottom:16,display:"flex",alignItems:"center",gap:6}}><Icon name="fire" size={14}/> Best redemptions with your current points</p>
           {[
             {route:"US -> Europe Business Class",pts:"55,000 pts",via:"Air France via Chase UR",val:"~$3,200 ticket",cpp:"5.8/pt"},
             {route:"US -> Japan Economy",pts:"35,000 pts",via:"ANA via Amex MR",val:"~$1,100 ticket",cpp:"3.1/pt"},
@@ -2494,10 +2534,10 @@ function Travel({ cards }: { cards:CreditCard[] }) {
                 <p style={{color:"var(--text)",fontSize:14,fontWeight:600,flex:1,paddingRight:10}}>{r.route}</p>
                 <span className="pill pill-gold">{r.cpp}</span>
               </div>
-              <p style={{color:"var(--text2)",fontSize:12,marginBottom:8}}>{r.via}</p>
+              <p style={{color:"var(--text2)",fontSize:13,marginBottom:8}}>{r.via}</p>
               <div style={{display:"flex",justifyContent:"space-between"}}>
-                <span style={{color:"var(--accent)",fontSize:13,fontWeight:700}}>{r.pts}</span>
-                <span style={{color:"var(--green)",fontSize:13,fontWeight:600}}>{r.val}</span>
+                <span style={{color:"var(--accent)",fontSize:14,fontWeight:700}}>{r.pts}</span>
+                <span style={{color:"var(--green)",fontSize:14,fontWeight:600}}>{r.val}</span>
               </div>
             </div>
           ))}
@@ -2506,7 +2546,7 @@ function Travel({ cards }: { cards:CreditCard[] }) {
         {tab===2&&<div className="ai">
           {ownedPrograms.length>0 && (
             <div style={{background:"var(--accentbg)",borderRadius:12,padding:"10px 14px",marginBottom:16,border:"1px solid rgba(37,99,235,.15)"}}>
-              <p style={{color:"var(--accent)",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6}}><Icon name="check" size={13}/> Showing programs based on your {cards.length} card{cards.length!==1?"s":""}</p>
+              <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,display:"flex",alignItems:"center",gap:6}}><Icon name="check" size={13}/> Showing programs based on your {cards.length} card{cards.length!==1?"s":""}</p>
             </div>
           )}
 
@@ -2523,8 +2563,8 @@ function Travel({ cards }: { cards:CreditCard[] }) {
                   display:"flex",alignItems:"center",gap:6,
                 }}>
                   <span style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0}}/>
-                  <span style={{fontSize:12,fontWeight:isActive?700:500,color:isActive?p.color:"var(--text2)"}}>{p.name}</span>
-                  {owned&&<span style={{fontSize:9,color:"var(--green)",fontWeight:700}}>●</span>}
+                  <span style={{fontSize:13,fontWeight:isActive?700:500,color:isActive?p.color:"var(--text2)"}}>{p.name}</span>
+                  {owned&&<span style={{fontSize:10,color:"var(--green)",fontWeight:700}}>●</span>}
                 </button>
               );
             })}
@@ -2532,16 +2572,16 @@ function Travel({ cards }: { cards:CreditCard[] }) {
 
           {/* Program note */}
           <div className="card-surface" style={{padding:"13px 16px",marginBottom:16,borderLeft:`3px solid ${activeProgram.color}`}}>
-            <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>{activeProgram.note}</p>
+            <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{activeProgram.note}</p>
           </div>
 
           {/* Airlines/Hotels toggle */}
           <div style={{display:"flex",gap:8,marginBottom:14}}>
-            <button onClick={()=>setSelPartnerType("airlines")} className="press" style={{flex:1,padding:"9px",borderRadius:10,border:"1px solid var(--border)",background:selPartnerType==="airlines"?"var(--surface2)":"none",fontSize:12,fontWeight:selPartnerType==="airlines"?700:500,color:selPartnerType==="airlines"?"var(--text)":"var(--text2)"}}>
+            <button onClick={()=>setSelPartnerType("airlines")} className="press" style={{flex:1,padding:"9px",borderRadius:10,border:"1px solid var(--border)",background:selPartnerType==="airlines"?"var(--surface2)":"none",fontSize:13,fontWeight:selPartnerType==="airlines"?700:500,color:selPartnerType==="airlines"?"var(--text)":"var(--text2)"}}>
               <span style={{display:"inline-flex",alignItems:"center",gap:6}}><Icon name="travel" size={13}/> Airlines ({activeProgram.airlines.length})</span>
             </button>
             {activeProgram.hotels.length>0 && (
-              <button onClick={()=>setSelPartnerType("hotels")} className="press" style={{flex:1,padding:"9px",borderRadius:10,border:"1px solid var(--border)",background:selPartnerType==="hotels"?"var(--surface2)":"none",fontSize:12,fontWeight:selPartnerType==="hotels"?700:500,color:selPartnerType==="hotels"?"var(--text)":"var(--text2)"}}>
+              <button onClick={()=>setSelPartnerType("hotels")} className="press" style={{flex:1,padding:"9px",borderRadius:10,border:"1px solid var(--border)",background:selPartnerType==="hotels"?"var(--surface2)":"none",fontSize:13,fontWeight:selPartnerType==="hotels"?700:500,color:selPartnerType==="hotels"?"var(--text)":"var(--text2)"}}>
                 <span style={{display:"inline-flex",alignItems:"center",gap:6}}><Icon name="home" size={13}/> Hotels ({activeProgram.hotels.length})</span>
               </button>
             )}
@@ -2552,12 +2592,12 @@ function Travel({ cards }: { cards:CreditCard[] }) {
             {(selPartnerType==="airlines"?activeProgram.airlines:activeProgram.hotels).map((partner,i,arr)=>(
               <div key={partner.name} style={{padding:"13px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                  <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{partner.name}</p>
-                  <span style={{color:activeProgram.color,fontSize:13,fontWeight:700}}>{partner.ratio}</span>
+                  <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{partner.name}</p>
+                  <span style={{color:activeProgram.color,fontSize:14,fontWeight:700}}>{partner.ratio}</span>
                 </div>
-                <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.4}}>{partner.best}</p>
+                <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{partner.best}</p>
                 {(partner as any).flag && (
-                  <p style={{color:"var(--amber)",fontSize:11,marginTop:5,lineHeight:1.4,display:"flex",gap:5}}>
+                  <p style={{color:"var(--amber)",fontSize:12,marginTop:5,lineHeight:1.4,display:"flex",gap:5}}>
                     <Icon name="warning" size={12}/><span>{(partner as any).flag}</span>
                   </p>
                 )}
@@ -2565,7 +2605,7 @@ function Travel({ cards }: { cards:CreditCard[] }) {
             ))}
           </div>
 
-          <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:14,lineHeight:1.5}}>
+          <p style={{color:"var(--text3)",fontSize:12,textAlign:"center",marginTop:14,lineHeight:1.5}}>
             Transfer ratios shown are standard rates. Issuers regularly run 20-30% transfer bonuses to specific partners — check the issuer's app before transferring.
           </p>
         </div>}
@@ -2613,7 +2653,7 @@ function Goals({ goals, onAdd, onUpdateProgress, onDelete }: { goals:Goal[]; onA
   return (
     <div className="screen desktop-content screen-enter">
       <PageHead title="My Goals" sub="Track your financial targets"
-        right={<button onClick={()=>setAdd(a=>!a)} className="pill pill-gold press" style={{fontSize:12,fontWeight:700}}>+ Add Goal</button>}/>
+        right={<button onClick={()=>setAdd(a=>!a)} className="pill pill-gold press" style={{fontSize:13,fontWeight:700}}>+ Add Goal</button>}/>
       <div className="px">
         {goals.length === 0 && !add && (
           <EmptyState icon="goal" title="No goals yet" sub="Set financial goals — pay off debt, boost your credit score, or save points for a trip." action="Set Your First Goal" onAction={()=>setAdd(true)}/>
@@ -2627,8 +2667,8 @@ function Goals({ goals, onAdd, onUpdateProgress, onDelete }: { goals:Goal[]; onA
                   {GOAL_TYPES.map(gt=>(
                     <button key={gt[1]} onClick={()=>setSelectedType(gt)} className="press hover-lift card-surface-2" style={{padding:"14px 12px",textAlign:"left"}}>
                       <p style={{marginBottom:7,color:gt[5]}}><Icon name={gt[0]} size={22}/></p>
-                      <p style={{color:"var(--text)",fontSize:12,fontWeight:700}}>{gt[1]}</p>
-                      <p style={{color:"var(--text2)",fontSize:11,marginTop:2}}>{gt[2]}</p>
+                      <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>{gt[1]}</p>
+                      <p style={{color:"var(--text2)",fontSize:12,marginTop:2}}>{gt[2]}</p>
                     </button>
                   ))}
                 </div>
@@ -2637,11 +2677,11 @@ function Goals({ goals, onAdd, onUpdateProgress, onDelete }: { goals:Goal[]; onA
               <>
                 <p style={{color:"var(--text)",fontSize:15,fontWeight:600,marginBottom:14}}>{selectedType[0]} {selectedType[1]} Goal</p>
                 <div style={{marginBottom:12}}>
-                  <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Goal title</label>
+                  <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Goal title</label>
                   <input className="field" placeholder={selectedType[1]} value={customTitle} onChange={e=>setCustomTitle(e.target.value)} style={{padding:"10px 12px"}}/>
                 </div>
                 <div style={{marginBottom:16}}>
-                  <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Target ({selectedType[4]})</label>
+                  <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Target ({selectedType[4]})</label>
                   <input className="field" type="number" placeholder={String(selectedType[3])} value={customTarget} onChange={e=>setCustomTarget(e.target.value)} style={{padding:"10px 12px"}}/>
                 </div>
                 <div style={{display:"flex",gap:10}}>
@@ -2661,34 +2701,34 @@ function Goals({ goals, onAdd, onUpdateProgress, onDelete }: { goals:Goal[]; onA
                 <div style={{width:52,height:52,borderRadius:16,flexShrink:0,background:`${g.color}18`,display:"flex",alignItems:"center",justifyContent:"center",color:g.color}}><Icon name={g.emoji} size={24}/></div>
                 <div style={{flex:1}}>
                   <p style={{color:"var(--text)",fontSize:15,fontWeight:600,marginBottom:2}}>{g.title}</p>
-                  <p style={{color:"var(--text2)",fontSize:12}}>{g.due}</p>
+                  <p style={{color:"var(--text2)",fontSize:13}}>{g.due}</p>
                 </div>
                 <button onClick={()=>onDelete(g.id)} style={{background:"none",border:"none",color:"var(--text3)",cursor:"pointer",flexShrink:0,display:"flex"}}><Icon name="trash" size={15}/></button>
               </div>
               <Bar v={g.current} max={g.target} color={g.color} h={7}/>
               <div style={{display:"flex",justifyContent:"space-between",marginTop:8,marginBottom:14}}>
-                <p style={{color:"var(--text2)",fontSize:12}}>{g.unit==="$"?"$":""}{f(g.current)}{g.unit!=="$"?" "+g.unit:""} ({p}%)</p>
-                <p style={{color:"var(--text2)",fontSize:12}}>Target: {g.unit==="$"?"$":""}{f(g.target)}{g.unit!=="$"?" "+g.unit:""}</p>
+                <p style={{color:"var(--text2)",fontSize:13}}>{g.unit==="$"?"$":""}{f(g.current)}{g.unit!=="$"?" "+g.unit:""} ({p}%)</p>
+                <p style={{color:"var(--text2)",fontSize:13}}>Target: {g.unit==="$"?"$":""}{f(g.target)}{g.unit!=="$"?" "+g.unit:""}</p>
               </div>
               {editingProgress===g.id ? (
                 <div style={{display:"flex",gap:8,marginBottom:10}}>
-                  <input className="field" type="number" placeholder="Current progress" value={progressInput} onChange={e=>setProgressInput(e.target.value)} style={{flex:1,padding:"8px 10px",fontSize:13}}/>
-                  <button onClick={()=>saveProgress(g.id)} style={{background:"var(--green)",border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>Save</button>
-                  <button onClick={()=>setEditingProgress(null)} style={{background:"var(--surface2)",border:"none",borderRadius:8,padding:"8px 12px",color:"var(--text2)",fontSize:12,cursor:"pointer"}}>✕</button>
+                  <input className="field" type="number" placeholder="Current progress" value={progressInput} onChange={e=>setProgressInput(e.target.value)} style={{flex:1,padding:"8px 10px",fontSize:14}}/>
+                  <button onClick={()=>saveProgress(g.id)} style={{background:"var(--green)",border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button>
+                  <button onClick={()=>setEditingProgress(null)} style={{background:"var(--surface2)",border:"none",borderRadius:8,padding:"8px 12px",color:"var(--text2)",fontSize:13,cursor:"pointer"}}>✕</button>
                 </div>
               ) : (
-                <button onClick={()=>{setProgressInput(String(g.current));setEditingProgress(g.id);}} style={{background:"none",border:"none",color:"var(--accent)",fontSize:13,fontWeight:600,padding:0,marginRight:16}}>Update progress</button>
+                <button onClick={()=>{setProgressInput(String(g.current));setEditingProgress(g.id);}} style={{background:"none",border:"none",color:"var(--accent)",fontSize:14,fontWeight:600,padding:0,marginRight:16}}>Update progress</button>
               )}
-              <button onClick={()=>setOpen(isOpen?null:g.id)} style={{background:"none",border:"none",color:"var(--accent)",fontSize:13,fontWeight:600,padding:0}}>
+              <button onClick={()=>setOpen(isOpen?null:g.id)} style={{background:"none",border:"none",color:"var(--accent)",fontSize:14,fontWeight:600,padding:0}}>
                 {isOpen?"Hide":"View"} action plan
               </button>
               {isOpen&&(
                 <div className="ai" style={{marginTop:14,background:"var(--surface2)",borderRadius:14,padding:"14px 16px"}}>
-                  <p style={{color:"var(--text3)",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:12}}>Your Action Plan</p>
+                  <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:12}}>Your Action Plan</p>
                   {g.tips.map((tip,ti)=>(
                     <div key={ti} style={{display:"flex",gap:10,marginBottom:ti<g.tips.length-1?12:0}}>
-                      <span style={{width:22,height:22,borderRadius:"50%",flexShrink:0,marginTop:1,background:`${g.color}20`,color:g.color,fontSize:11,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{ti+1}</span>
-                      <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.6}}>{tip}</p>
+                      <span style={{width:22,height:22,borderRadius:"50%",flexShrink:0,marginTop:1,background:`${g.color}20`,color:g.color,fontSize:12,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{ti+1}</span>
+                      <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.6}}>{tip}</p>
                     </div>
                   ))}
                 </div>
@@ -2721,24 +2761,24 @@ function Split({ cards }: { cards:CreditCard[] }) {
               <div style={{width:48,height:48,borderRadius:14,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--accent)"}}><Icon name="dining" size={22}/></div>
               <div>
                 <p style={{color:"var(--text)",fontSize:17,fontWeight:600,marginBottom:2}}>$247 at Nobu</p>
-                <p style={{color:"var(--text2)",fontSize:12}}>
+                <p style={{color:"var(--text2)",fontSize:13}}>
                   {cards.length>0 ? `Paid with ${cards[0].name}  ${Math.round(247*(parseFloat(cards[0].rewardRate)||1)/100*100)} pts earned` : "Split this bill?"}
                 </p>
               </div>
             </div>
             <div style={{background:"rgba(45,200,160,.07)",border:"1px solid rgba(45,200,160,.2)",borderRadius:12,padding:"10px 14px",marginBottom:14}}>
-              <p style={{color:"var(--green)",fontSize:12,lineHeight:1.5,display:"flex",alignItems:"flex-start",gap:6}}><Icon name="rocket" size={13}/><span>Great choice using {cards.length>0?cards[0].name:"your card"} -- maximizing your dining rewards!</span></p>
+              <p style={{color:"var(--green)",fontSize:13,lineHeight:1.5,display:"flex",alignItems:"flex-start",gap:6}}><Icon name="rocket" size={13}/><span>Great choice using {cards.length>0?cards[0].name:"your card"} -- maximizing your dining rewards!</span></p>
             </div>
-            <p style={{color:"var(--text2)",fontSize:13,fontWeight:500,marginBottom:10}}>Who did you dine with? <span style={{color:"var(--text3)",fontWeight:400}}>(select multiple)</span></p>
+            <p style={{color:"var(--text2)",fontSize:14,fontWeight:500,marginBottom:10}}>Who did you dine with? <span style={{color:"var(--text3)",fontWeight:400}}>(select multiple)</span></p>
             <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16}}>
               {PEOPLE.map(p=>{const on=sel.includes(p);return(
-                <button key={p} onClick={()=>setSel(prev=>on?prev.filter(x=>x!==p):[...prev,p])} className="press" style={{padding:"8px 16px",borderRadius:22,fontSize:13,fontWeight:600,border:`1.5px solid ${on?"var(--accent)":"var(--border2)"}`,background:on?"rgba(201,168,76,.12)":"var(--surface2)",color:on?"var(--accent)":"var(--text2)",transition:"all .15s"}}>
+                <button key={p} onClick={()=>setSel(prev=>on?prev.filter(x=>x!==p):[...prev,p])} className="press" style={{padding:"8px 16px",borderRadius:22,fontSize:14,fontWeight:600,border:`1.5px solid ${on?"var(--accent)":"var(--border2)"}`,background:on?"rgba(201,168,76,.12)":"var(--surface2)",color:on?"var(--accent)":"var(--text2)",transition:"all .15s"}}>
                   {on?" ":""}{p}
                 </button>
               );})}
             </div>
             {sel.length>0&&<div className="ai" style={{background:"var(--surface2)",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <p style={{color:"var(--text2)",fontSize:13}}>Split {sel.length+1} ways</p>
+              <p style={{color:"var(--text2)",fontSize:14}}>Split {sel.length+1} ways</p>
               <p className="gold-text" style={{fontSize:18,fontWeight:800}}>${pp} each</p>
             </div>}
             <button onClick={()=>setPopup(false)} className="btn-gold press" style={{width:"100%"}}>
@@ -2748,7 +2788,7 @@ function Split({ cards }: { cards:CreditCard[] }) {
         )}
         <div style={{display:"flex",gap:5,marginBottom:20,background:"var(--surface2)",padding:4,borderRadius:13}}>
           {["Active","History"].map((t,i)=>(
-            <button key={t} onClick={()=>setTab(i)} className="press" style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===i?"var(--accent)":"none",color:tab===i?"#fff":"var(--text2)",fontSize:12,fontWeight:700,transition:"all .2s"}}>{t}</button>
+            <button key={t} onClick={()=>setTab(i)} className="press" style={{flex:1,padding:"9px",borderRadius:10,border:"none",background:tab===i?"var(--accent)":"none",color:tab===i?"#fff":"var(--text2)",fontSize:13,fontWeight:700,transition:"all .2s"}}>{t}</button>
           ))}
         </div>
         {SAMPLE_BILLS.filter(b=>tab===0?!b.done:b.done).map((bill,i)=>(
@@ -2758,22 +2798,22 @@ function Split({ cards }: { cards:CreditCard[] }) {
                 <div style={{width:40,height:40,borderRadius:12,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--accent)",flexShrink:0}}><Icon name={bill.emoji} size={18}/></div>
                 <div>
                   <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{bill.name}</p>
-                  <p style={{color:"var(--text2)",fontSize:11,marginTop:2}}>{bill.date}  {bill.card}</p>
+                  <p style={{color:"var(--text2)",fontSize:12,marginTop:2}}>{bill.date}  {bill.card}</p>
                 </div>
               </div>
               <div style={{textAlign:"right"}}>
                 <p style={{color:"var(--text)",fontSize:16,fontWeight:800}}>${f(bill.amount)}</p>
-                <p className="gold-text" style={{fontSize:12,marginTop:2}}>${(bill.amount/bill.people.length).toFixed(2)}/person</p>
+                <p className="gold-text" style={{fontSize:13,marginTop:2}}>${(bill.amount/bill.people.length).toFixed(2)}/person</p>
               </div>
             </div>
             <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}}>
-              {bill.people.map(p=><span key={p} className={`pill ${bill.done?"pill-emerald":"pill-gold"}`} style={{fontSize:10}}>{p}</span>)}
+              {bill.people.map(p=><span key={p} className={`pill ${bill.done?"pill-emerald":"pill-gold"}`} style={{fontSize:11}}>{p}</span>)}
             </div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <p style={{color:"var(--text2)",fontSize:12,display:"flex",alignItems:"center",gap:5}}><Icon name="card" size={11}/> {f(bill.pts)} pts earned</p>
+              <p style={{color:"var(--text2)",fontSize:13,display:"flex",alignItems:"center",gap:5}}><Icon name="card" size={11}/> {f(bill.pts)} pts earned</p>
               {!bill.done?<div style={{display:"flex",gap:7}}>
-                <button className="btn-ghost press" style={{padding:"7px 12px",fontSize:11}}>Remind</button>
-                <button className="press" style={{padding:"7px 16px",background:"rgba(45,200,160,.1)",border:"1.5px solid rgba(45,200,160,.3)",borderRadius:9,color:"var(--green)",fontSize:11,fontWeight:700}}>Settle via Venmo</button>
+                <button className="btn-ghost press" style={{padding:"7px 12px",fontSize:12}}>Remind</button>
+                <button className="press" style={{padding:"7px 16px",background:"rgba(45,200,160,.1)",border:"1.5px solid rgba(45,200,160,.3)",borderRadius:9,color:"var(--green)",fontSize:12,fontWeight:700}}>Settle via Venmo</button>
               </div>:<span className="pill pill-emerald"> Settled</span>}
             </div>
           </div>
@@ -2802,33 +2842,33 @@ function Perks({ cards }: { cards:CreditCard[] }) {
         <div className="au card-surface" style={{padding:"18px 20px",marginBottom:20,border:"1.5px solid rgba(240,164,41,.3)",background:"rgba(240,164,41,.05)"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <div>
-              <p style={{color:"var(--amber)",fontSize:12,fontWeight:600,marginBottom:4}}>Credits remaining</p>
-              <h2 className="serif" style={{fontSize:34,fontWeight:400,color:"var(--text)"}}>${f(totalLeft)}</h2>
+              <p style={{color:"var(--amber)",fontSize:13,fontWeight:600,marginBottom:4}}>Credits remaining</p>
+              <h2 className="serif" style={{fontSize:44,fontWeight:400,color:"var(--text)",letterSpacing:"-1px"}}>${f(totalLeft)}</h2>
             </div>
             <span style={{color:"var(--amber)",display:"flex"}}><Icon name="perks" size={36}/></span>
           </div>
-          <p style={{color:"var(--text2)",fontSize:13}}>Money you've already paid for -- use it before it resets.</p>
+          <p style={{color:"var(--text2)",fontSize:14}}>Money you've already paid for -- use it before it resets.</p>
         </div>
 
         {/* Active offers */}
         {allOffers.length > 0 && (
           <>
-            <h3 className="serif" style={{fontSize:20,fontWeight:400,marginBottom:12}}>Active Offers</h3>
+            <h3 className="serif" style={{fontSize:26,fontWeight:400,marginBottom:14,letterSpacing:"-.3px"}}>Active Offers</h3>
             {allOffers.map((offer,i)=>(
               <div key={i} className={`au d${i+1} card-surface`} style={{padding:"14px 16px",marginBottom:10,display:"flex",gap:12,alignItems:"center"}}>
                 <div style={{width:36,height:24,borderRadius:6,background:offer.cardGradient,flexShrink:0}}/>
                 <div style={{flex:1}}>
-                  <p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px"}}>{offer.title}</p>
-                  <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{offer.cardName}  Expires {offer.expires}</p>
+                  <p style={{color:"var(--text)",fontSize:14,fontWeight:600,letterSpacing:"-.1px"}}>{offer.title}</p>
+                  <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{offer.cardName}  Expires {offer.expires}</p>
                 </div>
-                <span className="pill pill-emerald" style={{fontSize:10}}>{offer.value}</span>
+                <span className="pill pill-emerald" style={{fontSize:11}}>{offer.value}</span>
               </div>
             ))}
             <div className="divider" style={{margin:"20px 0"}}/>
           </>
         )}
 
-        <h3 className="serif" style={{fontSize:20,fontWeight:400,marginBottom:12}}>Annual Credits</h3>
+        <h3 className="serif" style={{fontSize:26,fontWeight:400,marginBottom:14,letterSpacing:"-.3px"}}>Annual Credits</h3>
         {perks.map((perk,i)=>{
           const rem=perk.total-perk.used, p=Math.round(perk.used/perk.total*100);
           return (
@@ -2837,20 +2877,20 @@ function Perks({ cards }: { cards:CreditCard[] }) {
                 <div>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
                     <span style={{color:"var(--accent)",display:"flex"}}><Icon name={perk.emoji} size={16}/></span>
-                    <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>{perk.name}</p>
+                    <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{perk.name}</p>
                     {perk.urgent&&<span className="pill pill-amber">Expiring</span>}
                   </div>
-                  <p style={{color:"var(--text2)",fontSize:11}}>{perk.card}</p>
+                  <p style={{color:"var(--text2)",fontSize:12}}>{perk.card}</p>
                 </div>
                 <div style={{textAlign:"right"}}>
                   <p style={{color:"var(--text)",fontSize:18,fontWeight:800}}>${rem}</p>
-                  <p style={{color:"var(--text3)",fontSize:10,marginTop:2}}>of ${perk.total}</p>
+                  <p style={{color:"var(--text3)",fontSize:11,marginTop:2}}>of ${perk.total}</p>
                 </div>
               </div>
               <Bar v={perk.used} max={perk.total} color={p>80?"var(--green)":p>40?"var(--accent)":"var(--red)"} h={7}/>
               <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
-                <p style={{color:"var(--text3)",fontSize:12}}>${perk.used} used  ${rem} left</p>
-                <p style={{color:perk.urgent?"var(--amber)":"var(--text3)",fontSize:12,fontWeight:perk.urgent?600:400}}>Resets {perk.resets}</p>
+                <p style={{color:"var(--text3)",fontSize:13}}>${perk.used} used  ${rem} left</p>
+                <p style={{color:perk.urgent?"var(--amber)":"var(--text3)",fontSize:13,fontWeight:perk.urgent?600:400}}>Resets {perk.resets}</p>
               </div>
             </div>
           );
@@ -2876,10 +2916,10 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
             <div style={{width:52,height:52,borderRadius:14,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"white"}}><Icon name="users" size={22}/></div>
             <div style={{flex:1}}>
               <p style={{color:"var(--text)",fontSize:17,fontWeight:700}}>{profile.name||"Your Account"}</p>
-              {profile.creditScore&&<p style={{color:"var(--green)",fontSize:12,marginTop:2,fontWeight:500}}>{profile.creditScore}</p>}
-              {profile.income&&<p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{profile.income}</p>}
+              {profile.creditScore&&<p style={{color:"var(--green)",fontSize:13,marginTop:2,fontWeight:500}}>{profile.creditScore}</p>}
+              {profile.income&&<p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{profile.income}</p>}
             </div>
-            <button onClick={()=>go("edit-profile")} className="btn-ghost press" style={{padding:"7px 14px",fontSize:12}}>Edit</button>
+            <button onClick={()=>go("edit-profile")} className="btn-ghost press" style={{padding:"7px 14px",fontSize:13}}>Edit</button>
           </div>
         </div>
 
@@ -2888,7 +2928,7 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
               <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>Appearance</p>
-              <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{theme==="dark"?"Dark mode":"Light mode"}</p>
+              <p style={{color:"var(--text2)",fontSize:13,marginTop:1}}>{theme==="dark"?"Dark mode":"Light mode"}</p>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <span style={{color:"var(--text2)",display:"flex"}}><Icon name="globe" size={14}/></span>
@@ -2899,7 +2939,7 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
         </div>
 
         {/* Feature toggles */}
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Features</p>
+        <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Features</p>
         <div className="au card-surface" style={{overflow:"hidden",marginBottom:20}}>
           {([
             ["ai","chat","AI Advisor","Personalized financial intelligence"],
@@ -2915,8 +2955,8 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
             <div key={key} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
               <span style={{width:24,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name={icon} size={16}/></span>
               <div style={{flex:1}}>
-                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
-                <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
+                <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{label}</p>
+                <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{desc}</p>
               </div>
               <Toggle on={feats[key]} set={()=>tog(key)}/>
             </div>
@@ -2924,7 +2964,7 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
         </div>
 
         {/* Account links */}
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Account</p>
+        <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Account</p>
         <div className="au d2 card-surface" style={{overflow:"hidden",marginBottom:20}}>
           {([
             ["edit","Edit Profile","Update your info and spending",()=>go("edit-profile")],
@@ -2939,10 +2979,10 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
             <button key={label} onClick={action} className="press" style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"13px 16px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",textAlign:"left"}}>
               <span style={{width:24,display:"flex",justifyContent:"center",flexShrink:0,color:"var(--text2)"}}><Icon name={icon} size={17}/></span>
               <div style={{flex:1}}>
-                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
-                <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
+                <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{label}</p>
+                <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{desc}</p>
               </div>
-              <span style={{color:"var(--text3)",fontSize:13}}>→</span>
+              <span style={{color:"var(--text3)",fontSize:14}}>→</span>
             </button>
           ))}
         </div>
@@ -2950,12 +2990,12 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
         <div className="card-surface" style={{overflow:"hidden",marginBottom:24}}>
           <button onClick={onSignOut} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
             <span style={{width:24,display:"flex",justifyContent:"center"}}><Icon name="logout" size={17}/></span>
-            <p style={{color:"var(--red)",fontSize:13,fontWeight:600,flex:1}}>Sign Out</p>
-            <span style={{color:"var(--red)",fontSize:13}}>→</span>
+            <p style={{color:"var(--red)",fontSize:14,fontWeight:600,flex:1}}>Sign Out</p>
+            <span style={{color:"var(--red)",fontSize:14}}>→</span>
           </button>
         </div>
 
-        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginBottom:20}}>WiseCard v1.3.0 · Made with care</p>
+        <p style={{color:"var(--text3)",fontSize:12,textAlign:"center",marginBottom:20}}>WiseCard v1.3.0 · Made with care</p>
       </div>
     </div>
   );
@@ -3184,10 +3224,10 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
 
         {/* Tab switcher */}
         <div className="au" style={{display:"flex",gap:5,marginBottom:24,background:"var(--surface2)",padding:4,borderRadius:14}}>
-          <button onClick={()=>setTab(0)} className="press" style={{flex:1,padding:"11px 8px",borderRadius:11,border:"none",background:tab===0?"var(--accent)":"none",color:tab===0?"#fff":"var(--text2)",fontSize:12,fontWeight:tab===0?700:500,transition:"all .2s",lineHeight:1.3}}>
+          <button onClick={()=>setTab(0)} className="press" style={{flex:1,padding:"11px 8px",borderRadius:11,border:"none",background:tab===0?"var(--accent)":"none",color:tab===0?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===0?700:500,transition:"all .2s",lineHeight:1.3}}>
              Which card<br/>should I APPLY for?
           </button>
-          <button onClick={()=>setTab(1)} className="press" style={{flex:1,padding:"11px 8px",borderRadius:11,border:"none",background:tab===1?"var(--accent)":"none",color:tab===1?"#fff":"var(--text2)",fontSize:12,fontWeight:tab===1?700:500,transition:"all .2s",lineHeight:1.3}}>
+          <button onClick={()=>setTab(1)} className="press" style={{flex:1,padding:"11px 8px",borderRadius:11,border:"none",background:tab===1?"var(--accent)":"none",color:tab===1?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===1?700:500,transition:"all .2s",lineHeight:1.3}}>
              Which card<br/>should I USE now?
           </button>
         </div>
@@ -3197,22 +3237,22 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
           <div className="ai">
             {/* Intro card */}
             <div style={{background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)",borderRadius:10,padding:"20px",marginBottom:20}}>
-              <h3 className="serif" style={{fontSize:22,fontWeight:400,color:"var(--accent2)",marginBottom:8}}>
+              <h3 className="serif" style={{fontSize:28,fontWeight:400,color:"var(--accent2)",marginBottom:10,letterSpacing:"-.4px"}}>
                 Personalized card recommendations
               </h3>
-              <p style={{color:"rgba(201,168,76,.7)",fontSize:13,lineHeight:1.7,marginBottom:16}}>
+              <p style={{color:"rgba(201,168,76,.7)",fontSize:14,lineHeight:1.7,marginBottom:16}}>
                 Based on your income (<strong style={{color:"var(--accent2)"}}>{profile.income||"not set"}</strong>),
                 credit score (<strong style={{color:"var(--accent2)"}}>{profile.creditScore||"not set"}</strong>),
                 and spending habits -- our AI scores every card in the US market and tells you exactly which to apply for, approval odds, and expected annual value.
               </p>
               {(!profile.income || !profile.creditScore) && (
                 <div style={{background:"rgba(244,97,122,.1)",border:"1px solid rgba(244,97,122,.3)",borderRadius:12,padding:"10px 14px",marginBottom:14}}>
-                  <p style={{color:"var(--red)",fontSize:12}}> Complete your profile in Settings for more accurate recommendations</p>
+                  <p style={{color:"var(--red)",fontSize:13}}> Complete your profile in Settings for more accurate recommendations</p>
                 </div>
               )}
               {cards.length > 0 && (
                 <div style={{background:"rgba(45,200,160,.08)",border:"1px solid rgba(45,200,160,.2)",borderRadius:12,padding:"10px 14px",marginBottom:14}}>
-                  <p style={{color:"var(--green)",fontSize:12}}> You own {cards.length} card{cards.length!==1?"s":""}. We will exclude those and only recommend new ones.</p>
+                  <p style={{color:"var(--green)",fontSize:13}}> You own {cards.length} card{cards.length!==1?"s":""}. We will exclude those and only recommend new ones.</p>
                 </div>
               )}
               <button onClick={runApplyRecommender} disabled={applyLoading} className="btn-gold press" style={{width:"100%"}}>
@@ -3225,7 +3265,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
               <div style={{textAlign:"center",padding:"40px 20px"}}>
                 <div style={{display:"flex",justifyContent:"center",marginBottom:16,color:"var(--accent)",animation:"pulse 1s ease infinite"}}><Icon name="chat" size={36}/></div>
                 <p style={{color:"var(--text2)",fontSize:15,fontWeight:500,marginBottom:6}}>AI is analysing your profile...</p>
-                <p style={{color:"var(--text3)",fontSize:12}}>Scoring {CARD_DB.length} cards against your income, credit score, lifestyle and spending</p>
+                <p style={{color:"var(--text3)",fontSize:13}}>Scoring {CARD_DB.length} cards against your income, credit score, lifestyle and spending</p>
               </div>
             )}
 
@@ -3233,7 +3273,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
             {applyDone && !applyLoading && (
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                  <p style={{color:"var(--text2)",fontSize:13}}><strong style={{color:"var(--text)"}}>{applyRecs.length} cards</strong> ranked for your profile</p>
+                  <p style={{color:"var(--text2)",fontSize:14}}><strong style={{color:"var(--text)"}}>{applyRecs.length} cards</strong> ranked for your profile</p>
                   <span className="pill pill-gold">AI Scored</span>
                 </div>
 
@@ -3251,32 +3291,32 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                       <div style={{display:"flex",gap:12,padding:"16px 18px",alignItems:"center"}}>
                         <div style={{position:"relative",flexShrink:0}}>
                           <div style={{width:56,height:36,borderRadius:9,background:rec.card.gradient,boxShadow:"0 3px 12px rgba(0,0,0,.5)"}}/>
-                          <div style={{position:"absolute",top:-8,right:-8,width:22,height:22,borderRadius:"50%",background:"var(--surface)",border:"2px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:rec.verdictColor}}>
+                          <div style={{position:"absolute",top:-8,right:-8,width:22,height:22,borderRadius:"50%",background:"var(--surface)",border:"2px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:rec.verdictColor}}>
                             {i+1}
                           </div>
                         </div>
                         <div style={{flex:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
                             <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{rec.card.name}</p>
-                            <span className="pill" style={{fontSize:10,background:`${rec.verdictColor}18`,color:rec.verdictColor,border:`1px solid ${rec.verdictColor}40`}}>
+                            <span className="pill" style={{fontSize:11,background:`${rec.verdictColor}18`,color:rec.verdictColor,border:`1px solid ${rec.verdictColor}40`}}>
                               {rec.verdict==="Highly Recommended"?" ":""}{rec.verdict}
                             </span>
                           </div>
-                          <p style={{color:"var(--text2)",fontSize:11,marginBottom:4}}>{rec.card.issuer}  {rec.card.rewardRate}</p>
+                          <p style={{color:"var(--text2)",fontSize:12,marginBottom:4}}>{rec.card.issuer}  {rec.card.rewardRate}</p>
                           <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
                             <div>
-                              <p style={{color:"var(--text3)",fontSize:10}}>Approval odds</p>
-                              <p style={{color:rec.approvalColor,fontSize:13,fontWeight:800}}>{rec.approvalChance}%</p>
+                              <p style={{color:"var(--text3)",fontSize:11}}>Approval odds</p>
+                              <p style={{color:rec.approvalColor,fontSize:14,fontWeight:800}}>{rec.approvalChance}%</p>
                             </div>
                             <div style={{width:1,height:28,background:"var(--border)"}}/>
                             <div>
-                              <p style={{color:"var(--text3)",fontSize:10}}>Est. annual value</p>
-                              <p style={{color:"var(--green)",fontSize:13,fontWeight:800}}>${f2(rec.annualValue)}/yr</p>
+                              <p style={{color:"var(--text3)",fontSize:11}}>Est. annual value</p>
+                              <p style={{color:"var(--green)",fontSize:14,fontWeight:800}}>${f2(rec.annualValue)}/yr</p>
                             </div>
                             <div style={{width:1,height:28,background:"var(--border)"}}/>
                             <div>
-                              <p style={{color:"var(--text3)",fontSize:10}}>Annual fee</p>
-                              <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>${rec.card.annualFee}/yr</p>
+                              <p style={{color:"var(--text3)",fontSize:11}}>Annual fee</p>
+                              <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${rec.card.annualFee}/yr</p>
                             </div>
                           </div>
                         </div>
@@ -3286,8 +3326,8 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                       {/* Approval bar */}
                       <div style={{padding:"0 18px 12px"}}>
                         <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                          <span style={{color:"var(--text3)",fontSize:10}}>Approval likelihood</span>
-                          <span style={{color:rec.approvalColor,fontSize:10,fontWeight:700}}>{rec.approvalChance}%</span>
+                          <span style={{color:"var(--text3)",fontSize:11}}>Approval likelihood</span>
+                          <span style={{color:rec.approvalColor,fontSize:11,fontWeight:700}}>{rec.approvalChance}%</span>
                         </div>
                         <Bar v={rec.approvalChance} max={100} color={rec.approvalColor} h={5}/>
                       </div>
@@ -3298,19 +3338,19 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                           {/* Signup bonus */}
                           {rec.card.signupBonus && (
                             <div style={{background:"rgba(240,164,41,.08)",border:"1px solid rgba(240,164,41,.2)",borderRadius:12,padding:"10px 14px",marginTop:14,marginBottom:10}}>
-                              <p style={{color:"var(--amber)",fontSize:11,fontWeight:700,marginBottom:3,display:"flex",alignItems:"center",gap:5}}><Icon name="gift" size={11}/> Welcome Bonus</p>
-                              <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>{rec.card.signupBonus}</p>
+                              <p style={{color:"var(--amber)",fontSize:12,fontWeight:700,marginBottom:3,display:"flex",alignItems:"center",gap:5}}><Icon name="gift" size={11}/> Welcome Bonus</p>
+                              <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{rec.card.signupBonus}</p>
                             </div>
                           )}
 
                           {/* Pros */}
                           {rec.pros.length > 0 && (
                             <div style={{marginTop:10}}>
-                              <p style={{color:"var(--green)",fontSize:11,fontWeight:700,marginBottom:8}}> Why this card suits you</p>
+                              <p style={{color:"var(--green)",fontSize:12,fontWeight:700,marginBottom:8}}> Why this card suits you</p>
                               {rec.pros.map((pro,pi)=>(
                                 <div key={pi} style={{display:"flex",gap:8,marginBottom:6,alignItems:"flex-start"}}>
-                                  <span style={{color:"var(--green)",fontSize:12,flexShrink:0,marginTop:1}}></span>
-                                  <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>{pro}</p>
+                                  <span style={{color:"var(--green)",fontSize:13,flexShrink:0,marginTop:1}}></span>
+                                  <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{pro}</p>
                                 </div>
                               ))}
                             </div>
@@ -3319,11 +3359,11 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                           {/* Cons */}
                           {rec.cons.length > 0 && (
                             <div style={{marginTop:10}}>
-                              <p style={{color:"var(--red)",fontSize:11,fontWeight:700,marginBottom:8}}> Watch out for</p>
+                              <p style={{color:"var(--red)",fontSize:12,fontWeight:700,marginBottom:8}}> Watch out for</p>
                               {rec.cons.map((con,ci)=>(
                                 <div key={ci} style={{display:"flex",gap:8,marginBottom:6,alignItems:"flex-start"}}>
-                                  <span style={{color:"var(--red)",fontSize:12,flexShrink:0,marginTop:1}}>!</span>
-                                  <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>{con}</p>
+                                  <span style={{color:"var(--red)",fontSize:13,flexShrink:0,marginTop:1}}>!</span>
+                                  <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{con}</p>
                                 </div>
                               ))}
                             </div>
@@ -3332,10 +3372,10 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                           {/* Best places */}
                           {rec.card.bestPlaces && rec.card.bestPlaces.length > 0 && (
                             <div style={{marginTop:10}}>
-                              <p style={{color:"var(--accent)",fontSize:11,fontWeight:700,marginBottom:8,display:"flex",alignItems:"center",gap:5}}><Icon name="globe" size={11}/> Best places to use it</p>
+                              <p style={{color:"var(--accent)",fontSize:12,fontWeight:700,marginBottom:8,display:"flex",alignItems:"center",gap:5}}><Icon name="globe" size={11}/> Best places to use it</p>
                               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                                 {(rec.card.bestPlaces||[]).slice(0,6).map((p:string,pi:number)=>(
-                                  <span key={pi} style={{background:"rgba(201,168,76,.1)",border:"1px solid rgba(201,168,76,.2)",borderRadius:20,padding:"3px 9px",fontSize:10,color:"var(--accent)"}}>
+                                  <span key={pi} style={{background:"rgba(201,168,76,.1)",border:"1px solid rgba(201,168,76,.2)",borderRadius:20,padding:"3px 9px",fontSize:11,color:"var(--accent)"}}>
                                     {p.split(" (")[0]}
                                   </span>
                                 ))}
@@ -3346,14 +3386,14 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                           {/* Net value calculation */}
                           <div style={{background:"var(--surface2)",borderRadius:12,padding:"10px 14px",marginTop:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                             <div>
-                              <p style={{color:"var(--text3)",fontSize:10,marginBottom:2}}>Estimated net annual benefit</p>
+                              <p style={{color:"var(--text3)",fontSize:11,marginBottom:2}}>Estimated net annual benefit</p>
                               <p style={{color:rec.annualValue-rec.card.annualFee>0?"var(--green)":"var(--red)",fontSize:16,fontWeight:800}}>
                                 {rec.annualValue-rec.card.annualFee>=0?"+":""} ${f2(rec.annualValue-rec.card.annualFee)}/yr
                               </p>
                             </div>
                             <div style={{textAlign:"right"}}>
-                              <p style={{color:"var(--text3)",fontSize:10,marginBottom:2}}>Perks value</p>
-                              <p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px"}}>${rec.card.perksValue}/yr</p>
+                              <p style={{color:"var(--text3)",fontSize:11,marginBottom:2}}>Perks value</p>
+                              <p style={{color:"var(--text)",fontSize:14,fontWeight:600,letterSpacing:"-.1px"}}>${rec.card.perksValue}/yr</p>
                             </div>
                           </div>
                         </div>
@@ -3371,8 +3411,8 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
           <div className="ai">
             {/* Intro */}
             <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:20,padding:"18px 20px",marginBottom:20}}>
-              <h3 className="serif" style={{fontSize:22,fontWeight:400,marginBottom:6}}>Which card should I use?</h3>
-              <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.6,marginBottom:16}}>
+              <h3 className="serif" style={{fontSize:28,fontWeight:400,marginBottom:8,letterSpacing:"-.4px"}}>Which card should I use?</h3>
+              <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.6,marginBottom:16}}>
                 Tell us where you are shopping or what you are buying. We rank all your cards by rewards earned and tell you exactly which one to reach for -- with the maths.
               </p>
 
@@ -3385,7 +3425,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
               ) : (
                 <>
                   <div style={{marginBottom:12}}>
-                    <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Where are you shopping?</label>
+                    <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Where are you shopping?</label>
                     <input
                       className="field"
                       placeholder="e.g. Starbucks, Whole Foods, Amazon, Delta flight..."
@@ -3396,7 +3436,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                     />
                   </div>
                   <div style={{marginBottom:16}}>
-                    <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Purchase amount (optional)</label>
+                    <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Purchase amount (optional)</label>
                     <input
                       className="field"
                       type="number"
@@ -3416,10 +3456,10 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
             {/* Quick merchant chips */}
             {cards.length > 0 && !useDone && (
               <div>
-                <p style={{color:"var(--text3)",fontSize:12,marginBottom:10}}>Quick picks</p>
+                <p style={{color:"var(--text3)",fontSize:13,marginBottom:10}}>Quick picks</p>
                 <div style={{display:"flex",flexWrap:"wrap",gap:7,marginBottom:20}}>
                   {QUICK_MERCHANTS.map(m=>(
-                    <button key={m} onClick={()=>{setPurchaseInput(m);setPurchaseAmount("50");setTimeout(()=>runUseRecommender(),50);}} className="press" style={{padding:"7px 14px",borderRadius:20,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",fontSize:12,transition:"all .15s"}}
+                    <button key={m} onClick={()=>{setPurchaseInput(m);setPurchaseAmount("50");setTimeout(()=>runUseRecommender(),50);}} className="press" style={{padding:"7px 14px",borderRadius:20,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",fontSize:13,transition:"all .15s"}}
                       onMouseOver={e=>{e.currentTarget.style.borderColor="var(--accent)";e.currentTarget.style.color="var(--accent)"}}
                       onMouseOut={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text2)"}}>
                       {m}
@@ -3445,28 +3485,28 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                   <span style={{color:"var(--accent)",display:"flex"}}><Icon name={CATEGORY_MAP[detectedCategory]?.emoji||"groceries"} size={18}/></span>
                   <div>
                     <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{purchaseInput}</p>
-                    <p style={{color:"var(--text2)",fontSize:12}}>Category: {CATEGORY_MAP[detectedCategory]?.label||"General purchase"}{purchaseAmount?`  $${purchaseAmount}`:""}</p>
+                    <p style={{color:"var(--text2)",fontSize:13}}>Category: {CATEGORY_MAP[detectedCategory]?.label||"General purchase"}{purchaseAmount?`  $${purchaseAmount}`:""}</p>
                   </div>
                 </div>
 
                 {/* Winner announcement */}
                 <div style={{background:"var(--accentbg)",border:"1.5px solid var(--accent)",borderRadius:18,padding:"16px 18px",marginBottom:16}}>
-                  <p style={{color:"rgba(255,255,255,.6)",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Best card to use</p>
+                  <p style={{color:"rgba(255,255,255,.6)",fontSize:12,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Best card to use</p>
                   <div style={{display:"flex",alignItems:"center",gap:12}}>
                     <div style={{width:52,height:34,borderRadius:9,background:useResults[0].card.gradient,boxShadow:"0 3px 12px rgba(0,0,0,.5)",flexShrink:0}}/>
                     <div style={{flex:1}}>
                       <p style={{color:"var(--accent2)",fontSize:17,fontWeight:700,marginBottom:2}}>{useResults[0].card.name}</p>
-                      <p style={{color:"rgba(255,255,255,.6)",fontSize:12}}>{useResults[0].reason}</p>
+                      <p style={{color:"rgba(255,255,255,.6)",fontSize:13}}>{useResults[0].reason}</p>
                     </div>
                     <div style={{textAlign:"right",flexShrink:0}}>
                       <p style={{color:"var(--accent)",fontSize:22,fontWeight:800}}>{useResults[0].multiplier}x</p>
-                      {purchaseAmount && <p style={{color:"var(--green)",fontSize:12,marginTop:2}}>+${useResults[0].cashValue} value</p>}
+                      {purchaseAmount && <p style={{color:"var(--green)",fontSize:13,marginTop:2}}>+${useResults[0].cashValue} value</p>}
                     </div>
                   </div>
                 </div>
 
                 {/* All cards ranked */}
-                <p style={{color:"var(--text2)",fontSize:12,marginBottom:12,fontWeight:600}}>ALL YOUR CARDS RANKED</p>
+                <p style={{color:"var(--text2)",fontSize:13,marginBottom:12,fontWeight:600}}>ALL YOUR CARDS RANKED</p>
                 {useResults.map((r,i)=>(
                   <div key={r.card.id} className={`au d${Math.min(i+1,6)}`} style={{
                     background:"var(--surface)",
@@ -3480,12 +3520,12 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                     </span>
                     <div style={{width:42,height:28,borderRadius:7,background:r.card.gradient,flexShrink:0,boxShadow:"0 2px 8px rgba(0,0,0,.4)"}}/>
                     <div style={{flex:1}}>
-                      <p style={{color:"var(--text)",fontSize:13,fontWeight:600,letterSpacing:"-.1px",marginBottom:2}}>{r.card.name}</p>
-                      <p style={{color:"var(--text2)",fontSize:11}}>{r.reason}</p>
+                      <p style={{color:"var(--text)",fontSize:14,fontWeight:600,letterSpacing:"-.1px",marginBottom:2}}>{r.card.name}</p>
+                      <p style={{color:"var(--text2)",fontSize:12}}>{r.reason}</p>
                     </div>
                     <div style={{textAlign:"right",flexShrink:0}}>
                       <p style={{color:i===0?"var(--accent)":i===1?"var(--green)":"var(--text2)",fontSize:16,fontWeight:800}}>{r.multiplier}x</p>
-                      {purchaseAmount && <p style={{color:"var(--text3)",fontSize:10,marginTop:1}}>+${r.cashValue}</p>}
+                      {purchaseAmount && <p style={{color:"var(--text3)",fontSize:11,marginTop:1}}>+${r.cashValue}</p>}
                     </div>
                   </div>
                 ))}
@@ -3493,8 +3533,8 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
                 {/* Insight */}
                 {useResults.length > 1 && purchaseAmount && (
                   <div style={{background:"rgba(45,200,160,.06)",border:"1px solid rgba(45,200,160,.2)",borderRadius:14,padding:"12px 16px",marginTop:8}}>
-                    <p style={{color:"var(--green)",fontSize:12,fontWeight:600,marginBottom:4,display:"flex",alignItems:"center",gap:5}}><Icon name="rocket" size={12}/> Smart insight</p>
-                    <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.6}}>
+                    <p style={{color:"var(--green)",fontSize:13,fontWeight:600,marginBottom:4,display:"flex",alignItems:"center",gap:5}}><Icon name="rocket" size={12}/> Smart insight</p>
+                    <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.6}}>
                       Using {useResults[0].card.name} vs {useResults[useResults.length-1].card.name} on a ${purchaseAmount} purchase earns ${Math.round((useResults[0].cashValue - useResults[useResults.length-1].cashValue)*100)/100} more in rewards value. Over a year of similar weekly purchases that is <strong style={{color:"var(--green)"}}>${f2(Math.round((useResults[0].cashValue - useResults[useResults.length-1].cashValue)*52))}</strong> extra.
                     </p>
                   </div>
@@ -3644,10 +3684,10 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
       <div className="px">
         {/* Tab switcher */}
         <div className="au" style={{display:"flex",gap:5,marginBottom:24,background:"var(--surface2)",padding:4,borderRadius:14}}>
-          <button onClick={()=>setTab(0)} className="press" style={{flex:1,padding:"11px",borderRadius:11,border:"none",background:tab===0?"var(--accent)":"none",color:tab===0?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===0?700:500,transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
+          <button onClick={()=>setTab(0)} className="press" style={{flex:1,padding:"11px",borderRadius:11,border:"none",background:tab===0?"var(--accent)":"none",color:tab===0?"#fff":"var(--text2)",fontSize:14,fontWeight:tab===0?700:500,transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
             <Icon name="groceries" size={14}/> Price Comparator
           </button>
-          <button onClick={()=>setTab(1)} className="press" style={{flex:1,padding:"11px",borderRadius:11,border:"none",background:tab===1?"var(--accent)":"none",color:tab===1?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===1?700:500,transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
+          <button onClick={()=>setTab(1)} className="press" style={{flex:1,padding:"11px",borderRadius:11,border:"none",background:tab===1?"var(--accent)":"none",color:tab===1?"#fff":"var(--text2)",fontSize:14,fontWeight:tab===1?700:500,transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
             <Icon name="rocket" size={14}/> Habit Savings
           </button>
         </div>
@@ -3656,8 +3696,8 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
         {tab===0 && (
           <div className="ai">
             <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:20,padding:"18px 20px",marginBottom:20}}>
-              <h3 className="serif" style={{fontSize:22,fontWeight:400,marginBottom:6}}>Smart Price Comparator</h3>
-              <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.6,marginBottom:16}}>
+              <h3 className="serif" style={{fontSize:28,fontWeight:400,marginBottom:8,letterSpacing:"-.4px"}}>Smart Price Comparator</h3>
+              <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.6,marginBottom:16}}>
                 Search any product. We compare prices across 8 major stores, factor in your card rewards, and tell you the true cheapest option after cashback.
               </p>
               <div style={{display:"flex",gap:8}}>
@@ -3683,10 +3723,10 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
             {/* Suggestion chips */}
             {!searched && (
               <div>
-                <p style={{color:"var(--text3)",fontSize:12,marginBottom:10}}>Popular searches</p>
+                <p style={{color:"var(--text3)",fontSize:13,marginBottom:10}}>Popular searches</p>
                 <div style={{display:"flex",flexWrap:"wrap",gap:7,marginBottom:20}}>
                   {PRODUCT_SUGGESTIONS.map(s=>(
-                    <button key={s} onClick={()=>{setProductQuery(s);findPrice(s);}} className="press" style={{padding:"7px 14px",borderRadius:20,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",fontSize:12,transition:"all .15s"}}
+                    <button key={s} onClick={()=>{setProductQuery(s);findPrice(s);}} className="press" style={{padding:"7px 14px",borderRadius:20,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",fontSize:13,transition:"all .15s"}}
                       onMouseOver={e=>{e.currentTarget.style.borderColor="var(--accent)";e.currentTarget.style.color="var(--accent)"}}
                       onMouseOut={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text2)"}}>
                       {s}
@@ -3701,7 +3741,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
               <div style={{textAlign:"center",padding:"40px 20px"}}>
                 <div style={{display:"flex",justifyContent:"center",marginBottom:12,color:"var(--accent)",animation:"pulse 1s ease infinite"}}><Icon name="search" size={28}/></div>
                 <p style={{color:"var(--text2)",fontSize:14}}>Comparing prices across 8 stores...</p>
-                <p style={{color:"var(--text3)",fontSize:12,marginTop:4}}>Factoring in your card rewards</p>
+                <p style={{color:"var(--text3)",fontSize:13,marginTop:4}}>Factoring in your card rewards</p>
               </div>
             )}
 
@@ -3709,8 +3749,8 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
             {searched && !comparing && priceResults.length > 0 && (
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                  <p style={{color:"var(--text2)",fontSize:13}}>Results for <strong style={{color:"var(--text)"}}>{productQuery}</strong></p>
-                  <p style={{color:"var(--green)",fontSize:12,fontWeight:600}}>
+                  <p style={{color:"var(--text2)",fontSize:14}}>Results for <strong style={{color:"var(--text)"}}>{productQuery}</strong></p>
+                  <p style={{color:"var(--green)",fontSize:13,fontWeight:600}}>
                     Save up to ${f2(priceResults[priceResults.length-1].finalCost - priceResults[0].finalCost)}
                   </p>
                 </div>
@@ -3730,13 +3770,13 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
                             <p style={{color:"var(--text)",fontSize:15,fontWeight:700}}>{r.store}</p>
                             {r.badge && (
-                              <span className={`pill ${i===0?"pill-gold":"pill-emerald"}`} style={{fontSize:10,display:"inline-flex",alignItems:"center",gap:4}}>
+                              <span className={`pill ${i===0?"pill-gold":"pill-emerald"}`} style={{fontSize:11,display:"inline-flex",alignItems:"center",gap:4}}>
                                 {i===0&&<Icon name="trophy" size={10}/>}{r.badge}
                               </span>
                             )}
                           </div>
                           {r.cardEarning > 0 && (
-                            <p style={{color:"var(--text3)",fontSize:11}}>
+                            <p style={{color:"var(--text3)",fontSize:12}}>
                               Use {r.card} -> earn ${r.cardEarning} back
                             </p>
                           )}
@@ -3744,7 +3784,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                         <div style={{textAlign:"right"}}>
                           <p style={{color:i===0?"var(--accent)":"var(--text)",fontSize:18,fontWeight:800}}>${f2(r.price)}</p>
                           {r.cardEarning > 0 && (
-                            <p style={{color:"var(--green)",fontSize:11,marginTop:2}}>
+                            <p style={{color:"var(--green)",fontSize:12,marginTop:2}}>
                               After rewards: ${f2(r.finalCost)}
                             </p>
                           )}
@@ -3752,7 +3792,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                       </div>
                       {i===0 && (
                         <div style={{background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",borderRadius:10,padding:"8px 12px",marginTop:4}}>
-                          <p style={{color:"var(--accent)",fontSize:12,lineHeight:1.5,display:"flex",gap:6}}><Icon name="rocket" size={13}/><span>Best deal after card rewards. You save ${f2(priceResults[priceResults.length-1].price - r.price)} vs most expensive option.
+                          <p style={{color:"var(--accent)",fontSize:13,lineHeight:1.5,display:"flex",gap:6}}><Icon name="rocket" size={13}/><span>Best deal after card rewards. You save ${f2(priceResults[priceResults.length-1].price - r.price)} vs most expensive option.
                             {r.cardEarning > 0 ? ` Using ${r.card} gives you $${r.cardEarning} back on this purchase.` : " Add a cashback card to save even more."}
                           </span></p>
                         </div>
@@ -3773,17 +3813,17 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
         {tab===1 && (
           <div className="ai">
             <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:20,padding:"18px 20px",marginBottom:20}}>
-              <h3 className="serif" style={{fontSize:22,fontWeight:400,marginBottom:6}}>Daily Habit Savings Calculator</h3>
-              <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.6}}>
+              <h3 className="serif" style={{fontSize:28,fontWeight:400,marginBottom:8,letterSpacing:"-.4px"}}>Daily Habit Savings Calculator</h3>
+              <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.6}}>
                 Enter any daily habit and its home-made alternative. See exactly how much you save over 1, 3, and 5 years -- and what you could do with that money.
               </p>
             </div>
 
             {/* Quick fill suggestions */}
-            <p style={{color:"var(--text3)",fontSize:12,marginBottom:10}}>Quick examples -- tap to fill</p>
+            <p style={{color:"var(--text3)",fontSize:13,marginBottom:10}}>Quick examples -- tap to fill</p>
             <div style={{display:"flex",gap:7,overflowX:"auto",marginBottom:20,paddingBottom:4}}>
               {HABIT_SUGGESTIONS.map(h=>(
-                <button key={h.name} onClick={()=>{setHabitName(h.name);setHabitCost(h.cost);setHomeCost(h.home);setHabitFreq(h.freq);setCalculated(false);}} className="press" style={{flexShrink:0,padding:"8px 14px",borderRadius:20,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",fontSize:12,whiteSpace:"nowrap",transition:"all .15s"}}
+                <button key={h.name} onClick={()=>{setHabitName(h.name);setHabitCost(h.cost);setHomeCost(h.home);setHabitFreq(h.freq);setCalculated(false);}} className="press" style={{flexShrink:0,padding:"8px 14px",borderRadius:20,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",fontSize:13,whiteSpace:"nowrap",transition:"all .15s"}}
                   onMouseOver={e=>{e.currentTarget.style.borderColor="var(--accent)";e.currentTarget.style.color="var(--accent)"}}
                   onMouseOut={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text2)"}}>
                   {h.name}
@@ -3794,26 +3834,26 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
             {/* Input form */}
             <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:20,padding:"18px 20px",marginBottom:16}}>
               <div style={{marginBottom:16}}>
-                <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>What is the habit?</label>
+                <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>What is the habit?</label>
                 <input className="field" placeholder="e.g. Starbucks coffee, gym, takeout lunch..." value={habitName} onChange={e=>{setHabitName(e.target.value);setCalculated(false);}} style={{padding:"12px 16px"}}/>
               </div>
 
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
                 <div>
-                  <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Current cost ($)</label>
+                  <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Current cost ($)</label>
                   <input className="field" type="number" placeholder="e.g. 6.50" value={habitCost} onChange={e=>{setHabitCost(e.target.value);setCalculated(false);}} style={{padding:"12px 16px"}}/>
                 </div>
                 <div>
-                  <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Home alternative ($)</label>
+                  <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Home alternative ($)</label>
                   <input className="field" type="number" placeholder="e.g. 0.50" value={homeCost} onChange={e=>{setHomeCost(e.target.value);setCalculated(false);}} style={{padding:"12px 16px"}}/>
                 </div>
               </div>
 
               <div style={{marginBottom:20}}>
-                <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:10}}>How often?</label>
+                <label style={{fontSize:13,color:"var(--text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:10}}>How often?</label>
                 <div style={{display:"flex",gap:8}}>
                   {(["daily","weekly","monthly"] as const).map(freq=>(
-                    <button key={freq} onClick={()=>{setHabitFreq(freq);setCalculated(false);}} className="press" style={{flex:1,padding:"10px",borderRadius:12,border:`1.5px solid ${habitFreq===freq?"var(--accent)":"var(--border2)"}`,background:habitFreq===freq?"rgba(201,168,76,.1)":"var(--surface2)",color:habitFreq===freq?"var(--accent)":"var(--text2)",fontSize:13,fontWeight:habitFreq===freq?700:500,textTransform:"capitalize",transition:"all .15s"}}>
+                    <button key={freq} onClick={()=>{setHabitFreq(freq);setCalculated(false);}} className="press" style={{flex:1,padding:"10px",borderRadius:12,border:`1.5px solid ${habitFreq===freq?"var(--accent)":"var(--border2)"}`,background:habitFreq===freq?"rgba(201,168,76,.1)":"var(--surface2)",color:habitFreq===freq?"var(--accent)":"var(--text2)",fontSize:14,fontWeight:habitFreq===freq?700:500,textTransform:"capitalize",transition:"all .15s"}}>
                       {freq}
                     </button>
                   ))}
@@ -3831,7 +3871,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                 {/* Hero savings card */}
                 <div style={{background:"linear-gradient(135deg,#0A1E00,#1A3A00,#0A2800)",border:"1px solid rgba(45,200,160,.3)",borderRadius:22,padding:"24px",marginBottom:16,position:"relative",overflow:"hidden"}}>
                   <div style={{position:"absolute",top:-30,right:-30,width:120,height:120,borderRadius:"50%",background:"rgba(45,200,160,.06)"}}/>
-                  <p style={{color:"rgba(45,200,160,.6)",fontSize:11,letterSpacing:1.2,textTransform:"uppercase",fontWeight:600,marginBottom:6}}>
+                  <p style={{color:"rgba(45,200,160,.6)",fontSize:12,letterSpacing:1.2,textTransform:"uppercase",fontWeight:600,marginBottom:6}}>
                     If you stop {savings.coffeeLabel}
                   </p>
                   <h2 style={{fontSize:44,fontWeight:800,color:"#6EE7B7",letterSpacing:"-1.5px",marginBottom:4,lineHeight:1}}>
@@ -3850,7 +3890,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                     {label:"5 Years",value:`$${f2(savings.fiveYear)}`,color:"var(--accent)"},
                   ].map(({label,value,color})=>(
                     <div key={label} style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"14px 12px",textAlign:"center"}}>
-                      <p style={{color:"var(--text3)",fontSize:10,marginBottom:6,textTransform:"uppercase",letterSpacing:.6}}>{label}</p>
+                      <p style={{color:"var(--text3)",fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:.6}}>{label}</p>
                       <p style={{color,fontSize:18,fontWeight:800}}>{value}</p>
                     </div>
                   ))}
@@ -3858,15 +3898,15 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
 
                 {/* Investment projection */}
                 <div style={{background:"rgba(79,110,247,.08)",border:"1px solid rgba(79,110,247,.2)",borderRadius:16,padding:"14px 18px",marginBottom:12}}>
-                  <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Icon name="analytics" size={13}/> If you invested those savings</p>
-                  <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.6}}>
+                  <p style={{color:"var(--accent)",fontSize:14,fontWeight:700,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Icon name="analytics" size={13}/> If you invested those savings</p>
+                  <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.6}}>
                     Investing ${f2(savings.yearly)}/year at 7% average market returns (S&P 500) for 5 years would grow to <strong style={{color:"var(--accent)",fontSize:16}}>${f2(savings.withInvestment)}</strong>.
                   </p>
                 </div>
 
                 {/* Fun equivalents */}
                 <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"14px 18px",marginBottom:12}}>
-                  <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,marginBottom:12}}> What you could do instead</p>
+                  <p style={{color:"var(--accent)",fontSize:14,fontWeight:700,marginBottom:12}}> What you could do instead</p>
                   <div style={{display:"flex",flexDirection:"column",gap:10}}>
                     {[
                       {emoji:"travel", label:"International vacations", value:`${savings.vacations} round trips to Europe`, show:savings.vacations > 0},
@@ -3878,8 +3918,8 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                       <div key={label} style={{display:"flex",gap:12,alignItems:"center"}}>
                         <div style={{width:36,height:36,borderRadius:10,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"var(--accent)"}}><Icon name={emoji} size={16}/></div>
                         <div>
-                          <p style={{color:"var(--text)",fontSize:12,fontWeight:600}}>{label}</p>
-                          <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{value}</p>
+                          <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
+                          <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{value}</p>
                         </div>
                       </div>
                     ))}
@@ -3889,8 +3929,8 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
                 {/* Card rewards angle */}
                 {cards.length > 0 && (
                   <div style={{background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",borderRadius:16,padding:"14px 18px",marginBottom:12}}>
-                    <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,marginBottom:6,display:"flex",alignItems:"center",gap:6}}><Icon name="card" size={13}/> WiseCard tip</p>
-                    <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.6}}>
+                    <p style={{color:"var(--accent)",fontSize:14,fontWeight:700,marginBottom:6,display:"flex",alignItems:"center",gap:6}}><Icon name="card" size={13}/> WiseCard tip</p>
+                    <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.6}}>
                       If you still buy {savings.coffeeLabel} occasionally, always use {cards[0].name} -- it earns {cards[0].rewardRate}. On ${f2(savings.monthly)} monthly spending that earns roughly ${f2(Math.round(savings.monthly * 0.04))} back per month in rewards.
                     </p>
                   </div>
@@ -3905,7 +3945,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
             {calculated && savings.yearly <= 0 && (
               <div style={{background:"rgba(244,97,122,.06)",border:"1px solid rgba(244,97,122,.2)",borderRadius:16,padding:"16px 18px",textAlign:"center"}}>
                 <p style={{color:"var(--red)",fontSize:14,fontWeight:600,marginBottom:4}}>Home alternative costs more!</p>
-                <p style={{color:"var(--text2)",fontSize:13}}>The home version actually costs more than your current habit. Consider keeping the original.</p>
+                <p style={{color:"var(--text2)",fontSize:14}}>The home version actually costs more than your current habit. Consider keeping the original.</p>
               </div>
             )}
           </div>
@@ -4108,17 +4148,17 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
       <PageHead title="Analytics" sub="Tap segments to explore spending" back={()=>go("settings")}
         right={<div style={{display:"flex",gap:8}}>
           <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCSVImport} style={{display:"none"}}/>
-          <button onClick={()=>fileInputRef.current?.click()} disabled={importing} className="btn-ghost press" style={{padding:"8px 12px",fontSize:13,display:"flex",alignItems:"center",gap:6}}>
+          <button onClick={()=>fileInputRef.current?.click()} disabled={importing} className="btn-ghost press" style={{padding:"8px 12px",fontSize:14,display:"flex",alignItems:"center",gap:6}}>
             <Icon name="download" size={13} color="var(--text2)"/>{importing?"...":"Import"}
           </button>
-          {txns.length>0 && <button onClick={exportCSV} className="btn-ghost press" style={{padding:"8px 12px",fontSize:13}}>Export</button>}
-          <button onClick={()=>setShowAdd(a=>!a)} className="btn-gold press" style={{padding:"8px 16px",fontSize:13}}>+ Log</button>
+          {txns.length>0 && <button onClick={exportCSV} className="btn-ghost press" style={{padding:"8px 12px",fontSize:14}}>Export</button>}
+          <button onClick={()=>setShowAdd(a=>!a)} className="btn-gold press" style={{padding:"8px 16px",fontSize:14}}>+ Log</button>
         </div>}/>
       <div className="px">
         {merged.filter(c=>c.cap>0&&c.capPct>=80).map(c=>(
           <div key={c.key} className="au" style={{background:c.capPct>=100?"var(--redbg)":"var(--amberbg)",border:`1px solid ${c.capPct>=100?"rgba(220,38,38,.2)":"rgba(217,119,6,.2)"}`,borderRadius:12,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
             <span style={{display:"flex",color:c.capPct>=100?"var(--red)":"var(--amber)"}}><Icon name={c.capPct>=100?"alert":"warning"} size={15}/></span>
-            <p style={{color:c.capPct>=100?"var(--red)":"var(--amber)",fontSize:12,fontWeight:600,flex:1}}>
+            <p style={{color:c.capPct>=100?"var(--red)":"var(--amber)",fontSize:13,fontWeight:600,flex:1}}>
               {c.capPct>=100 ? `Over budget on ${c.label}` : `Close to your ${c.label} cap`} — ${f(c.val)} of ${f(c.cap)} ({c.capPct}%)
             </p>
           </div>
@@ -4127,8 +4167,8 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
         {txns.length>=3 && baselineMonthlyBudget>0 && (
           <div className="au card-surface" style={{padding:"16px 18px",marginBottom:16,border:`1px solid ${pace>15?"rgba(220,38,38,.2)":"var(--border)"}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>Spending Pace</p>
-              <span style={{fontSize:11,color:pace>15?"var(--red)":pace>0?"var(--amber)":"var(--green)",fontWeight:700}}>
+              <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>Spending Pace</p>
+              <span style={{fontSize:12,color:pace>15?"var(--red)":pace>0?"var(--amber)":"var(--green)",fontWeight:700}}>
                 {pace>15?"Spending fast":pace>0?"Slightly ahead":"On pace"}
               </span>
             </div>
@@ -4136,7 +4176,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
               <div style={{position:"absolute",left:0,top:0,height:"100%",width:`${Math.min(100,spendPct)}%`,background:pace>15?"var(--red)":pace>0?"var(--amber)":"var(--green)",borderRadius:99,transition:"width .5s ease"}}/>
               <div style={{position:"absolute",left:`${monthPct}%`,top:0,height:"100%",width:2,background:"var(--text)"}}/>
             </div>
-            <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.5}}>
+            <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>
               You've logged {spendPct}% of your typical monthly spend, and we're {monthPct}% through the month.
               {pace>15 ? " You're spending faster than usual — worth checking what's driving it." : pace<-15 ? " You're spending less than usual this month." : " That's roughly on track."}
             </p>
@@ -4148,24 +4188,24 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
             <p style={{color:"var(--text)",fontSize:15,fontWeight:700,marginBottom:14}}>Log a Transaction</p>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
               <div>
-                <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Amount ($)</label>
+                <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Amount ($)</label>
                 <input className="field" type="number" placeholder="0.00" value={amt} onChange={e=>setAmt(e.target.value)} style={{padding:"10px 12px"}}/>
               </div>
               <div>
-                <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Category</label>
-                <select className="field" value={cat} onChange={e=>setCat(e.target.value)} style={{padding:"10px 12px",fontSize:13}}>
+                <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Category</label>
+                <select className="field" value={cat} onChange={e=>setCat(e.target.value)} style={{padding:"10px 12px",fontSize:14}}>
                   {CATS.map(c=><option key={c.key} value={c.key}>{c.label}</option>)}
                 </select>
               </div>
             </div>
             <div style={{marginBottom:10}}>
-              <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Description</label>
+              <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Description</label>
               <input className="field" placeholder="e.g. Whole Foods, Starbucks, Delta..." value={desc} onChange={e=>setDesc(e.target.value)} style={{padding:"10px 12px"}}/>
             </div>
             {cards.length>0&&(
               <div style={{marginBottom:14}}>
-                <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Card Used</label>
-                <select className="field" value={card} onChange={e=>setCard(e.target.value)} style={{padding:"10px 12px",fontSize:13}}>
+                <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Card Used</label>
+                <select className="field" value={card} onChange={e=>setCard(e.target.value)} style={{padding:"10px 12px",fontSize:14}}>
                   {cards.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
@@ -4192,8 +4232,8 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
                   background:sel===cat.key?`${cat.color}15`:"var(--surface2)",cursor:"pointer",transition:"all .15s"
                 }}>
                   <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,flexShrink:0}}/>
-                  <span style={{fontSize:11,fontWeight:600,color:sel===cat.key?cat.color:"var(--text2)"}}>{cat.label}</span>
-                  <span style={{fontSize:11,color:"var(--text3)"}}>${f(cat.val)}</span>
+                  <span style={{fontSize:12,fontWeight:600,color:sel===cat.key?cat.color:"var(--text2)"}}>{cat.label}</span>
+                  <span style={{fontSize:12,color:"var(--text3)"}}>${f(cat.val)}</span>
                 </button>
               ))}
             </div>
@@ -4204,15 +4244,15 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
                     <span style={{color:selCat.color}}><Icon name={selCat.icon} size={20}/></span>
                     <div>
                       <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{selCat.label}</p>
-                      <p style={{color:"var(--text2)",fontSize:11}}>{Math.round(selCat.val/total*100)}% of monthly spend</p>
+                      <p style={{color:"var(--text2)",fontSize:12}}>{Math.round(selCat.val/total*100)}% of monthly spend</p>
                     </div>
                   </div>
                   <div style={{textAlign:"right"}}>
                     <p style={{color:selCat.color,fontSize:20,fontWeight:800}}>${f(selCat.val)}</p>
-                    <p style={{color:"var(--text3)",fontSize:10}}>per month · ${f(selCat.val*12)}/yr</p>
+                    <p style={{color:"var(--text3)",fontSize:11}}>per month · ${f(selCat.val*12)}/yr</p>
                   </div>
                 </div>
-                {selCat.fromTxns>0&&<p style={{color:"var(--text2)",fontSize:11,marginTop:8}}>+${f(selCat.fromTxns)} from logged transactions</p>}
+                {selCat.fromTxns>0&&<p style={{color:"var(--text2)",fontSize:12,marginTop:8}}>+${f(selCat.fromTxns)} from logged transactions</p>}
               </div>
             )}
           </div>
@@ -4226,14 +4266,14 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
           ].map(({l,v,c})=>(
             <div key={l} className="card-surface" style={{padding:"12px 10px",textAlign:"center"}}>
               <p style={{color:c,fontSize:17,fontWeight:800}}>{v}</p>
-              <p style={{color:"var(--text3)",fontSize:10,marginTop:3}}>{l}</p>
+              <p style={{color:"var(--text3)",fontSize:11,marginTop:3}}>{l}</p>
             </div>
           ))}
         </div>
 
         {total>0&&(
           <>
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Breakdown</p>
+            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Breakdown</p>
             <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
               {active.map((cat,i,arr)=>(
                 <button key={cat.key} onClick={()=>setSel(v=>v===cat.key?null:cat.key)} className="press" style={{
@@ -4244,23 +4284,23 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
                     <div style={{display:"flex",alignItems:"center",gap:9}}>
                       <span style={{color:cat.color}}><Icon name={cat.icon} size={16}/></span>
-                      <span style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{cat.label}</span>
+                      <span style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{cat.label}</span>
                     </div>
-                    <span style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${f(cat.val)}<span style={{color:"var(--text3)",fontSize:10,fontWeight:400}}>/mo</span></span>
+                    <span style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${f(cat.val)}<span style={{color:"var(--text3)",fontSize:11,fontWeight:400}}>/mo</span></span>
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div className="track" style={{flex:1,height:5}}>
                       <div className="fill" style={{width:`${Math.round(cat.val/total*100)}%`,background:cat.color,height:5}}/>
                     </div>
-                    <span style={{color:"var(--text3)",fontSize:10,width:28,textAlign:"right"}}>{Math.round(cat.val/total*100)}%</span>
+                    <span style={{color:"var(--text3)",fontSize:11,width:28,textAlign:"right"}}>{Math.round(cat.val/total*100)}%</span>
                   </div>
                   {cat.cap>0 && (
                     <div style={{marginTop:6,display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:9,color:cat.capPct>=100?"var(--red)":cat.capPct>=80?"var(--amber)":"var(--text3)"}}>Budget: ${f(cat.cap)}</span>
+                      <span style={{fontSize:10,color:cat.capPct>=100?"var(--red)":cat.capPct>=80?"var(--amber)":"var(--text3)"}}>Budget: ${f(cat.cap)}</span>
                       <div style={{flex:1,height:3,background:"var(--border2)",borderRadius:99,overflow:"hidden"}}>
                         <div style={{height:"100%",width:`${Math.min(100,cat.capPct)}%`,background:cat.capPct>=100?"var(--red)":cat.capPct>=80?"var(--amber)":"var(--green)",borderRadius:99}}/>
                       </div>
-                      <span style={{fontSize:9,fontWeight:700,color:cat.capPct>=100?"var(--red)":cat.capPct>=80?"var(--amber)":"var(--green)"}}>{cat.capPct}%</span>
+                      <span style={{fontSize:10,fontWeight:700,color:cat.capPct>=100?"var(--red)":cat.capPct>=80?"var(--amber)":"var(--green)"}}>{cat.capPct}%</span>
                     </div>
                   )}
                 </button>
@@ -4271,7 +4311,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
 
         {subscriptions.length>0 && (
           <>
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10,display:"flex",alignItems:"center",gap:6}}><Icon name="refresh" size={11}/> Detected Recurring Charges</p>
+            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10,display:"flex",alignItems:"center",gap:6}}><Icon name="refresh" size={11}/> Detected Recurring Charges</p>
             <div className="card-surface" style={{overflow:"hidden",marginBottom:20,border:"1px solid rgba(217,119,6,.2)"}}>
               {subscriptions.map((s,i,arr)=>{
                 const c=CATS.find(x=>x.key===s.cat);
@@ -4280,11 +4320,11 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
                       <span style={{display:"flex",color:c?.color||"var(--text2)"}}><Icon name={c?.icon||"refresh"} size={15}/></span>
                       <div>
-                        <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{s.desc}</p>
-                        <p style={{color:"var(--amber)",fontSize:11}}>Seen {s.count}× — looks recurring</p>
+                        <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{s.desc}</p>
+                        <p style={{color:"var(--amber)",fontSize:12}}>Seen {s.count}× — looks recurring</p>
                       </div>
                     </div>
-                    <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${f(s.amount)}<span style={{color:"var(--text3)",fontSize:10,fontWeight:400}}>/mo</span></p>
+                    <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${f(s.amount)}<span style={{color:"var(--text3)",fontSize:11,fontWeight:400}}>/mo</span></p>
                   </div>
                 );
               })}
@@ -4294,7 +4334,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
 
         {txns.length>0&&(
           <>
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Logged Transactions</p>
+            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Logged Transactions</p>
             <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
               {[...txns].reverse().map((t,i,arr)=>{
                 const c=CATS.find(x=>x.key===t.cat);
@@ -4303,8 +4343,8 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
                       <span style={{width:26,display:"flex",justifyContent:"center",color:c?.color||"var(--text2)"}}>{c&&<Icon name={c.icon} size={15}/>}</span>
                       <div>
-                        <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{t.desc}</p>
-                        <p style={{color:"var(--text2)",fontSize:11}}>{t.card} · {t.date}</p>
+                        <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{t.desc}</p>
+                        <p style={{color:"var(--text2)",fontSize:12}}>{t.card} · {t.date}</p>
                       </div>
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -4320,7 +4360,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
 
         {total>0&&(
           <>
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Yearly Projection</p>
+            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Yearly Projection</p>
             <div className="card-surface" style={{padding:"20px",marginBottom:20}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,textAlign:"center"}}>
                 {[
@@ -4330,7 +4370,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
                 ].map(({l,v})=>(
                   <div key={l}>
                     <p style={{color:"var(--accent)",fontSize:18,fontWeight:700}}>{v}</p>
-                    <p style={{color:"var(--text2)",fontSize:11,marginTop:4}}>{l}</p>
+                    <p style={{color:"var(--text2)",fontSize:12,marginTop:4}}>{l}</p>
                   </div>
                 ))}
               </div>
@@ -4340,17 +4380,17 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
 
         {txns.length>0&&(
           <>
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Round-Up Savings</p>
+            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Round-Up Savings</p>
             <div className="card-surface au" style={{padding:"18px 20px",marginBottom:20,background:"var(--greenbg)",border:"1px solid rgba(39,103,73,.15)"}}>
-              <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5,marginBottom:12}}>If every logged purchase were rounded up to the nearest dollar and the difference saved automatically:</p>
+              <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5,marginBottom:12}}>If every logged purchase were rounded up to the nearest dollar and the difference saved automatically:</p>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,textAlign:"center"}}>
                 <div>
                   <p style={{color:"var(--green)",fontSize:22,fontWeight:800}}>${roundUpMonthly.toFixed(2)}</p>
-                  <p style={{color:"var(--text2)",fontSize:11,marginTop:3}}>From {txns.length} logged purchase{txns.length!==1?"s":""}</p>
+                  <p style={{color:"var(--text2)",fontSize:12,marginTop:3}}>From {txns.length} logged purchase{txns.length!==1?"s":""}</p>
                 </div>
                 <div>
                   <p style={{color:"var(--green)",fontSize:22,fontWeight:800}}>~${f(Math.round(roundUpYearly))}</p>
-                  <p style={{color:"var(--text2)",fontSize:11,marginTop:3}}>Projected per year</p>
+                  <p style={{color:"var(--text2)",fontSize:12,marginTop:3}}>Projected per year</p>
                 </div>
               </div>
             </div>
@@ -4393,22 +4433,22 @@ function Notifications({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
       <div className="px">
         {alerts.length>0&&(
           <>
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Recent</p>
+            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Recent</p>
             <div className="card-surface" style={{marginBottom:24,overflow:"hidden"}}>
               {alerts.map((a,i)=>(
                 <div key={i} style={{padding:"14px 16px",borderBottom:i<alerts.length-1?"1px solid var(--border)":"none",display:"flex",gap:12,alignItems:"flex-start"}}>
                   <span style={{flexShrink:0,color:icoColor(a.type)}}><Icon name={ico(a.type)} size={18}/></span>
                   <div style={{flex:1}}>
-                    <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{a.title}</p>
-                    <p style={{color:"var(--text2)",fontSize:12,marginTop:2,lineHeight:1.4}}>{a.desc}</p>
+                    <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{a.title}</p>
+                    <p style={{color:"var(--text2)",fontSize:13,marginTop:2,lineHeight:1.4}}>{a.desc}</p>
                   </div>
-                  <span style={{color:"var(--text3)",fontSize:11,flexShrink:0,marginTop:1}}>{a.time}</span>
+                  <span style={{color:"var(--text3)",fontSize:12,flexShrink:0,marginTop:1}}>{a.time}</span>
                 </div>
               ))}
             </div>
           </>
         )}
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Preferences</p>
+        <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Preferences</p>
         <div className="card-surface" style={{overflow:"hidden"}}>
           {([
             ["paymentDue","card","Payment Reminders","7 and 3 days before due dates"],
@@ -4423,8 +4463,8 @@ function Notifications({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
             <div key={key} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
               <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name={icon} size={16}/></span>
               <div style={{flex:1}}>
-                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p>
-                <p style={{color:"var(--text2)",fontSize:11,marginTop:1}}>{desc}</p>
+                <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{label}</p>
+                <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{desc}</p>
               </div>
               <Toggle on={prefs[key]} set={()=>tog(key)}/>
             </div>
@@ -4464,8 +4504,8 @@ function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
           {[{val:a,set:setA,label:"Card A"},{val:b,set:setB,label:"Card B"}].map(({val,set,label})=>(
             <div key={label}>
-              <p style={{color:"var(--text3)",fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:.8,marginBottom:7}}>{label}</p>
-              <select className="field" value={val} onChange={e=>set(e.target.value)} style={{fontSize:12,padding:"10px 12px"}}>
+              <p style={{color:"var(--text3)",fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:.8,marginBottom:7}}>{label}</p>
+              <select className="field" value={val} onChange={e=>set(e.target.value)} style={{fontSize:13,padding:"10px 12px"}}>
                 {allCards.map(c=><option key={c.dbId} value={c.dbId}>{c.name} ({c.issuer})</option>)}
               </select>
             </div>
@@ -4476,9 +4516,9 @@ function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18}}>
               {[cA,cB].map(c=>(
                 <div key={c.dbId} style={{background:c.gradient,borderRadius:14,padding:"16px 14px"}}>
-                  <p style={{color:"rgba(255,255,255,.55)",fontSize:10,letterSpacing:1,textTransform:"uppercase"}}>{c.issuer}</p>
+                  <p style={{color:"rgba(255,255,255,.55)",fontSize:11,letterSpacing:1,textTransform:"uppercase"}}>{c.issuer}</p>
                   <p style={{color:"#fff",fontSize:15,fontWeight:700,marginTop:3}}>{c.name}</p>
-                  <p style={{color:"rgba(255,255,255,.6)",fontSize:11,marginTop:5}}>{c.rewardRate}</p>
+                  <p style={{color:"rgba(255,255,255,.6)",fontSize:12,marginTop:5}}>{c.rewardRate}</p>
                 </div>
               ))}
             </div>
@@ -4487,9 +4527,9 @@ function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
                 const w=winner(cA,cB);
                 return (
                   <div key={label} style={{display:"grid",gridTemplateColumns:"1fr 100px 1fr",padding:"12px 14px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",alignItems:"center",gap:6}}>
-                    <p style={{color:w==="a"?"var(--green)":"var(--text)",fontSize:12,fontWeight:w==="a"?700:400}}>{fmt(cA)}</p>
-                    <p style={{color:"var(--text3)",fontSize:10,textAlign:"center",fontWeight:600,textTransform:"uppercase",letterSpacing:.5}}>{label}</p>
-                    <p style={{color:w==="b"?"var(--green)":"var(--text)",fontSize:12,fontWeight:w==="b"?700:400,textAlign:"right"}}>{fmt(cB)}</p>
+                    <p style={{color:w==="a"?"var(--green)":"var(--text)",fontSize:13,fontWeight:w==="a"?700:400}}>{fmt(cA)}</p>
+                    <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",fontWeight:600,textTransform:"uppercase",letterSpacing:.5}}>{label}</p>
+                    <p style={{color:w==="b"?"var(--green)":"var(--text)",fontSize:13,fontWeight:w==="b"?700:400,textAlign:"right"}}>{fmt(cB)}</p>
                   </div>
                 );
               })}
@@ -4497,9 +4537,9 @@ function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               {[cA,cB].map(c=>(
                 <div key={c.dbId} className="card-surface" style={{padding:"14px"}}>
-                  <p style={{color:"var(--green)",fontSize:11,fontWeight:700,marginBottom:8}}>Best for</p>
+                  <p style={{color:"var(--green)",fontSize:12,fontWeight:700,marginBottom:8}}>Best for</p>
                   {(c.bestFor||[]).slice(0,3).map((b:string,i:number)=>(
-                    <p key={i} style={{color:"var(--text2)",fontSize:11,marginBottom:4,lineHeight:1.4}}>• {b}</p>
+                    <p key={i} style={{color:"var(--text2)",fontSize:12,marginBottom:4,lineHeight:1.4}}>• {b}</p>
                   ))}
                 </div>
               ))}
@@ -4526,21 +4566,21 @@ function EditProfile({ go, profile, onSave }: { go:(s:S)=>void; profile:UserProf
       <PageHead title="Edit Profile" back={()=>go("settings")}/>
       <div className="px">
         <div className="card-surface" style={{padding:"20px",marginBottom:16}}>
-          <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>Personal Info</p>
+          <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>Personal Info</p>
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             <div>
-              <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:6}}>Full Name</label>
+              <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:6}}>Full Name</label>
               <input className="field" value={p.name} onChange={e=>set("name",e.target.value)} placeholder="Your name"/>
             </div>
             <div>
-              <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:6}}>Annual Income</label>
+              <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:6}}>Annual Income</label>
               <select className="field" value={p.income} onChange={e=>set("income",e.target.value)}>
                 <option value="">Select income range</option>
                 {INCOMES.map(i=><option key={i} value={i}>{i}</option>)}
               </select>
             </div>
             <div>
-              <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:6}}>Credit Score Range</label>
+              <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:6}}>Credit Score Range</label>
               <select className="field" value={p.creditScore} onChange={e=>set("creditScore",e.target.value)}>
                 <option value="">Select score range</option>
                 {SCORES.map(s=><option key={s} value={s}>{s}</option>)}
@@ -4549,11 +4589,11 @@ function EditProfile({ go, profile, onSave }: { go:(s:S)=>void; profile:UserProf
           </div>
         </div>
         <div className="card-surface" style={{padding:"20px",marginBottom:20}}>
-          <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>Monthly Spending</p>
+          <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>Monthly Spending</p>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {([["dining","Dining"],["groceries","Groceries"],["travel","Travel"],["gas","Gas"],["shopping","Shopping"],["other","Other"]] as [keyof typeof p.spending,string][]).map(([k,label])=>(
               <div key={k}>
-                <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:5}}>{label} / month</label>
+                <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:5}}>{label} / month</label>
                 <input className="field" type="number" placeholder="$0" value={p.spending[k]} onChange={e=>setSp(k,e.target.value)}/>
               </div>
             ))}
@@ -4561,12 +4601,12 @@ function EditProfile({ go, profile, onSave }: { go:(s:S)=>void; profile:UserProf
         </div>
 
         <div className="card-surface" style={{padding:"20px",marginBottom:20}}>
-          <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Budget Caps</p>
-          <p style={{color:"var(--text2)",fontSize:12,marginBottom:14,lineHeight:1.5}}>Set a monthly limit per category. We'll warn you in Analytics when you're close to going over.</p>
+          <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Budget Caps</p>
+          <p style={{color:"var(--text2)",fontSize:13,marginBottom:14,lineHeight:1.5}}>Set a monthly limit per category. We'll warn you in Analytics when you're close to going over.</p>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {([["dining","Dining"],["groceries","Groceries"],["travel","Travel"],["gas","Gas"],["shopping","Shopping"],["other","Other"]] as [keyof typeof p.spending,string][]).map(([k,label])=>(
               <div key={k}>
-                <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:5}}>{label} cap / month</label>
+                <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:5}}>{label} cap / month</label>
                 <input className="field" type="number" placeholder="No cap set" value={p.budgetCaps?.[k]||""} onChange={e=>setCap(k,e.target.value)}/>
               </div>
             ))}
@@ -4595,22 +4635,22 @@ function Referral({ go }: { go:(s:S)=>void }) {
           <h2 style={{fontSize:22,fontWeight:700,color:"var(--text)",marginBottom:8}}>Give $20, Get $20</h2>
           <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.6,maxWidth:280,margin:"0 auto 22px"}}>Share WiseCard with a friend. When they sign up and add their first card, you both get $20 in rewards.</p>
           <div style={{background:"var(--surface)",border:"2px dashed var(--accent)",borderRadius:12,padding:"16px",marginBottom:14}}>
-            <p style={{color:"var(--text3)",fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Your referral code</p>
+            <p style={{color:"var(--text3)",fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Your referral code</p>
             <p style={{color:"var(--accent)",fontSize:28,fontWeight:800,letterSpacing:4}}>{code}</p>
           </div>
           <button onClick={copy} className="btn-gold press" style={{width:"100%",padding:"13px",fontSize:14}}>{copied?"✓ Copied!":"Copy Code"}</button>
         </div>
         <div className="card-surface" style={{padding:"20px",marginBottom:16}}>
-          <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>How It Works</p>
+          <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>How It Works</p>
           {[["1","Share your code","Send it via text, email, or social media"],["2","Friend signs up","They create a WiseCard account with your code"],["3","Both get rewarded","After they add their first card, you both earn $20"]].map(([n,t,d])=>(
             <div key={n} style={{display:"flex",gap:12,marginBottom:14,alignItems:"flex-start"}}>
-              <div style={{width:26,height:26,borderRadius:"50%",background:"var(--accent)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,flexShrink:0}}>{n}</div>
-              <div><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{t}</p><p style={{color:"var(--text2)",fontSize:12,marginTop:2,lineHeight:1.4}}>{d}</p></div>
+              <div style={{width:26,height:26,borderRadius:"50%",background:"var(--accent)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,flexShrink:0}}>{n}</div>
+              <div><p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{t}</p><p style={{color:"var(--text2)",fontSize:13,marginTop:2,lineHeight:1.4}}>{d}</p></div>
             </div>
           ))}
         </div>
         <div className="card-surface" style={{padding:"16px 20px"}}>
-          <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>Your Referrals</p>
+          <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>Your Referrals</p>
           <EmptyState icon="users" title="No referrals yet" sub="Share your code to start earning when friends join WiseCard."/>
         </div>
       </div>
@@ -4761,42 +4801,42 @@ function Privacy({ go, profile, cards, goals, assets, txns, cardApplications, au
           <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
             <span style={{flexShrink:0,color:"var(--green)"}}><Icon name="shield" size={18}/></span>
             <div>
-              <p style={{color:"var(--green)",fontSize:13,fontWeight:700}}>Your data is secure</p>
-              <p style={{color:"var(--text2)",fontSize:12,marginTop:2,lineHeight:1.5}}>WiseCard uses AES-256 encryption. We never store card numbers. Your data is never sold.</p>
+              <p style={{color:"var(--green)",fontSize:14,fontWeight:700}}>Your data is secure</p>
+              <p style={{color:"var(--text2)",fontSize:13,marginTop:2,lineHeight:1.5}}>WiseCard uses AES-256 encryption. We never store card numbers. Your data is never sold.</p>
             </div>
           </div>
         </div>
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Security</p>
+        <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Security</p>
         <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
           <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)",opacity:0.55}}>
             <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text3)"}}><Icon name="key" size={16}/></span>
             <div style={{flex:1}}>
-              <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Biometric Login</p>
-              <p style={{color:"var(--text2)",fontSize:11}}>Face ID or fingerprint sign-in</p>
+              <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>Biometric Login</p>
+              <p style={{color:"var(--text2)",fontSize:12}}>Face ID or fingerprint sign-in</p>
             </div>
-            <span className="pill pill-gray" style={{fontSize:9,fontWeight:700}}>COMING SOON</span>
+            <span className="pill pill-gray" style={{fontSize:10,fontWeight:700}}>COMING SOON</span>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)",opacity:0.55}}>
             <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text3)"}}><Icon name="shield" size={16}/></span>
             <div style={{flex:1}}>
-              <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Two-Factor Authentication</p>
-              <p style={{color:"var(--text2)",fontSize:11}}>Require a code from your phone at sign-in</p>
+              <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>Two-Factor Authentication</p>
+              <p style={{color:"var(--text2)",fontSize:12}}>Require a code from your phone at sign-in</p>
             </div>
-            <span className="pill pill-gray" style={{fontSize:9,fontWeight:700}}>COMING SOON</span>
+            <span className="pill pill-gray" style={{fontSize:10,fontWeight:700}}>COMING SOON</span>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)"}}>
             <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name="clock" size={16}/></span>
-            <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Auto Sign-Out</p><p style={{color:"var(--text2)",fontSize:11}}>Sign out automatically after 15 minutes idle</p></div>
+            <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>Auto Sign-Out</p><p style={{color:"var(--text2)",fontSize:12}}>Sign out automatically after 15 minutes idle</p></div>
             <Toggle on={autoLogoutEnabled} set={()=>{setAutoLogoutEnabled(!autoLogoutEnabled);showToast(autoLogoutEnabled?"Auto sign-out disabled":"Auto sign-out enabled -- you'll be signed out after 15 minutes idle");}}/>
           </div>
           <button onClick={()=>setShowPwForm(s=>!s)} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
-            <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Change Password</p>
+            <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>Change Password</p>
             <span style={{color:"var(--text3)",fontSize:14}}>{showPwForm?"−":"→"}</span>
           </button>
           {showPwForm && (
             <div style={{padding:"4px 16px 16px",borderTop:"1px solid var(--border)"}}>
               <div style={{marginTop:12,marginBottom:10}}>
-                <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>New Password</label>
+                <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>New Password</label>
                 <input className="field" type="password" placeholder="At least 8 characters" value={newPw} onChange={e=>{setNewPw(e.target.value);calcPwStrength(e.target.value);}} style={{padding:"10px 12px"}}/>
                 {newPw.length>0 && (
                   <div style={{marginTop:8}}>
@@ -4805,46 +4845,46 @@ function Privacy({ go, profile, cards, goals, assets, txns, cardApplications, au
                         <div key={i} style={{flex:1,height:3,borderRadius:2,background:pwStrength>=i?(i<=1?"var(--red)":i<=2?"var(--amber)":i<=3?"var(--accent)":"var(--green)"):"var(--border2)",transition:"background .2s"}}/>
                       ))}
                     </div>
-                    <span style={{fontSize:10,color:"var(--text3)"}}>{["","Weak","Fair","Good","Strong"][pwStrength]} password</span>
+                    <span style={{fontSize:11,color:"var(--text3)"}}>{["","Weak","Fair","Good","Strong"][pwStrength]} password</span>
                   </div>
                 )}
               </div>
               <div style={{marginBottom:12}}>
-                <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Confirm New Password</label>
+                <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Confirm New Password</label>
                 <input className="field" type="password" placeholder="Re-enter password" value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} style={{padding:"10px 12px"}}/>
               </div>
-              {pwError && <p style={{color:"var(--red)",fontSize:12,marginBottom:10}}>{pwError}</p>}
-              <button onClick={changePassword} disabled={pwLoading} className="btn-gold press" style={{width:"100%",padding:"11px",fontSize:13,opacity:pwLoading?0.7:1}}>
+              {pwError && <p style={{color:"var(--red)",fontSize:13,marginBottom:10}}>{pwError}</p>}
+              <button onClick={changePassword} disabled={pwLoading} className="btn-gold press" style={{width:"100%",padding:"11px",fontSize:14,opacity:pwLoading?0.7:1}}>
                 {pwLoading?"Updating...":"Update Password"}
               </button>
             </div>
           )}
         </div>
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Data & Privacy</p>
-        <p style={{color:"var(--text3)",fontSize:10,marginBottom:10,lineHeight:1.5}}>No usage analytics are collected yet -- these preferences will take effect once that's built, so your choice is saved and ready.</p>
+        <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:6}}>Data & Privacy</p>
+        <p style={{color:"var(--text3)",fontSize:11,marginBottom:10,lineHeight:1.5}}>No usage analytics are collected yet -- these preferences will take effect once that's built, so your choice is saved and ready.</p>
         <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
           {([[dataSharing,setDataSharing,"download","Share Anonymous Data","Help improve WiseCard with anonymized usage data"],[analytics,setAnalytics,"analytics","Usage Analytics","Allow analytics to improve your experience"]] as [boolean,any,string,string,string][]).map(([val,setVal,icon,label,desc],i)=>(
             <div key={label} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:i===0?"1px solid var(--border)":"none"}}>
               <span style={{width:26,display:"flex",justifyContent:"center",color:"var(--text2)"}}><Icon name={icon} size={16}/></span>
-              <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{label}</p><p style={{color:"var(--text2)",fontSize:11}}>{desc}</p></div>
+              <div style={{flex:1}}><p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{label}</p><p style={{color:"var(--text2)",fontSize:12}}>{desc}</p></div>
               <Toggle on={val} set={()=>setVal((v:boolean)=>!v)}/>
             </div>
           ))}
           <button onClick={()=>setShowExportFormats(s=>!s)} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid var(--border)",textAlign:"left"}}>
-            <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>Download My Data</p>
+            <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>Download My Data</p>
             <span style={{color:"var(--text3)",display:"flex"}}><Icon name="download" size={15}/></span>
           </button>
           {showExportFormats && (
             <div style={{padding:"4px 16px 16px",borderTop:"1px solid var(--border)"}}>
-              <p style={{color:"var(--text2)",fontSize:11,marginBottom:10,marginTop:10}}>Choose a format:</p>
+              <p style={{color:"var(--text2)",fontSize:12,marginBottom:10,marginTop:10}}>Choose a format:</p>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={downloadAsText} className="press" style={{flex:1,padding:"12px 10px",borderRadius:10,border:"1px solid var(--border2)",background:"var(--surface2)",textAlign:"left"}}>
-                  <p style={{color:"var(--text)",fontSize:12,fontWeight:700,marginBottom:2}}>Readable Summary</p>
-                  <p style={{color:"var(--text2)",fontSize:10}}>Plain text, easy to read (.txt)</p>
+                  <p style={{color:"var(--text)",fontSize:13,fontWeight:700,marginBottom:2}}>Readable Summary</p>
+                  <p style={{color:"var(--text2)",fontSize:11}}>Plain text, easy to read (.txt)</p>
                 </button>
                 <button onClick={downloadAsJSON} className="press" style={{flex:1,padding:"12px 10px",borderRadius:10,border:"1px solid var(--border2)",background:"var(--surface2)",textAlign:"left"}}>
-                  <p style={{color:"var(--text)",fontSize:12,fontWeight:700,marginBottom:2}}>Full Data Export</p>
-                  <p style={{color:"var(--text2)",fontSize:10}}>Complete, portable format (.json)</p>
+                  <p style={{color:"var(--text)",fontSize:13,fontWeight:700,marginBottom:2}}>Full Data Export</p>
+                  <p style={{color:"var(--text2)",fontSize:11}}>Complete, portable format (.json)</p>
                 </button>
               </div>
             </div>
@@ -4853,14 +4893,14 @@ function Privacy({ go, profile, cards, goals, assets, txns, cardApplications, au
         <div className="card-surface" style={{overflow:"hidden",marginBottom:16}}>
           {([["Privacy Policy",()=>go("privacy-policy")],["Terms of Service",()=>go("terms")]] as [string,()=>void][]).map(([item,action],i,arr)=>(
             <button key={item} onClick={action} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
-              <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{item}</p>
+              <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{item}</p>
               <span style={{color:"var(--text3)",fontSize:14}}>→</span>
             </button>
           ))}
         </div>
         <div className="card-surface" style={{overflow:"hidden"}}>
           <button onClick={()=>setShowDeleteConfirm(true)} className="press" style={{width:"100%",padding:"14px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
-            <p style={{color:"var(--red)",fontSize:13,fontWeight:600}}>Delete Account</p>
+            <p style={{color:"var(--red)",fontSize:14,fontWeight:600}}>Delete Account</p>
             <span style={{color:"var(--red)",fontSize:14}}>→</span>
           </button>
         </div>
@@ -4870,10 +4910,10 @@ function Privacy({ go, profile, cards, goals, assets, txns, cardApplications, au
             <div className="card-surface" style={{maxWidth:380,width:"100%",padding:24}} onClick={e=>e.stopPropagation()}>
               <div style={{display:"flex",justifyContent:"center",marginBottom:16,color:"var(--red)"}}><Icon name="alert" size={36}/></div>
               <h3 style={{color:"var(--text)",fontSize:17,fontWeight:700,textAlign:"center",marginBottom:8}}>Delete your account?</h3>
-              <p style={{color:"var(--text2)",fontSize:13,textAlign:"center",lineHeight:1.6,marginBottom:20}}>
+              <p style={{color:"var(--text2)",fontSize:14,textAlign:"center",lineHeight:1.6,marginBottom:20}}>
                 This permanently deletes your account and all data -- cards, goals, transactions, assets, and applications logged. <strong>This cannot be undone.</strong>
               </p>
-              {deleteError && <p style={{color:"var(--red)",fontSize:12,textAlign:"center",marginBottom:14}}>{deleteError}</p>}
+              {deleteError && <p style={{color:"var(--red)",fontSize:13,textAlign:"center",marginBottom:14}}>{deleteError}</p>}
               <div style={{display:"flex",gap:10}}>
                 <button onClick={()=>setShowDeleteConfirm(false)} disabled={deleteLoading} className="btn-ghost press" style={{flex:1,padding:"12px"}}>Cancel</button>
                 <button onClick={deleteAccount} disabled={deleteLoading} style={{flex:1,padding:"12px",borderRadius:8,background:"var(--red)",color:"#fff",border:"none",fontWeight:600,fontSize:14,cursor:"pointer",opacity:deleteLoading?0.7:1,fontFamily:"var(--sans)"}}>
@@ -4906,41 +4946,41 @@ function About({ go }: { go:(s:S)=>void }) {
           <div style={{width:60,height:60,borderRadius:16,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px"}}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           </div>
-          <p style={{color:"var(--accent)",fontSize:13,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>WiseCard</p>
+          <p style={{color:"var(--accent)",fontSize:14,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>WiseCard</p>
           <p style={{color:"var(--text)",fontSize:26,fontWeight:800,marginBottom:4}}>Version 1.3.0</p>
-          <p style={{color:"var(--text2)",fontSize:13}}>Save more on every card spend</p>
+          <p style={{color:"var(--text2)",fontSize:14}}>Save more on every card spend</p>
         </div>
 
         <div className="card-surface" style={{padding:"18px 20px",marginBottom:16}}>
-          <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>App Info</p>
+          <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:14}}>App Info</p>
           {[
             ["Version","1.3.0"],["Build","2026.06.18"],["Platform","Web / PWA"],
             ["Cards in Database","50+"],["Features","54 across 9 modules"],["AI Model","Claude Sonnet"],
           ].map(([k,v],i,arr)=>(
             <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:i<arr.length-1?12:0,marginBottom:i<arr.length-1?12:0,borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
-              <span style={{color:"var(--text2)",fontSize:13}}>{k}</span>
-              <span style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{v}</span>
+              <span style={{color:"var(--text2)",fontSize:14}}>{k}</span>
+              <span style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{v}</span>
             </div>
           ))}
         </div>
 
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Changelog</p>
+        <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Changelog</p>
         {changes.map(({v,date,items})=>(
           <div key={v} className="card-surface" style={{padding:"16px 18px",marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <span style={{color:"var(--accent)",fontSize:14,fontWeight:700}}>{v}</span>
-              <span style={{color:"var(--text3)",fontSize:12}}>{date}</span>
+              <span style={{color:"var(--text3)",fontSize:13}}>{date}</span>
             </div>
             {items.map((item,i)=>(
               <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<items.length-1?7:0}}>
-                <span style={{color:"var(--accent)",fontSize:12,marginTop:1,flexShrink:0}}>+</span>
-                <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{item}</p>
+                <span style={{color:"var(--accent)",fontSize:13,marginTop:1,flexShrink:0}}>+</span>
+                <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.4}}>{item}</p>
               </div>
             ))}
           </div>
         ))}
 
-        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:20,lineHeight:1.6}}>
+        <p style={{color:"var(--text3)",fontSize:12,textAlign:"center",marginTop:20,lineHeight:1.6}}>
           Made with care. Your data is encrypted and never sold.
         </p>
       </div>
@@ -4998,7 +5038,7 @@ function CardStrategy({ go, cards, applications, onAddApplication, onDeleteAppli
       <div className="px">
         <div className="au" style={{display:"flex",gap:5,marginBottom:20,background:"var(--surface2)",padding:4,borderRadius:14}}>
           {(["bonus","524"] as const).map(t=>(
-            <button key={t} onClick={()=>setTab(t)} className="press" style={{flex:1,padding:"10px",borderRadius:11,border:"none",background:tab===t?"var(--accent)":"none",color:tab===t?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===t?700:500}}>
+            <button key={t} onClick={()=>setTab(t)} className="press" style={{flex:1,padding:"10px",borderRadius:11,border:"none",background:tab===t?"var(--accent)":"none",color:tab===t?"#fff":"var(--text2)",fontSize:14,fontWeight:tab===t?700:500}}>
               {t==="bonus"?"Sign-up Bonuses":"5/24 Status"}
             </button>
           ))}
@@ -5020,32 +5060,32 @@ function CardStrategy({ go, cards, applications, onAddApplication, onDeleteAppli
                     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
                       <div style={{width:36,height:24,borderRadius:6,background:card.gradient,flexShrink:0}}/>
                       <div style={{flex:1}}>
-                        <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>{card.name}</p>
-                        <p style={{color:"var(--text2)",fontSize:11}}>{card.signupBonus}</p>
+                        <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{card.name}</p>
+                        <p style={{color:"var(--text2)",fontSize:12}}>{card.signupBonus}</p>
                       </div>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
                       <div>
-                        <label style={{fontSize:10,color:"var(--text3)",display:"block",marginBottom:4}}>Target ($)</label>
-                        <input className="field" type="number" value={b.target} onChange={e=>setBonusField(card.id,"target",e.target.value)} style={{padding:"7px 9px",fontSize:12}}/>
+                        <label style={{fontSize:11,color:"var(--text3)",display:"block",marginBottom:4}}>Target ($)</label>
+                        <input className="field" type="number" value={b.target} onChange={e=>setBonusField(card.id,"target",e.target.value)} style={{padding:"7px 9px",fontSize:13}}/>
                       </div>
                       <div>
-                        <label style={{fontSize:10,color:"var(--text3)",display:"block",marginBottom:4}}>Spent so far</label>
-                        <input className="field" type="number" value={b.progress} onChange={e=>setBonusField(card.id,"progress",e.target.value)} style={{padding:"7px 9px",fontSize:12}}/>
+                        <label style={{fontSize:11,color:"var(--text3)",display:"block",marginBottom:4}}>Spent so far</label>
+                        <input className="field" type="number" value={b.progress} onChange={e=>setBonusField(card.id,"progress",e.target.value)} style={{padding:"7px 9px",fontSize:13}}/>
                       </div>
                       <div>
-                        <label style={{fontSize:10,color:"var(--text3)",display:"block",marginBottom:4}}>Deadline</label>
-                        <input className="field" type="date" value={b.deadline} onChange={e=>setBonusField(card.id,"deadline",e.target.value)} style={{padding:"7px 9px",fontSize:11}}/>
+                        <label style={{fontSize:11,color:"var(--text3)",display:"block",marginBottom:4}}>Deadline</label>
+                        <input className="field" type="date" value={b.deadline} onChange={e=>setBonusField(card.id,"deadline",e.target.value)} style={{padding:"7px 9px",fontSize:12}}/>
                       </div>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                      <span style={{color:"var(--text2)",fontSize:11}}>${f(progress)} of ${f(target)}</span>
-                      <span style={{color:pct2>=100?"var(--green)":"var(--accent)",fontSize:11,fontWeight:700}}>{pct2}%{daysLeft!==null&&daysLeft>=0?` · ${daysLeft}d left`:""}</span>
+                      <span style={{color:"var(--text2)",fontSize:12}}>${f(progress)} of ${f(target)}</span>
+                      <span style={{color:pct2>=100?"var(--green)":"var(--accent)",fontSize:12,fontWeight:700}}>{pct2}%{daysLeft!==null&&daysLeft>=0?` · ${daysLeft}d left`:""}</span>
                     </div>
                     <Bar v={progress} max={target} color={pct2>=100?"var(--green)":"var(--accent)"} h={6}/>
-                    {pct2>=100 && <p style={{color:"var(--green)",fontSize:11,marginTop:8,fontWeight:600}}>✓ Bonus requirement met!</p>}
-                    {daysLeft!==null && daysLeft>=0 && daysLeft<=14 && pct2<100 && <p style={{color:"var(--red)",fontSize:11,marginTop:8,fontWeight:600,display:"flex",alignItems:"center",gap:5}}><Icon name="warning" size={12}/> {daysLeft} days left — spend ${f(target-progress)} more</p>}
-                    <button onClick={()=>saveBonus(card.id)} className="press" style={{marginTop:10,width:"100%",padding:"8px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Save Progress</button>
+                    {pct2>=100 && <p style={{color:"var(--green)",fontSize:12,marginTop:8,fontWeight:600}}>✓ Bonus requirement met!</p>}
+                    {daysLeft!==null && daysLeft>=0 && daysLeft<=14 && pct2<100 && <p style={{color:"var(--red)",fontSize:12,marginTop:8,fontWeight:600,display:"flex",alignItems:"center",gap:5}}><Icon name="warning" size={12}/> {daysLeft} days left — spend ${f(target-progress)} more</p>}
+                    <button onClick={()=>saveBonus(card.id)} className="press" style={{marginTop:10,width:"100%",padding:"8px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save Progress</button>
                   </div>
                 );
               })}
@@ -5056,34 +5096,34 @@ function CardStrategy({ go, cards, applications, onAddApplication, onDeleteAppli
         {tab==="524" && (
           <>
             <div className="au card-surface" style={{padding:"22px 20px",marginBottom:18,textAlign:"center",background:under524?"var(--greenbg)":"var(--redbg)",border:`1px solid ${under524?"rgba(39,103,73,.2)":"rgba(220,38,38,.2)"}`}}>
-              <p style={{fontSize:13,color:"var(--text2)",marginBottom:6}}>Cards opened in the last 24 months</p>
+              <p style={{fontSize:14,color:"var(--text2)",marginBottom:6}}>Cards opened in the last 24 months</p>
               <p style={{fontSize:42,fontWeight:800,color:under524?"var(--green)":"var(--red)"}}>{cardsLast24mo.length}<span style={{fontSize:18,color:"var(--text3)"}}>/5</span></p>
-              <p style={{fontSize:13,fontWeight:600,color:under524?"var(--green)":"var(--red)",marginTop:6}}>
+              <p style={{fontSize:14,fontWeight:600,color:under524?"var(--green)":"var(--red)",marginTop:6}}>
                 {under524?"✓ You're eligible for new Chase cards":"✗ Chase will likely deny new applications"}
               </p>
-              <p style={{color:"var(--text2)",fontSize:11,marginTop:8,lineHeight:1.5}}>Chase's 5/24 rule blocks approval if you've opened 5+ personal cards (any issuer) in the trailing 24 months.</p>
+              <p style={{color:"var(--text2)",fontSize:12,marginTop:8,lineHeight:1.5}}>Chase's 5/24 rule blocks approval if you've opened 5+ personal cards (any issuer) in the trailing 24 months.</p>
             </div>
 
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Log a Card Application</p>
+            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Log a Card Application</p>
             <div className="card-surface" style={{padding:16,marginBottom:18}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
                 <div>
-                  <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Issuer</label>
-                  <select className="field" value={newIssuer} onChange={e=>setNewIssuer(e.target.value)} style={{padding:"9px 10px",fontSize:12}}>
+                  <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Issuer</label>
+                  <select className="field" value={newIssuer} onChange={e=>setNewIssuer(e.target.value)} style={{padding:"9px 10px",fontSize:13}}>
                     {["Chase","Amex","Capital One","Citi","Discover","Bank of America","Wells Fargo","US Bank"].map(i=><option key={i} value={i}>{i}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize:11,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Date opened</label>
-                  <input className="field" type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{padding:"9px 10px",fontSize:12}}/>
+                  <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Date opened</label>
+                  <input className="field" type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{padding:"9px 10px",fontSize:13}}/>
                 </div>
               </div>
-              <button onClick={addOpenedCard} className="btn-gold press" style={{width:"100%",padding:"10px",fontSize:13}}>+ Log Application</button>
+              <button onClick={addOpenedCard} className="btn-gold press" style={{width:"100%",padding:"10px",fontSize:14}}>+ Log Application</button>
             </div>
 
             {cards.filter(c=>c.openedDate).length>0 && (
               <>
-                <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>From Your Wallet</p>
+                <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>From Your Wallet</p>
                 <div className="card-surface" style={{overflow:"hidden",marginBottom:18}}>
                   {cards.filter(c=>c.openedDate).map((c,i,arr)=>{
                     const d = new Date(c.openedDate!);
@@ -5092,8 +5132,8 @@ function CardStrategy({ go, cards, applications, onAddApplication, onDeleteAppli
                     return (
                       <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
                         <div>
-                          <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{c.name}</p>
-                          <p style={{color:"var(--text2)",fontSize:11}}>{c.openedDate} {within&&<span style={{color:"var(--accent)"}}>· counts toward 5/24</span>}</p>
+                          <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{c.name}</p>
+                          <p style={{color:"var(--text2)",fontSize:12}}>{c.openedDate} {within&&<span style={{color:"var(--accent)"}}>· counts toward 5/24</span>}</p>
                         </div>
                       </div>
                     );
@@ -5104,7 +5144,7 @@ function CardStrategy({ go, cards, applications, onAddApplication, onDeleteAppli
 
             {applications.length>0 && (
               <>
-                <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Other Applications (closed/not in wallet)</p>
+                <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Other Applications (closed/not in wallet)</p>
                 <div className="card-surface" style={{overflow:"hidden"}}>
                   {[...applications].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).map((c,i,arr)=>{
                     const d = new Date(c.date);
@@ -5113,8 +5153,8 @@ function CardStrategy({ go, cards, applications, onAddApplication, onDeleteAppli
                     return (
                       <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
                         <div>
-                          <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{c.issuer}</p>
-                          <p style={{color:"var(--text2)",fontSize:11}}>{c.date} {within&&<span style={{color:"var(--accent)"}}>· counts toward 5/24</span>}</p>
+                          <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{c.issuer}</p>
+                          <p style={{color:"var(--text2)",fontSize:12}}>{c.date} {within&&<span style={{color:"var(--accent)"}}>· counts toward 5/24</span>}</p>
                         </div>
                         <button onClick={()=>removeOpenedCard(c.id)} style={{background:"none",border:"none",color:"var(--text3)",fontSize:16,cursor:"pointer"}}>✕</button>
                       </div>
@@ -5192,23 +5232,23 @@ function DebtPlanner({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
         ) : (
           <>
             <div className="au card-surface" style={{padding:"20px 18px",marginBottom:18,background:"var(--redbg)",border:"1px solid rgba(220,38,38,.15)"}}>
-              <p style={{color:"var(--text2)",fontSize:12,marginBottom:4}}>Total debt across {debtCards.length} card{debtCards.length!==1?"s":""}</p>
+              <p style={{color:"var(--text2)",fontSize:13,marginBottom:4}}>Total debt across {debtCards.length} card{debtCards.length!==1?"s":""}</p>
               <p style={{color:"var(--red)",fontSize:32,fontWeight:800}}>${f(totalDebt)}</p>
-              <p style={{color:"var(--text2)",fontSize:12,marginTop:4}}>${f(totalMin)}/mo minimum payments</p>
+              <p style={{color:"var(--text2)",fontSize:13,marginTop:4}}>${f(totalMin)}/mo minimum payments</p>
             </div>
 
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Strategy</p>
+            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Strategy</p>
             <div style={{display:"flex",gap:8,marginBottom:16}}>
               {(["avalanche","snowball"] as const).map(m=>(
                 <button key={m} onClick={()=>setMethod(m)} className="press" style={{flex:1,padding:"12px",borderRadius:12,border:`1.5px solid ${method===m?"var(--accent)":"var(--border)"}`,background:method===m?"var(--accentbg)":"var(--surface)",textAlign:"left"}}>
-                  <p style={{color:method===m?"var(--accent)":"var(--text)",fontSize:13,fontWeight:700,marginBottom:2,display:"flex",alignItems:"center",gap:6}}>{m==="avalanche"?<><Icon name="trend-down" size={14}/> Avalanche</>:<><Icon name="trophy" size={14}/> Snowball</>}</p>
-                  <p style={{color:"var(--text2)",fontSize:10,lineHeight:1.3}}>{m==="avalanche"?"Highest APR first — saves the most money":"Smallest balance first — quick wins, motivation"}</p>
+                  <p style={{color:method===m?"var(--accent)":"var(--text)",fontSize:14,fontWeight:700,marginBottom:2,display:"flex",alignItems:"center",gap:6}}>{m==="avalanche"?<><Icon name="trend-down" size={14}/> Avalanche</>:<><Icon name="trophy" size={14}/> Snowball</>}</p>
+                  <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.3}}>{m==="avalanche"?"Highest APR first — saves the most money":"Smallest balance first — quick wins, motivation"}</p>
                 </button>
               ))}
             </div>
 
             <div className="card-surface" style={{padding:16,marginBottom:18}}>
-              <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:8}}>Extra monthly payment (beyond minimums)</label>
+              <label style={{fontSize:13,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:8}}>Extra monthly payment (beyond minimums)</label>
               <input className="field" type="number" value={extraPayment} onChange={e=>setExtraPayment(e.target.value)} placeholder="$100" style={{padding:"11px 14px"}}/>
             </div>
 
@@ -5217,26 +5257,26 @@ function DebtPlanner({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,textAlign:"center"}}>
                   <div>
                     <p style={{color:"var(--green)",fontSize:24,fontWeight:800}}>{years>0?`${years}y `:""}{remMonths}mo</p>
-                    <p style={{color:"var(--text2)",fontSize:11,marginTop:3}}>Time to debt-free</p>
+                    <p style={{color:"var(--text2)",fontSize:12,marginTop:3}}>Time to debt-free</p>
                   </div>
                   <div>
                     <p style={{color:"var(--green)",fontSize:24,fontWeight:800}}>${f(result.totalInterest)}</p>
-                    <p style={{color:"var(--text2)",fontSize:11,marginTop:3}}>Total interest paid</p>
+                    <p style={{color:"var(--text2)",fontSize:12,marginTop:3}}>Total interest paid</p>
                   </div>
                 </div>
               </div>
             )}
 
-            <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Attack Order ({method==="avalanche"?"highest APR":"smallest balance"} first)</p>
+            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Attack Order ({method==="avalanche"?"highest APR":"smallest balance"} first)</p>
             <div className="card-surface" style={{overflow:"hidden"}}>
               {order.map((c,i,arr)=>(
                 <div key={c.id} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
-                  <div style={{width:26,height:26,borderRadius:"50%",background:i===0?"var(--accent)":"var(--surface2)",color:i===0?"#fff":"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,flexShrink:0}}>{i+1}</div>
+                  <div style={{width:26,height:26,borderRadius:"50%",background:i===0?"var(--accent)":"var(--surface2)",color:i===0?"#fff":"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,flexShrink:0}}>{i+1}</div>
                   <div style={{flex:1}}>
-                    <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{c.name}</p>
-                    <p style={{color:"var(--text2)",fontSize:11}}>${f(c.balance)} balance · {c.apr} APR</p>
+                    <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{c.name}</p>
+                    <p style={{color:"var(--text2)",fontSize:12}}>${f(c.balance)} balance · {c.apr} APR</p>
                   </div>
-                  {i===0 && <span className="pill pill-gold" style={{fontSize:10}}>Focus here</span>}
+                  {i===0 && <span className="pill pill-gold" style={{fontSize:11}}>Focus here</span>}
                 </div>
               ))}
             </div>
@@ -5268,10 +5308,10 @@ function NetWorth({ go, cards, assets, onAddAsset, onDeleteAsset }: { go:(s:S)=>
   return (
     <div className="screen desktop-content screen-enter">
       <PageHead title="Net Worth" sub="Assets minus debt" back={()=>go("settings")}
-        right={<button onClick={()=>setShowAdd(a=>!a)} className="btn-gold press" style={{padding:"8px 16px",fontSize:13}}>+ Asset</button>}/>
+        right={<button onClick={()=>setShowAdd(a=>!a)} className="btn-gold press" style={{padding:"8px 16px",fontSize:14}}>+ Asset</button>}/>
       <div className="px">
         <div className="au card-surface" style={{padding:"24px 20px",marginBottom:20,textAlign:"center",background:netWorth>=0?"var(--greenbg)":"var(--redbg)"}}>
-          <p style={{color:"var(--text2)",fontSize:12,marginBottom:6}}>Your Net Worth</p>
+          <p style={{color:"var(--text2)",fontSize:13,marginBottom:6}}>Your Net Worth</p>
           <p style={{color:netWorth>=0?"var(--green)":"var(--red)",fontSize:38,fontWeight:800}}>{netWorth<0?"-":""}${f(Math.abs(netWorth))}</p>
         </div>
 
@@ -5290,25 +5330,25 @@ function NetWorth({ go, cards, assets, onAddAsset, onDeleteAsset }: { go:(s:S)=>
 
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
           <div className="card-surface" style={{padding:"16px 14px"}}>
-            <p style={{color:"var(--text2)",fontSize:11,marginBottom:6}}>Total Assets</p>
+            <p style={{color:"var(--text2)",fontSize:12,marginBottom:6}}>Total Assets</p>
             <p style={{color:"var(--green)",fontSize:20,fontWeight:800}}>${f(totalAssets)}</p>
           </div>
           <div className="card-surface" style={{padding:"16px 14px"}}>
-            <p style={{color:"var(--text2)",fontSize:11,marginBottom:6}}>Total Card Debt</p>
+            <p style={{color:"var(--text2)",fontSize:12,marginBottom:6}}>Total Card Debt</p>
             <p style={{color:"var(--red)",fontSize:20,fontWeight:800}}>${f(totalDebt)}</p>
           </div>
         </div>
 
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Your Assets</p>
+        <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Your Assets</p>
         {assets.length===0 ? (
           <div className="card-surface"><EmptyState icon="wallet" title="No assets added" sub="Add savings, investments, or other assets to see your full net worth." action="+ Add Asset" onAction={()=>setShowAdd(true)}/></div>
         ) : (
           <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
             {assets.map((a,i,arr)=>(
               <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
-                <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{a.name}</p>
+                <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{a.name}</p>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <p style={{color:"var(--green)",fontSize:13,fontWeight:700}}>${f(Number(a.value))}</p>
+                  <p style={{color:"var(--green)",fontSize:14,fontWeight:700}}>${f(Number(a.value))}</p>
                   <button onClick={()=>removeAsset(a.id)} style={{background:"none",border:"none",color:"var(--text3)",cursor:"pointer",display:"flex"}}><Icon name="trash" size={14}/></button>
                 </div>
               </div>
@@ -5316,12 +5356,12 @@ function NetWorth({ go, cards, assets, onAddAsset, onDeleteAsset }: { go:(s:S)=>
           </div>
         )}
 
-        <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Card Debt Breakdown</p>
+        <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Card Debt Breakdown</p>
         <div className="card-surface" style={{overflow:"hidden"}}>
-          {cards.length===0 ? <p style={{padding:16,color:"var(--text2)",fontSize:13,textAlign:"center"}}>No cards added yet</p> : cards.map((c,i,arr)=>(
+          {cards.length===0 ? <p style={{padding:16,color:"var(--text2)",fontSize:14,textAlign:"center"}}>No cards added yet</p> : cards.map((c,i,arr)=>(
             <div key={c.id} style={{display:"flex",justifyContent:"space-between",padding:"13px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
-              <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{c.name}</p>
-              <p style={{color:c.balance>0?"var(--red)":"var(--green)",fontSize:13,fontWeight:700}}>{c.balance>0?`-$${f(c.balance)}`:"$0"}</p>
+              <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{c.name}</p>
+              <p style={{color:c.balance>0?"var(--red)":"var(--green)",fontSize:14,fontWeight:700}}>{c.balance>0?`-$${f(c.balance)}`:"$0"}</p>
             </div>
           ))}
         </div>
@@ -5367,9 +5407,9 @@ function Achievements({ go, cards, profile }: { go:(s:S)=>void; cards:CreditCard
           {badges.map(b=>(
             <div key={b.id} className="card-surface" style={{padding:"16px 14px",textAlign:"center",opacity:b.unlocked?1:0.45,border:b.unlocked?"1.5px solid var(--accent)":"1px solid var(--border)"}}>
               <div style={{width:48,height:48,borderRadius:"50%",background:b.unlocked?"var(--accentbg)":"var(--surface2)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 10px",color:b.unlocked?"var(--accent)":"var(--text3)"}}><Icon name={b.icon} size={22}/></div>
-              <p style={{color:"var(--text)",fontSize:12,fontWeight:700,marginBottom:4}}>{b.title}</p>
-              <p style={{color:"var(--text2)",fontSize:10,lineHeight:1.3}}>{b.desc}</p>
-              {b.unlocked && <p style={{color:"var(--green)",fontSize:10,fontWeight:700,marginTop:6}}>UNLOCKED</p>}
+              <p style={{color:"var(--text)",fontSize:13,fontWeight:700,marginBottom:4}}>{b.title}</p>
+              <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.3}}>{b.desc}</p>
+              {b.unlocked && <p style={{color:"var(--green)",fontSize:11,fontWeight:700,marginTop:6}}>UNLOCKED</p>}
             </div>
           ))}
         </div>
@@ -5400,10 +5440,10 @@ function HelpCenter({ go }: { go:(s:S)=>void }) {
           {faqs.map((item,i,arr)=>(
             <div key={i} style={{borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
               <button onClick={()=>setOpen(o=>o===i?null:i)} className="press" style={{width:"100%",padding:"15px 16px",background:"none",border:"none",display:"flex",justifyContent:"space-between",alignItems:"center",textAlign:"left"}}>
-                <p style={{color:"var(--text)",fontSize:13,fontWeight:600,flex:1,paddingRight:10}}>{item.q}</p>
+                <p style={{color:"var(--text)",fontSize:14,fontWeight:600,flex:1,paddingRight:10}}>{item.q}</p>
                 <span style={{color:"var(--text3)",fontSize:14,transform:open===i?"rotate(180deg)":"none",transition:"transform .2s"}}>⌄</span>
               </button>
-              {open===i && <p style={{padding:"0 16px 16px",color:"var(--text2)",fontSize:12,lineHeight:1.6}}>{item.a}</p>}
+              {open===i && <p style={{padding:"0 16px 16px",color:"var(--text2)",fontSize:13,lineHeight:1.6}}>{item.a}</p>}
             </div>
           ))}
         </div>
@@ -5411,8 +5451,8 @@ function HelpCenter({ go }: { go:(s:S)=>void }) {
         <div className="card-surface au" style={{padding:"20px",textAlign:"center"}}>
           <div style={{display:"flex",justifyContent:"center",marginBottom:8,color:"var(--accent)"}}><Icon name="chat" size={26}/></div>
           <p style={{color:"var(--text)",fontSize:14,fontWeight:700,marginBottom:6}}>Still need help?</p>
-          <p style={{color:"var(--text2)",fontSize:12,marginBottom:14}}>Our support team typically responds within 24 hours.</p>
-          <a href="mailto:support@wisecard.app" className="btn-gold press" style={{display:"inline-block",padding:"11px 28px",fontSize:13,textDecoration:"none"}}>Email Support</a>
+          <p style={{color:"var(--text2)",fontSize:13,marginBottom:14}}>Our support team typically responds within 24 hours.</p>
+          <a href="mailto:support@wisecard.app" className="btn-gold press" style={{display:"inline-block",padding:"11px 28px",fontSize:14,textDecoration:"none"}}>Email Support</a>
         </div>
       </div>
     </div>
@@ -5423,41 +5463,74 @@ function HelpCenter({ go }: { go:(s:S)=>void }) {
 /* ============================================================
    LANDING PAGE -- shown before sign in
    ============================================================ */
+// Hook: adds .is-visible to elements with class "reveal-on-scroll" as they enter the viewport
+function useScrollReveal() {
+  useEffect(() => {
+    const els = document.querySelectorAll(".reveal-on-scroll");
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("is-visible"); });
+    }, { threshold: 0.15 });
+    els.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+}
+
 function Landing({ onGetStarted, onSignIn }: { onGetStarted:()=>void; onSignIn:()=>void }) {
+  useScrollReveal();
+  const words = ["every card swipe","your next flight","every hotel stay","your dinner tonight","every grocery run"];
+  const [wordIdx, setWordIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setWordIdx(i => (i+1)%words.length), 2400);
+    return () => clearInterval(t);
+  }, []);
+
   return (
-    <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"var(--sans)"}}>
+    <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"var(--sans)",overflow:"hidden"}}>
       {/* Nav */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 24px",maxWidth:1100,margin:"0 auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 24px",maxWidth:1100,margin:"0 auto",position:"relative",zIndex:2,animation:"heroFadeUp .6s ease both"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:34,height:34,borderRadius:9,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           </div>
-          <span style={{fontSize:16,fontWeight:800,color:"var(--text)",letterSpacing:"-.3px"}}>WiseCard</span>
+          <span className="serif" style={{fontSize:18,fontWeight:600,color:"var(--text)"}}>WiseCard</span>
         </div>
-        <button onClick={onSignIn} style={{background:"none",border:"1px solid var(--border2)",borderRadius:10,padding:"9px 18px",color:"var(--text)",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"var(--sans)"}}>Sign In</button>
+        <button onClick={onSignIn} style={{background:"none",border:"1px solid var(--border2)",borderRadius:10,padding:"9px 18px",color:"var(--text)",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"var(--sans)"}}>Sign In</button>
       </div>
 
-      {/* Hero */}
-      <div style={{maxWidth:680,margin:"0 auto",padding:"60px 24px 40px",textAlign:"center"}}>
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)",borderRadius:99,padding:"6px 14px",marginBottom:24}}>
-          <span style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)"}}/>
-          <span style={{fontSize:12,fontWeight:600,color:"var(--accent)"}}>AI-powered credit card optimization</span>
+      {/* Hero -- animated gradient mesh background + floating card visuals */}
+      <div style={{position:"relative",maxWidth:780,margin:"0 auto",padding:"50px 24px 60px",textAlign:"center",zIndex:1}}>
+        {/* Drifting gradient blobs */}
+        <div style={{position:"absolute",top:-80,left:"50%",width:500,height:500,marginLeft:-250,borderRadius:"50%",background:"radial-gradient(circle, rgba(37,99,235,.16), transparent 70%)",animation:"meshDrift 14s ease-in-out infinite",pointerEvents:"none",zIndex:-1}}/>
+        <div style={{position:"absolute",top:40,left:"20%",width:280,height:280,borderRadius:"50%",background:"radial-gradient(circle, rgba(34,197,94,.10), transparent 70%)",animation:"meshDrift 18s ease-in-out infinite reverse",pointerEvents:"none",zIndex:-1}}/>
+
+        {/* Floating mini card visuals, desktop only via opacity trick is fine on mobile too -- small enough */}
+        <div style={{position:"absolute",top:70,left:6,width:90,height:58,borderRadius:12,background:"linear-gradient(135deg,#0F1832,#1E3A6E)",boxShadow:"0 16px 32px rgba(0,0,0,.25)",animation:"floatCard 6s ease-in-out infinite",opacity:0.85}}/>
+        <div style={{position:"absolute",top:160,right:10,width:80,height:52,borderRadius:11,background:"linear-gradient(135deg,#2C1A00,#C9920A)",boxShadow:"0 16px 32px rgba(0,0,0,.2)",animation:"floatCard2 7s ease-in-out infinite",opacity:0.8}}/>
+
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)",borderRadius:99,padding:"7px 16px",marginBottom:28,animation:"heroFadeUp .6s ease .05s both"}}>
+          <span style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"softPulse 2s ease-in-out infinite"}}/>
+          <span style={{fontSize:14,fontWeight:600,color:"var(--accent)"}}>AI-powered credit card optimization</span>
         </div>
-        <h1 style={{fontSize:42,fontWeight:800,letterSpacing:"-1.5px",lineHeight:1.1,color:"var(--text)",marginBottom:18}}>
-          Save more on<br/>every card swipe
+
+        <h1 className="serif" style={{fontSize:"clamp(40px,7vw,64px)",fontWeight:500,letterSpacing:"-2px",lineHeight:1.08,color:"var(--text)",marginBottom:22,animation:"heroFadeUp .7s ease .12s both"}}>
+          Save more on<br/>
+          <span style={{position:"relative",display:"inline-block",height:"1.2em",overflow:"hidden",verticalAlign:"bottom",minWidth:"min(90vw,520px)"}}>
+            <span key={wordIdx} style={{position:"absolute",left:0,top:0,color:"var(--accent)",animation:"wordCycleIn .5s cubic-bezier(.2,.8,.2,1) both",whiteSpace:"nowrap"}}>{words[wordIdx]}</span>
+          </span>
         </h1>
-        <p style={{fontSize:16,color:"var(--text2)",lineHeight:1.6,maxWidth:480,margin:"0 auto 32px"}}>
+
+        <p style={{fontSize:17,color:"var(--text2)",lineHeight:1.6,maxWidth:480,margin:"0 auto 34px",animation:"heroFadeUp .7s ease .2s both"}}>
           WiseCard tells you exactly which card to use, tracks every reward, and finds money you're leaving on the table — automatically.
         </p>
-        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-          <button onClick={onGetStarted} className="btn-gold press" style={{padding:"15px 32px",fontSize:15}}>Get Started Free →</button>
-          <button onClick={onSignIn} style={{background:"none",border:"1px solid var(--border2)",borderRadius:12,padding:"15px 28px",color:"var(--text)",fontSize:15,fontWeight:600,cursor:"pointer",fontFamily:"var(--sans)"}}>Sign In</button>
+        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",animation:"heroFadeUp .7s ease .28s both"}}>
+          <button onClick={onGetStarted} className="btn-gold press" style={{padding:"16px 34px",fontSize:16}}>Get Started Free →</button>
+          <button onClick={onSignIn} style={{background:"none",border:"1px solid var(--border2)",borderRadius:12,padding:"16px 30px",color:"var(--text)",fontSize:16,fontWeight:600,cursor:"pointer",fontFamily:"var(--sans)"}}>Sign In</button>
         </div>
-        <p style={{color:"var(--text3)",fontSize:12,marginTop:16}}>Free to use · No credit card required to sign up</p>
+        <p style={{color:"var(--text3)",fontSize:14,marginTop:18,animation:"heroFadeUp .7s ease .34s both"}}>Free to use · No credit card required to sign up</p>
       </div>
 
-      {/* Feature grid */}
-      <div style={{maxWidth:1000,margin:"0 auto",padding:"20px 24px 80px"}}>
+      {/* Feature grid -- scroll-reveal, staggered */}
+      <div style={{maxWidth:1000,margin:"0 auto",padding:"30px 24px 90px"}}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16}}>
           {[
             {icon:"chat",title:"AI Financial Advisor",desc:"Get personalized advice on which card to use, debt payoff strategy, and credit score improvement — anytime."},
@@ -5466,21 +5539,21 @@ function Landing({ onGetStarted, onSignIn }: { onGetStarted:()=>void; onSignIn:(
             {icon:"percent",title:"Compare Any Two Cards",desc:"Side-by-side comparison of annual fees, perks, and net value across 45+ real cards."},
             {icon:"trend-down",title:"Debt Payoff Planner",desc:"Avalanche or snowball calculator shows exactly when you'll be debt-free and how much interest you'll save."},
             {icon:"gift",title:"Sign-up Bonus Tracker",desc:"Never miss a minimum-spend deadline again — track every bonus in one place."},
-          ].map(f=>(
-            <div key={f.title} className="card-surface" style={{padding:"22px 20px"}}>
-              <div style={{width:44,height:44,borderRadius:13,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,color:"var(--accent)"}}><Icon name={f.icon} size={20}/></div>
-              <p style={{color:"var(--text)",fontSize:14,fontWeight:700,marginBottom:6}}>{f.title}</p>
-              <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>{f.desc}</p>
+          ].map((f,i)=>(
+            <div key={f.title} className="card-surface hover-lift reveal-on-scroll" style={{padding:"24px 22px",transitionDelay:`${i*80}ms`}}>
+              <div style={{width:46,height:46,borderRadius:13,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:16,color:"var(--accent)"}}><Icon name={f.icon} size={21}/></div>
+              <p className="serif" style={{color:"var(--text)",fontSize:17,fontWeight:500,marginBottom:7}}>{f.title}</p>
+              <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.55}}>{f.desc}</p>
             </div>
           ))}
         </div>
 
-        <div className="card-surface au" style={{marginTop:40,padding:"32px 28px",textAlign:"center",background:"var(--accentbg)"}}>
-          <p style={{color:"var(--text)",fontSize:20,fontWeight:700,marginBottom:10}}>Ready to stop leaving money on the table?</p>
-          <button onClick={onGetStarted} className="btn-gold press" style={{padding:"14px 32px",fontSize:14,marginTop:10}}>Create Your Free Account →</button>
+        <div className="card-surface reveal-on-scroll" style={{marginTop:44,padding:"40px 32px",textAlign:"center",background:"linear-gradient(135deg,var(--accentbg),var(--surface))"}}>
+          <p className="serif" style={{color:"var(--text)",fontSize:26,fontWeight:500,marginBottom:14,letterSpacing:"-.5px"}}>Ready to stop leaving money on the table?</p>
+          <button onClick={onGetStarted} className="btn-gold press" style={{padding:"15px 34px",fontSize:15,marginTop:6}}>Create Your Free Account →</button>
         </div>
 
-        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:40}}>
+        <p style={{color:"var(--text3)",fontSize:13,textAlign:"center",marginTop:44}}>
           WiseCard · Your data is encrypted and never sold · <a href="mailto:support@wisecard.app" style={{color:"var(--text3)"}}>support@wisecard.app</a>
         </p>
       </div>
@@ -5571,15 +5644,15 @@ function PrivacyPolicy({ go }: { go:(s:S)=>void }) {
       <PageHead title="Privacy Policy" back={()=>go("privacy")}/>
       <div className="px">
         <div className="card-surface au" style={{padding:"14px 16px",marginBottom:20,background:"var(--amberbg)",border:"1px solid rgba(217,119,6,.2)"}}>
-          <p style={{color:"var(--amber)",fontSize:12,fontWeight:600,marginBottom:3,display:"flex",alignItems:"center",gap:6}}><Icon name="warning" size={12}/> Student project notice</p>
-          <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.5}}>This policy accurately describes how WiseCard's current prototype handles data. It has not been reviewed by a lawyer and should be professionally reviewed before any commercial launch with real users.</p>
+          <p style={{color:"var(--amber)",fontSize:13,fontWeight:600,marginBottom:3,display:"flex",alignItems:"center",gap:6}}><Icon name="warning" size={12}/> Student project notice</p>
+          <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>This policy accurately describes how WiseCard's current prototype handles data. It has not been reviewed by a lawyer and should be professionally reviewed before any commercial launch with real users.</p>
         </div>
-        <p style={{color:"var(--text2)",fontSize:12,marginBottom:20}}>Last updated: June 2026</p>
+        <p style={{color:"var(--text2)",fontSize:13,marginBottom:20}}>Last updated: June 2026</p>
         {sections.map(sec=>(
           <div key={sec.title} style={{marginBottom:22}}>
             <h3 style={{color:"var(--text)",fontSize:15,fontWeight:700,marginBottom:10}}>{sec.title}</h3>
             {sec.body.map((p,i)=>(
-              <p key={i} style={{color:"var(--text2)",fontSize:13,lineHeight:1.7,marginBottom:8}}>{p}</p>
+              <p key={i} style={{color:"var(--text2)",fontSize:14,lineHeight:1.7,marginBottom:8}}>{p}</p>
             ))}
           </div>
         ))}
@@ -5667,15 +5740,15 @@ function TermsOfService({ go }: { go:(s:S)=>void }) {
       <PageHead title="Terms of Service" back={()=>go("privacy")}/>
       <div className="px">
         <div className="card-surface au" style={{padding:"14px 16px",marginBottom:20,background:"var(--amberbg)",border:"1px solid rgba(217,119,6,.2)"}}>
-          <p style={{color:"var(--amber)",fontSize:12,fontWeight:600,marginBottom:3,display:"flex",alignItems:"center",gap:6}}><Icon name="warning" size={12}/> Student project notice</p>
-          <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.5}}>These terms accurately describe WiseCard's current prototype. They have not been reviewed by a lawyer and should be professionally reviewed before any commercial launch with real users.</p>
+          <p style={{color:"var(--amber)",fontSize:13,fontWeight:600,marginBottom:3,display:"flex",alignItems:"center",gap:6}}><Icon name="warning" size={12}/> Student project notice</p>
+          <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>These terms accurately describe WiseCard's current prototype. They have not been reviewed by a lawyer and should be professionally reviewed before any commercial launch with real users.</p>
         </div>
-        <p style={{color:"var(--text2)",fontSize:12,marginBottom:20}}>Last updated: June 2026</p>
+        <p style={{color:"var(--text2)",fontSize:13,marginBottom:20}}>Last updated: June 2026</p>
         {sections.map(sec=>(
           <div key={sec.title} style={{marginBottom:22}}>
             <h3 style={{color:"var(--text)",fontSize:15,fontWeight:700,marginBottom:10}}>{sec.title}</h3>
             {sec.body.map((p,i)=>(
-              <p key={i} style={{color:"var(--text2)",fontSize:13,lineHeight:1.7,marginBottom:8}}>{p}</p>
+              <p key={i} style={{color:"var(--text2)",fontSize:14,lineHeight:1.7,marginBottom:8}}>{p}</p>
             ))}
           </div>
         ))}
@@ -5706,7 +5779,7 @@ function ToolsHub({ go }: { go:(s:S)=>void }) {
                 <Icon name={icon} size={20}/>
               </div>
               <p style={{color:"var(--text)",fontSize:14,fontWeight:700,marginBottom:4}}>{label}</p>
-              <p style={{color:"var(--text2)",fontSize:11,lineHeight:1.4}}>{desc}</p>
+              <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{desc}</p>
             </button>
           ))}
         </div>
@@ -5778,7 +5851,7 @@ function AuthScreen({onAuth}:{onAuth:(user:any)=>void}) {
               <line x1="1" y1="10" x2="23" y2="10"/>
             </svg>
           </div>
-          <div style={{fontSize:11,letterSpacing:2,fontWeight:600,marginBottom:8,color:"var(--accent)",textTransform:"uppercase"}}>WiseCard</div>
+          <div style={{fontSize:12,letterSpacing:2,fontWeight:600,marginBottom:8,color:"var(--accent)",textTransform:"uppercase"}}>WiseCard</div>
           <h1 style={{fontSize:26,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px",color:"var(--text)"}}>
             {mode==="login"?"Welcome back":mode==="signup"?"Get started":"Reset password"}
           </h1>
@@ -5791,19 +5864,19 @@ function AuthScreen({onAuth}:{onAuth:(user:any)=>void}) {
         <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"28px 24px",boxShadow:"var(--shadow-lg)"}}>
           {mode==="signup" && (
             <div style={{marginBottom:16}}>
-              <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Your Name</label>
+              <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Your Name</label>
               <input className="field" placeholder="First name" value={name} onChange={e=>setName(e.target.value)} style={{padding:"13px 16px"}}/>
             </div>
           )}
           <div style={{marginBottom:16}}>
-            <label style={{fontSize:12,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Email</label>
+            <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Email</label>
             <input className="field" type="email" placeholder="your@email.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAuth()} style={{padding:"13px 16px"}}/>
           </div>
           {mode!=="forgot" && (
             <div style={{marginBottom:mode==="signup"?8:24}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <label style={{fontSize:12,color:"var(--text2)",fontWeight:500}}>Password</label>
-                {mode==="login" && <button type="button" onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{background:"none",border:"none",color:"var(--accent)",fontSize:12,cursor:"pointer",padding:0}}>Forgot password?</button>}
+                <label style={{fontSize:13,color:"var(--text2)",fontWeight:500}}>Password</label>
+                {mode==="login" && <button type="button" onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{background:"none",border:"none",color:"var(--accent)",fontSize:13,cursor:"pointer",padding:0}}>Forgot password?</button>}
               </div>
               <input className="field" type="password" placeholder={mode==="signup"?"At least 8 characters":""} value={password}
                 onChange={e=>{setPassword(e.target.value);if(mode==="signup")calcStrength(e.target.value);}}
@@ -5817,23 +5890,23 @@ function AuthScreen({onAuth}:{onAuth:(user:any)=>void}) {
                   <div key={i} style={{flex:1,height:3,borderRadius:2,background:pwStrength>=i?(i<=1?"var(--red)":i<=2?"var(--amber)":i<=3?"var(--accent)":"var(--green)"):"var(--border2)",transition:"background .2s"}}/>
                 ))}
               </div>
-              <span style={{fontSize:11,color:"var(--text2)"}}>{["","Weak","Fair","Good","Strong"][pwStrength]} password</span>
+              <span style={{fontSize:12,color:"var(--text2)"}}>{["","Weak","Fair","Good","Strong"][pwStrength]} password</span>
             </div>
           )}
 
-          {error && <div style={{background:"var(--redbg)",border:"1px solid rgba(239,68,68,.2)",borderRadius:10,padding:"10px 14px",marginBottom:16}}><p style={{color:"var(--red)",fontSize:13,margin:0}}>{error}</p></div>}
-          {success && <div style={{background:"var(--greenbg)",border:"1px solid rgba(34,197,94,.2)",borderRadius:10,padding:"10px 14px",marginBottom:16}}><p style={{color:"var(--green)",fontSize:13,margin:0}}>{success}</p></div>}
+          {error && <div style={{background:"var(--redbg)",border:"1px solid rgba(239,68,68,.2)",borderRadius:10,padding:"10px 14px",marginBottom:16}}><p style={{color:"var(--red)",fontSize:14,margin:0}}>{error}</p></div>}
+          {success && <div style={{background:"var(--greenbg)",border:"1px solid rgba(34,197,94,.2)",borderRadius:10,padding:"10px 14px",marginBottom:16}}><p style={{color:"var(--green)",fontSize:14,margin:0}}>{success}</p></div>}
 
           <button onClick={handleAuth} disabled={loading} className="btn-gold press" style={{width:"100%",opacity:loading?0.7:1}}>
             {loading&&<span style={{width:15,height:15,borderRadius:"50%",border:"2px solid rgba(255,255,255,.3)",borderTopColor:"white",animation:"spin .7s linear infinite",display:"inline-block",flexShrink:0,marginRight:8}}/>}{loading?(mode==="login"?"Signing in...":mode==="signup"?"Creating account...":"Sending..."):mode==="login"?"Sign In":mode==="signup"?"Create Account":"Send Reset Link"}
           </button>
 
-          <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setSuccess("");setPwStrength(0);setPassword("");}} style={{width:"100%",marginTop:14,background:"none",border:"none",color:"var(--text2)",fontSize:13,cursor:"pointer",padding:"8px"}}>
+          <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setSuccess("");setPwStrength(0);setPassword("");}} style={{width:"100%",marginTop:14,background:"none",border:"none",color:"var(--text2)",fontSize:14,cursor:"pointer",padding:"8px"}}>
             {mode==="login" ? "Don't have an account? Sign up" : mode==="signup" ? "Already have an account? Sign in" : "Back to sign in"}
           </button>
         </div>
 
-        <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:16,lineHeight:1.6}}>
+        <p style={{color:"var(--text3)",fontSize:12,textAlign:"center",marginTop:16,lineHeight:1.6}}>
           {mode==="signup" ? "By creating an account, you agree to our Terms of Service and Privacy Policy. " : ""}Your data is encrypted with AES-256 and never shared
         </p>
       </div>
