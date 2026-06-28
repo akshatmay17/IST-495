@@ -50,6 +50,16 @@ const DARK_CSS = `
   --shadow:    0 2px 10px rgba(0,0,0,.25);
   --shadow-lg: 0 8px 28px rgba(0,0,0,.35);
   --radius:    14px;
+  --radius-sm: 9px;   /* inputs, small buttons, badges */
+  --radius-md: 14px;  /* cards, panels, list rows */
+  --radius-lg: 22px;  /* hero blocks, feature surfaces */
+  --radius-full: 999px; /* pills, avatars */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+  --elev-0: none;
+  --elev-1: 0 1px 3px rgba(0,0,0,.3), 0 1px 1px rgba(0,0,0,.2);
+  --elev-2: 0 4px 14px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.25);
+  --elev-3: 0 14px 36px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.3);
 `;
 
 const LIGHT_CSS = `
@@ -77,6 +87,16 @@ const LIGHT_CSS = `
   --shadow:    0 1px 2px rgba(20,30,50,.04), 0 2px 8px rgba(20,30,50,.04);
   --shadow-lg: 0 10px 32px rgba(20,30,50,.09);
   --radius:    14px;
+  --radius-sm: 9px;   /* inputs, small buttons, badges */
+  --radius-md: 14px;  /* cards, panels, list rows */
+  --radius-lg: 22px;  /* hero blocks, feature surfaces */
+  --radius-full: 999px; /* pills, avatars */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+  --elev-0: none;
+  --elev-1: 0 1px 2px rgba(20,30,50,.04), 0 1px 1px rgba(20,30,50,.03);
+  --elev-2: 0 4px 12px rgba(20,30,50,.06), 0 1px 2px rgba(20,30,50,.04);
+  --elev-3: 0 12px 32px rgba(20,30,50,.10), 0 2px 6px rgba(20,30,50,.05);
 `;
 
 const BASE_CSS = `
@@ -150,11 +170,11 @@ select.field { appearance:none; }
 .pill-gray    { background:var(--surface2); color:var(--text2);  border:1px solid var(--border); }
 
 /* Surfaces -- tonal separation + soft shadow instead of hard borders, for a premium feel */
-.card-s        { background:var(--surface);  border:1px solid var(--border-soft); border-radius:var(--radius); box-shadow:var(--shadow); }
-.card-s2       { background:var(--surface2); border:1px solid var(--border-soft); border-radius:var(--radius); }
-.card-surface  { background:var(--surface);  border:1px solid var(--border-soft); border-radius:var(--radius); box-shadow:0 1px 0 rgba(255,255,255,.4) inset, var(--shadow); position:relative; }
+.card-s        { background:var(--surface);  border:1px solid var(--border-soft); border-radius:var(--radius-md); box-shadow:var(--elev-1); }
+.card-s2       { background:var(--surface2); border:1px solid var(--border-soft); border-radius:var(--radius-md); }
+.card-surface  { background:var(--surface);  border:1px solid var(--border-soft); border-radius:var(--radius-md); box-shadow:0 1px 0 rgba(255,255,255,.4) inset, var(--elev-1); position:relative; }
 :root.dark .card-surface { box-shadow:0 1px 0 rgba(255,255,255,.04) inset, var(--shadow); }
-.card-surface-2{ background:var(--surface2); border:1px solid var(--border-soft); border-radius:var(--radius); }
+.card-surface-2{ background:var(--surface2); border:1px solid var(--border-soft); border-radius:var(--radius-md); }
 
 /* Utilities */
 .divider { height:1px; background:var(--border); width:100%; }
@@ -172,7 +192,7 @@ select.field { appearance:none; }
 .btn-gold {
   background:linear-gradient(155deg,var(--accent2) 0%,var(--accent) 55%,#1d4ed8 100%);
   color:#fff; border:none; font-weight:600;
-  border-radius:11px; padding:13px 22px; font-size:15px;
+  border-radius:var(--radius-sm); padding:13px 22px; font-size:15px;
   font-family:var(--sans); cursor:pointer; position:relative; overflow:hidden;
   box-shadow:0 1px 0 rgba(255,255,255,.25) inset, 0 6px 16px -4px rgba(37,99,235,.45);
   transition:transform .15s ease, box-shadow .15s ease; letter-spacing:-.1px;
@@ -190,7 +210,7 @@ select.field { appearance:none; }
 .btn-ghost {
   background:var(--surface); color:var(--text2);
   border:1.5px solid var(--border2); font-weight:500;
-  border-radius:11px; padding:10px 18px; font-size:14px;
+  border-radius:var(--radius-sm); padding:10px 18px; font-size:14px;
   font-family:var(--sans); cursor:pointer;
   transition:border-color .18s ease, color .18s ease, background .18s ease, transform .15s ease;
 }
@@ -1004,6 +1024,21 @@ const aprMidpoint = (aprStr: string): number => {
 };
 
 // Real card network (Visa/Mastercard/Amex/Discover) based on issuer -- matches actual issuer-network partnerships
+// Real approval-chance heuristic -- shared by Home's dashboard teaser and the full AI Recommender
+// screen, so the same card never shows two different percentages in two different places.
+const calcApprovalChance = (card: {annualFee:number}, profile: UserProfile): number => {
+  const score = parseInt(profile.creditScore?.match(/\d+/)?.[0] || "700");
+  const income = profile.income || "";
+  const highIncome = income.includes("150") || income.includes("250") || income.includes("+");
+  let chance: number;
+  if (card.annualFee >= 500) chance = score >= 750 ? 82 : score >= 700 ? 61 : score >= 670 ? 42 : 22;
+  else if (card.annualFee >= 95) chance = score >= 720 ? 88 : score >= 680 ? 72 : score >= 650 ? 55 : 30;
+  else chance = score >= 670 ? 92 : score >= 620 ? 78 : 55;
+  if (card.annualFee >= 500 && !highIncome) chance -= 15;
+  if (highIncome) chance = Math.min(97, chance + 8);
+  return Math.max(5, Math.min(97, chance));
+};
+
 const cardNetwork = (issuer: string): "Visa"|"Mastercard"|"Amex"|"Discover" => {
   if (issuer === "Amex") return "Amex";
   if (issuer === "Discover") return "Discover";
@@ -1695,37 +1730,36 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         </div>
       )}
 
-      {/* Alerts */}
-      {dueSoon.length>0&&(
-        <div className="au" style={{background:"var(--redbg)",border:"1px solid rgba(220,38,38,.2)",borderRadius:14,padding:"13px 16px",marginBottom:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("cards")}>
-          <span style={{flexShrink:0,color:"var(--red)"}}><Icon name="clock" size={18}/></span>
-          <div style={{flex:1}}>
-            <p style={{color:"var(--red)",fontSize:14,fontWeight:600}}>Payment due in {daysUntil(dueSoon[0].dueDate)} days</p>
-            <p style={{color:"var(--text2)",fontSize:13,marginTop:1}}>{dueSoon[0].name} — minimum ${f(dueSoon[0].minPayment)}</p>
+      {/* "What to do next" -- ONE ranked action, not three competing banners.
+          Priority order: real money/score risk (payment, utilization) beats opportunity (rewards). */}
+      {(() => {
+        type Item = {key:string;urgent:boolean;icon:string;color:string;bg:string;border:string;title:string;sub:string;cta:string;action:S};
+        const items: Item[] = [];
+        if (dueSoon.length>0) items.push({key:"due",urgent:true,icon:"clock",color:"var(--red)",bg:"var(--redbg)",border:"rgba(220,38,38,.2)",title:`Payment due in ${daysUntil(dueSoon[0].dueDate)} days`,sub:`${dueSoon[0].name} — minimum $${f(dueSoon[0].minPayment)}`,cta:"Pay",action:"cards"});
+        if (highUtil.length>0) items.push({key:"util",urgent:true,icon:"analytics",color:"var(--amber)",bg:"var(--amberbg)",border:"rgba(217,119,6,.2)",title:`High utilization on ${highUtil[0].name}`,sub:`${pct(highUtil[0].balance,highUtil[0].limit)}% used — pay down to protect your score`,cta:"Review",action:"cards"});
+        if (missingRewards>0 && cards.length>0) items.push({key:"rewards",urgent:false,icon:"rocket",color:"var(--accent)",bg:"var(--accentbg)",border:"rgba(37,99,235,.15)",title:`You could earn ~$${f(missingRewards)}/year more`,sub:"See which card to add for your spending",cta:"See how",action:"ai-recommender"});
+        if (items.length===0) return null;
+        const top = items[0];
+        const rest = items.slice(1);
+        return (
+          <div className="au" style={{marginBottom:20}}>
+            <div style={{background:top.bg,border:`1px solid ${top.border}`,borderRadius:"var(--radius-md)",padding:"15px 16px",display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go(top.action)}>
+              <span style={{flexShrink:0,color:top.color}}><Icon name={top.icon} size={19}/></span>
+              <div style={{flex:1}}>
+                <p style={{color:top.color,fontSize:14,fontWeight:700}}>{top.title}</p>
+                <p style={{color:"var(--text2)",fontSize:13,marginTop:1}}>{top.sub}</p>
+              </div>
+              <span style={{color:top.color,fontSize:13,fontWeight:600,flexShrink:0}}>{top.cta} →</span>
+            </div>
+            {rest.length>0 && (
+              <button onClick={()=>go(rest[0].action)} style={{width:"100%",textAlign:"left",background:"none",border:"none",padding:"8px 4px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+                <span style={{width:5,height:5,borderRadius:"50%",background:rest[0].color,flexShrink:0}}/>
+                <span style={{color:"var(--text3)",fontSize:12}}>Also: {rest[0].title.charAt(0).toLowerCase()+rest[0].title.slice(1)}</span>
+              </button>
+            )}
           </div>
-          <span style={{color:"var(--red)",fontSize:14,fontWeight:600}}>Pay →</span>
-        </div>
-      )}
-      {highUtil.length>0&&!dueSoon.length&&(
-        <div className="au" style={{background:"var(--amberbg)",border:"1px solid rgba(217,119,6,.2)",borderRadius:14,padding:"13px 16px",marginBottom:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("cards")}>
-          <span style={{flexShrink:0,color:"var(--amber)"}}><Icon name="analytics" size={18}/></span>
-          <div style={{flex:1}}>
-            <p style={{color:"var(--amber)",fontSize:14,fontWeight:600}}>High utilization on {highUtil[0].name}</p>
-            <p style={{color:"var(--text2)",fontSize:13,marginTop:1}}>{pct(highUtil[0].balance,highUtil[0].limit)}% used — pay down to protect your score</p>
-          </div>
-          <span style={{color:"var(--amber)",fontSize:14}}>→</span>
-        </div>
-      )}
-      {missingRewards>0&&cards.length>0&&(
-        <div className="au" style={{background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)",borderRadius:14,padding:"13px 16px",marginBottom:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("ai-recommender")}>
-          <span style={{flexShrink:0,color:"var(--accent)"}}><Icon name="rocket" size={18}/></span>
-          <div style={{flex:1}}>
-            <p style={{color:"var(--accent)",fontSize:14,fontWeight:600}}>You could earn ~${f(missingRewards)}/year more</p>
-            <p style={{color:"var(--text2)",fontSize:13,marginTop:1}}>See which card to add for your spending</p>
-          </div>
-          <span style={{color:"var(--accent)",fontSize:14}}>→</span>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Spending insight */}
       {totalSpend>0&&topCat&&(
@@ -1900,27 +1934,39 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         )}
       </div>
 
-      {/* Approval chances */}
-      <div className="au card-surface" style={{padding:"18px 20px",marginBottom:20}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <h3 style={{fontSize:16,fontWeight:700,color:"var(--text)"}}>Approval Chances</h3>
-          <span className="pill pill-gold" style={{fontSize:11}}>AI estimate</span>
-        </div>
-        {[
-          {name:"Chase Sapphire Preferred",chance:89,color:"var(--green)"},
-          {name:"Amex Gold Card",chance:76,color:"var(--accent)"},
-          {name:"Capital One Venture X",chance:61,color:"var(--amber)"},
-        ].map(({name,chance,color})=>(
-          <div key={name} style={{marginBottom:12}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-              <span style={{color:"var(--text)",fontSize:13,fontWeight:500}}>{name}</span>
-              <span style={{color,fontSize:13,fontWeight:700}}>{chance}%</span>
+      {/* Approval chances -- real, computed from this user's actual credit score and income,
+          using the same heuristic as the full AI Recommender screen (never two different numbers
+          for the same card in two different places) */}
+      {(() => {
+        const ownedIds = cards.map(c=>c.dbId);
+        const candidates = CARD_DB.filter(c=>!ownedIds.includes(c.id) && (profile.goal==="travel"?c.category==="travel":profile.goal==="dollar"?c.category==="cashback":true));
+        const pool = candidates.length>=3 ? candidates : CARD_DB.filter(c=>!ownedIds.includes(c.id));
+        const scored = pool
+          .map(c=>({name:c.name, chance:calcApprovalChance(c, profile)}))
+          .sort((a,b)=>b.chance-a.chance)
+          .slice(0,3);
+        if (scored.length===0) return null;
+        const chanceColor = (c:number) => c>=70?"var(--green)":c>=45?"var(--amber)":"var(--red)";
+        return (
+          <div className="au card-surface" style={{padding:"18px 20px",marginBottom:20}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <h3 style={{fontSize:16,fontWeight:700,color:"var(--text)"}}>Approval Chances</h3>
+              <span className="pill pill-gold" style={{fontSize:11}}>Based on your profile</span>
             </div>
-            <Bar v={chance} max={100} color={color} h={5}/>
+            <p style={{color:"var(--text3)",fontSize:11,marginBottom:14}}>Estimated from your credit score range and income -- not a guarantee.</p>
+            {scored.map(({name,chance})=>(
+              <div key={name} style={{marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                  <span style={{color:"var(--text)",fontSize:13,fontWeight:500}}>{name}</span>
+                  <span style={{color:chanceColor(chance),fontSize:13,fontWeight:700}}>{chance}%</span>
+                </div>
+                <Bar v={chance} max={100} color={chanceColor(chance)} h={5}/>
+              </div>
+            ))}
+            <button onClick={()=>go("ai-recommender")} style={{marginTop:8,color:"var(--accent)",fontSize:13,fontWeight:600,background:"none",border:"none",cursor:"pointer",padding:0}}>See full recommendations →</button>
           </div>
-        ))}
-        <button onClick={()=>go("ai-recommender")} style={{marginTop:8,color:"var(--accent)",fontSize:13,fontWeight:600,background:"none",border:"none",cursor:"pointer",padding:0}}>See personalized recommendations →</button>
-      </div>
+        );
+      })()}
     </div>
   );
 }
@@ -3113,18 +3159,8 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
           const pros: string[] = [];
           const cons: string[] = [];
 
-          // Approval chance based on credit score
-          if (c.annualFee >= 500) {
-            approvalChance = score >= 750 ? 82 : score >= 700 ? 61 : score >= 670 ? 42 : 22;
-          } else if (c.annualFee >= 95) {
-            approvalChance = score >= 720 ? 88 : score >= 680 ? 72 : score >= 650 ? 55 : 30;
-          } else {
-            approvalChance = score >= 670 ? 92 : score >= 620 ? 78 : 55;
-          }
-
-          // Add income factor
-          if (c.annualFee >= 500 && !highIncome) approvalChance -= 15;
-          if (highIncome) approvalChance = Math.min(97, approvalChance + 8);
+          // Approval chance -- shared calculation, identical to what Home's dashboard shows
+          approvalChance = calcApprovalChance(c, profile);
 
           // Score card based on spending match
           if (c.category === "dining" || c.id === "amg") {
