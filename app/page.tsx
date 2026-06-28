@@ -96,6 +96,16 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  position: relative;
+}
+/* Subtle grain texture -- the single biggest "this feels real, not flat-AI-generated" fix.
+   Pure CSS, fixed-position overlay, ~2% opacity. Barely perceptible consciously but adds
+   genuine material depth that flat solid colors lack. */
+body::before {
+  content: "";
+  position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  opacity: 0.025; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 button, input, select, textarea { font-family: var(--sans); cursor: pointer; }
@@ -142,7 +152,8 @@ select.field { appearance:none; }
 /* Surfaces -- tonal separation + soft shadow instead of hard borders, for a premium feel */
 .card-s        { background:var(--surface);  border:1px solid var(--border-soft); border-radius:var(--radius); box-shadow:var(--shadow); }
 .card-s2       { background:var(--surface2); border:1px solid var(--border-soft); border-radius:var(--radius); }
-.card-surface  { background:var(--surface);  border:1px solid var(--border-soft); border-radius:var(--radius); box-shadow:var(--shadow); }
+.card-surface  { background:var(--surface);  border:1px solid var(--border-soft); border-radius:var(--radius); box-shadow:0 1px 0 rgba(255,255,255,.4) inset, var(--shadow); position:relative; }
+:root.dark .card-surface { box-shadow:0 1px 0 rgba(255,255,255,.04) inset, var(--shadow); }
 .card-surface-2{ background:var(--surface2); border:1px solid var(--border-soft); border-radius:var(--radius); }
 
 /* Utilities */
@@ -159,23 +170,32 @@ select.field { appearance:none; }
 
 /* Buttons */
 .btn-gold {
-  background:var(--accent); color:#fff; border:none; font-weight:600;
-  border-radius:8px; padding:13px 22px; font-size:15px;
-  font-family:var(--sans); cursor:pointer;
-  transition:background .15s; letter-spacing:-.1px;
+  background:linear-gradient(155deg,var(--accent2) 0%,var(--accent) 55%,#1d4ed8 100%);
+  color:#fff; border:none; font-weight:600;
+  border-radius:11px; padding:13px 22px; font-size:15px;
+  font-family:var(--sans); cursor:pointer; position:relative; overflow:hidden;
+  box-shadow:0 1px 0 rgba(255,255,255,.25) inset, 0 6px 16px -4px rgba(37,99,235,.45);
+  transition:transform .15s ease, box-shadow .15s ease; letter-spacing:-.1px;
 }
-.btn-gold:hover { background:var(--accent2); }
-.btn-gold:active { opacity:.9; }
-.btn-gold:disabled { background:var(--border2); color:var(--text3); cursor:not-allowed; }
+.btn-gold::after {
+  content:""; position:absolute; top:0; left:-60%; width:40%; height:100%;
+  background:linear-gradient(115deg,transparent,rgba(255,255,255,.28),transparent);
+  transform:skewX(-18deg); transition:left .55s ease;
+}
+.btn-gold:hover::after { left:130%; }
+.btn-gold:hover { transform:translateY(-1px); box-shadow:0 1px 0 rgba(255,255,255,.3) inset, 0 10px 22px -4px rgba(37,99,235,.55); }
+.btn-gold:active { transform:translateY(0); box-shadow:0 1px 0 rgba(255,255,255,.2) inset, 0 4px 10px -2px rgba(37,99,235,.4); }
+.btn-gold:disabled { background:var(--border2); color:var(--text3); cursor:not-allowed; box-shadow:none; }
 
 .btn-ghost {
   background:var(--surface); color:var(--text2);
   border:1.5px solid var(--border2); font-weight:500;
-  border-radius:8px; padding:10px 18px; font-size:14px;
+  border-radius:11px; padding:10px 18px; font-size:14px;
   font-family:var(--sans); cursor:pointer;
-  transition:border-color .15s, color .15s;
+  transition:border-color .18s ease, color .18s ease, background .18s ease, transform .15s ease;
 }
-.btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
+.btn-ghost:hover { border-color:var(--accent); color:var(--accent); background:var(--accentbg); transform:translateY(-1px); }
+.btn-ghost:active { transform:translateY(0); }
 
 /* Toggle */
 .toggle-track {
@@ -645,6 +665,26 @@ const CARD_DB = [
     notGoodFor:["Non-Hilton hotel stays","Travel booked through third-party sites"],
   },
   {
+    id:"hyatt", name:"World of Hyatt Credit Card", issuer:"Chase", apr:"21.24%-28.74% Variable",
+    gradient:"linear-gradient(135deg,#1A1A2E 0%,#3D2645 50%,#1A1A2E 100%)",
+    accentColor:"#C77DFF", rewardRate:"4x Hyatt, 2x Dining & Flights", annualFee:95, perksValue:285, cashback:"Points", category:"hotel",
+    signupBonus:"Up to 60,000 bonus points: 30,000 after spending $3,000 in first 3 months, plus up to 30,000 more by earning 2 points/$1 on up to $15,000 spent in first 6 months",
+    bestFor:["Frequent Hyatt stays (4x at Hyatt hotels)","Restaurants, flights booked direct, local transit, gym memberships (2x)","Travelers who value the single best hotel transfer/redemption program"],
+    keyBenefits:["Free night certificate every cardmember anniversary at any Category 1-4 Hyatt property -- alone often covers the $95 fee","Second free night after $15,000 spent in a calendar year","Complimentary Hyatt Discoverist elite status -- late checkout, room upgrades, 10% bonus points","No foreign transaction fees","One of the most generous hotel award charts -- off-peak Category 1 nights from just 3,500 points"],
+    bestPlaces:["Hyatt hotels and resorts worldwide, including Park Hyatt, Andaz, Small Luxury Hotels of the World","Restaurants and flights booked directly with the airline","Gym and fitness memberships"],
+    notGoodFor:["Non-Hyatt loyalists -- earning rate outside Hyatt/dining/flights is just 1x","Those who want a flexible, transferable-everywhere points currency"],
+  },
+  {
+    id:"hiltonaspire", name:"Hilton Honors Aspire", issuer:"Amex", apr:"19.49%-28.49% Variable",
+    gradient:"linear-gradient(135deg,#1C1C1C 0%,#3A2E1F 50%,#1C1C1C 100%)",
+    accentColor:"#D4AF37", rewardRate:"14x Hilton, 7x Flights/Dining", annualFee:550, perksValue:1209, cashback:"Points", category:"hotel",
+    signupBonus:"175,000 Hilton Honors points after spending $6,000 in first 6 months (current offer ends 7/29/2026; standard offer is 150,000)",
+    bestFor:["Hilton loyalists who stay 2+ times per year","Highest Hilton earning rate of any card on the market (14x)","Travelers who'll actually use the airline, resort, and CLEAR credits"],
+    keyBenefits:["Complimentary Hilton Honors Diamond status -- the top elite tier, with room upgrades and lounge access","Annual Free Night Reward every year on renewal, plus extra free nights at $30k and $60k spend","Up to $400/year in Hilton resort credits (paid $200 semi-annually)","Up to $200/year in flight credits (paid $50 quarterly)","Up to $209/year CLEAR+ membership credit","No foreign transaction fees"],
+    bestPlaces:["Hilton, Waldorf Astoria, Conrad, DoubleTree, and all other Hilton-family hotels","Flights booked direct or via Amex Travel","U.S. restaurants"],
+    notGoodFor:["Occasional travelers who won't use the resort/flight/CLEAR credits -- the $550 fee is hard to justify without them","Anyone not loyal to the Hilton ecosystem specifically"],
+  },
+  {
     id:"delta", name:"Delta SkyMiles Gold", issuer:"Amex", apr:"21.49%-29.49% Variable",
     gradient:"linear-gradient(135deg,#0A0028 0%,#1A0050 50%,#0A0028 100%)",
     accentColor:"#A78BFA", rewardRate:"2x Delta, 2x Dining", annualFee:150, perksValue:220, cashback:"Miles", category:"airline",
@@ -673,6 +713,7 @@ const CARD_DB = [
     keyBenefits:["5% cash back on your top eligible category (up to $500 spent/month)","1% on everything else","No annual fee","No category activation needed -- automatic"],
     bestPlaces:["Whatever you spend most on that month","Gas stations, groceries, restaurants, drugstores"],
     notGoodFor:["Spending above $500/month in top category (drops to 1%)","Multiple high-spend categories at once"],
+    discontinued:true, discontinuedNote:"Citi stopped accepting new applications for this card as of May 28, 2026. Shown here for comparison only -- existing cardholders keep their card.",
   },
   {
     id:"citiaa", name:"AAdvantage Platinum Select", issuer:"Citi", apr:"21.24%-29.24% Variable",
@@ -1609,7 +1650,11 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
   };
 
   return (
-    <div className="screen desktop-content screen-enter">
+    <div className="screen desktop-content screen-enter" style={{position:"relative"}}>
+      {/* Ambient aurora background -- fixed, behind all content via negative z-index (bulletproof
+          regardless of how other unpositioned content paints), very subtle */}
+      <div style={{position:"fixed",top:-100,left:"10%",width:420,height:420,borderRadius:"50%",background:"radial-gradient(circle,rgba(37,99,235,.07),transparent 70%)",animation:"meshDrift 20s ease-in-out infinite",pointerEvents:"none",zIndex:-1}}/>
+      <div style={{position:"fixed",top:200,right:"5%",width:340,height:340,borderRadius:"50%",background:"radial-gradient(circle,rgba(34,197,94,.05),transparent 70%)",animation:"meshDrift 24s ease-in-out infinite reverse",pointerEvents:"none",zIndex:-1}}/>
       {/* Header with search */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
         <div>
@@ -1934,7 +1979,7 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
   };
 
   return (
-    <div className="screen desktop-content">
+    <div className="screen desktop-content screen-enter">
       <PageHead title={step==="search"?"Add a Card":"Card Details"} back={step==="details"?()=>setStep("search"):()=>go("cards")} />
       <div className="px">
         {step==="search" && (
@@ -1964,6 +2009,12 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
                       <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{card.name}</p>
                       <span className="pill pill-emerald" style={{fontSize:11,flexShrink:0,marginLeft:8}}>{card.cashback}</span>
                     </div>
+                    {(card as any).discontinued && (
+                      <div style={{display:"flex",alignItems:"center",gap:5,background:"var(--redbg)",borderRadius:7,padding:"4px 8px",marginBottom:6,width:"fit-content"}}>
+                        <Icon name="alert" size={11} color="var(--red)"/>
+                        <span style={{color:"var(--red)",fontSize:11,fontWeight:600}}>Discontinued for new applicants</span>
+                      </div>
+                    )}
                     <p style={{color:"var(--text2)",fontSize:12,marginBottom:3}}>{card.issuer}  ${card.annualFee}/yr fee</p>
                     <p style={{color:"var(--accent)",fontSize:12,fontWeight:600,marginBottom:6}}>{card.rewardRate}</p>
                     {(card as any).bestFor && (card as any).bestFor.slice(0,2).map((b:string,bi:number)=>(
@@ -2000,6 +2051,16 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
                 <span className="pill" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:12}}>Perks: ${selected.perksValue}/yr</span>
               </div>
             </div>
+
+            {(selected as any).discontinued && (
+              <div style={{background:"var(--redbg)",border:"1px solid rgba(220,38,38,.2)",borderRadius:14,padding:"14px 16px",marginBottom:20,display:"flex",gap:10,alignItems:"flex-start"}}>
+                <Icon name="alert" size={18} color="var(--red)"/>
+                <div>
+                  <p style={{color:"var(--red)",fontSize:13,fontWeight:700,marginBottom:4}}>No longer accepting new applicants</p>
+                  <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>{(selected as any).discontinuedNote}</p>
+                </div>
+              </div>
+            )}
 
             {/* Signup Bonus */}
             {selected.signupBonus && (
@@ -2103,7 +2164,7 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
   const [open, setOpen] = useState<string|null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string|null>(null);
   return (
-    <div className="screen desktop-content">
+    <div className="screen desktop-content screen-enter">
       <PageHead title="My Cards" sub={cards.length>0?`${cards.length} card${cards.length!==1?"s":""} · ${f(cards.reduce((s,c)=>s+c.points,0))} total points`:"No cards added yet"}
         right={<button onClick={()=>go("add-card")} className="btn-gold press" style={{padding:"10px 18px",fontSize:14}}>+ Add Card</button>}/>
       <div className="px">
@@ -2491,7 +2552,7 @@ function Travel({ cards }: { cards:CreditCard[] }) {
   const activeProgram = TRANSFER_PROGRAMS.find(p=>p.id===selProgram) || ownedPrograms[0] || TRANSFER_PROGRAMS[0];
 
   return (
-    <div className="screen desktop-content">
+    <div className="screen desktop-content screen-enter">
       <PageHead title="Travel & Points" sub="Maximize every mile and hotel night"/>
       <div className="px">
         <div className="au" style={{display:"flex",gap:5,marginBottom:24,background:"var(--surface2)",padding:4,borderRadius:14}}>
@@ -2751,7 +2812,7 @@ function Split({ cards }: { cards:CreditCard[] }) {
   const PEOPLE = ["Sarah","Mike","Priya","James","Leila","Omar"];
   const pp = sel.length>0 ? (247/(sel.length+1)).toFixed(2) : "--";
   return (
-    <div className="screen desktop-content">
+    <div className="screen desktop-content screen-enter">
       <PageHead title="Split Bills" sub="Fair splits  Smart card picks"/>
       <div className="px">
         {popup&&(
@@ -2836,7 +2897,7 @@ function Perks({ cards }: { cards:CreditCard[] }) {
   ];
   const totalLeft = perks.reduce((s,p)=>s+(p.total-p.used),0);
   return (
-    <div className="screen desktop-content">
+    <div className="screen desktop-content screen-enter">
       <PageHead title="Perks & Offers" sub="Don't let real money expire"/>
       <div className="px">
         <div className="au card-surface" style={{padding:"18px 20px",marginBottom:20,border:"1.5px solid rgba(240,164,41,.3)",background:"rgba(240,164,41,.05)"}}>
@@ -3218,7 +3279,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
   const QUICK_MERCHANTS = ["Starbucks","Whole Foods","Amazon","Delta flight","Hilton hotel","Shell gas","Netflix","CVS Pharmacy","Uber ride","Restaurant dinner","Costco","Best Buy"];
 
   return (
-    <div className="screen desktop-content">
+    <div className="screen desktop-content screen-enter">
       <PageHead title="AI Card Recommender" sub="Apply smarter  Spend smarter"/>
       <div className="px">
 
@@ -3679,7 +3740,7 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
   const f2 = (n:number) => n.toLocaleString("en-US", {minimumFractionDigits:0, maximumFractionDigits:0});
 
   return (
-    <div className="screen desktop-content">
+    <div className="screen desktop-content screen-enter">
       <PageHead title="Lifestyle Optimizer" sub="Spend smarter  Save more"/>
       <div className="px">
         {/* Tab switcher */}
