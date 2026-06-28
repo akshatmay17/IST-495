@@ -178,6 +178,8 @@ select.field { appearance:none; }
 
 /* Utilities */
 .divider { height:1px; background:var(--border); width:100%; }
+.no-scrollbar { scrollbar-width:none; -ms-overflow-style:none; }
+.no-scrollbar::-webkit-scrollbar { display:none; }
 .screen  { min-height:100vh; padding-bottom:88px; }
 .px      { padding-left:20px; padding-right:20px; }
 .serif   { font-family:var(--serif); font-weight:500; letter-spacing:-0.02em; }
@@ -2207,209 +2209,256 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
    CARDS SCREEN
    ============================================================ */
 function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go:(s:S)=>void; onDelete?:(id:string)=>void; onToggleFreeze?:(id:string)=>void }) {
-  const [open, setOpen] = useState<string|null>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState<string|null>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const active = cards[Math.min(activeIdx, cards.length-1)];
+
+  // Track which card is centered as the user swipes
+  const handleScroll = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const cardW = el.scrollWidth / cards.length;
+    const idx = Math.round(el.scrollLeft / cardW);
+    setActiveIdx(Math.max(0, Math.min(cards.length-1, idx)));
+  };
+  const scrollToIdx = (idx:number) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const cardW = el.scrollWidth / cards.length;
+    el.scrollTo({ left: idx*cardW, behavior: "smooth" });
+    setActiveIdx(idx);
+  };
+
+  if (!active) {
+    return (
+      <div className="screen desktop-content screen-enter">
+        <PageHead title="My Cards" sub="No cards added yet"
+          right={<button onClick={()=>go("add-card")} className="btn-gold press" style={{padding:"10px 18px",fontSize:14}}>+ Add Card</button>}/>
+        <div className="px">
+          <EmptyState icon="card" title="No cards yet" sub="Add your credit cards to track balances, points, due dates, and get personalized recommendations." action="Add Your First Card" onAction={()=>go("add-card")}/>
+        </div>
+      </div>
+    );
+  }
+
+  const u = pct(active.balance, active.limit);
+  const days = daysUntil(active.dueDate);
+
   return (
     <div className="screen desktop-content screen-enter">
-      <PageHead title="My Cards" sub={cards.length>0?`${cards.length} card${cards.length!==1?"s":""} · ${f(cards.reduce((s,c)=>s+c.points,0))} total points`:"No cards added yet"}
+      <PageHead title="My Cards" sub={`${cards.length} card${cards.length!==1?"s":""} · ${f(cards.reduce((s,c)=>s+c.points,0))} total points`}
         right={<button onClick={()=>go("add-card")} className="btn-gold press" style={{padding:"10px 18px",fontSize:14}}>+ Add Card</button>}/>
-      <div className="px">
-        {cards.length === 0 ? (
-          <EmptyState icon="card" title="No cards yet" sub="Add your credit cards to track balances, points, due dates, and get personalized recommendations." action="Add Your First Card" onAction={()=>go("add-card")}/>
-        ) : (
-          cards.map((card,i)=>{
-            const u = pct(card.balance, card.limit);
-            const days = daysUntil(card.dueDate);
-            const isOpen = open===card.id;
-            return (
-              <div key={card.id} className={`au hover-lift d${Math.min(i+1,6)}`} style={{
-                background:"var(--surface)",border:`1.5px solid ${isOpen?"var(--accent)":"var(--border2)"}`,
-                borderRadius:22,marginBottom:16,overflow:"hidden",cursor:"pointer",transition:"border-color .2s",
-              }} onClick={()=>setOpen(isOpen?null:card.id)}>
 
-                {/* Card face */}
-                <div style={{background:card.gradient,padding:"22px 20px",position:"relative",overflow:"hidden",filter:card.isFrozen?"grayscale(.6) brightness(.7)":"none",transition:"filter .3s"}}>
-                  <div style={{position:"absolute",top:-25,right:-25,width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,.07)"}}/>
-                  {card.isFrozen && (
-                    <div style={{position:"absolute",top:14,left:14,background:"rgba(0,0,0,.5)",borderRadius:99,padding:"4px 10px",display:"flex",alignItems:"center",gap:5,zIndex:2}}>
-                      <Icon name="lock" size={11} color="white"/>
-                      <span style={{color:"#fff",fontSize:11,fontWeight:700,letterSpacing:.5}}>FROZEN</span>
-                    </div>
-                  )}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18}}>
-                    <div>
-                      <p style={{color:"rgba(255,255,255,.5)",fontSize:12,letterSpacing:1.2,textTransform:"uppercase",marginBottom:3}}>{card.issuer}</p>
-                      <p style={{color:"#fff",fontSize:20,fontWeight:700}}>{card.name}</p>
-                    </div>
-                    <span className="pill" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:12}}>{card.cashback}</span>
-                  </div>
-                  <div style={{display:"flex",gap:22,marginBottom:14}}>
-                    {[{l:"Balance",v:`$${f(card.balance)}`},{l:"Available",v:`$${f(card.limit-card.balance)}`},{l:"Points",v:f(card.points)}].map(({l,v})=>(
-                      <div key={l}>
-                        <p style={{color:"rgba(255,255,255,.4)",fontSize:11,textTransform:"uppercase",letterSpacing:.8,marginBottom:2}}>{l}</p>
-                        <p style={{color:"#fff",fontSize:16,fontWeight:700}}>{v}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{display:"flex",justifyContent:"flex-end"}}>
-                    <NetworkBadge issuer={card.issuer} size={16}/>
-                  </div>
+      {/* Swipeable card carousel -- one card centered at a time, adjacent cards peek at the edges */}
+      <div ref={scrollerRef} onScroll={handleScroll} style={{
+        display:"flex", overflowX:"auto", scrollSnapType:"x mandatory",
+        WebkitOverflowScrolling:"touch", paddingBottom:4,
+        gap:14, padding:"0 36px 4px", marginBottom:14,
+      }} className="no-scrollbar">
+        {cards.map((card,i)=>(
+          <div key={card.id} onClick={()=>scrollToIdx(i)} style={{
+            scrollSnapAlign:"center", flexShrink:0, width:"calc(100% - 72px)", maxWidth:340,
+            cursor:"pointer", transition:"opacity .25s, transform .25s",
+            opacity: i===activeIdx ? 1 : 0.45, transform: i===activeIdx ? "scale(1)" : "scale(0.92)",
+          }}>
+            <div style={{
+              background:card.gradient, borderRadius:"var(--radius-lg)", padding:"22px 20px",
+              position:"relative", overflow:"hidden", aspectRatio:"1.55",
+              filter:card.isFrozen?"grayscale(.6) brightness(.7)":"none", transition:"filter .3s",
+              boxShadow:"var(--elev-3)",
+            }}>
+              <div style={{position:"absolute",top:-25,right:-25,width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,.07)"}}/>
+              {card.isFrozen && (
+                <div style={{position:"absolute",top:14,left:14,background:"rgba(0,0,0,.5)",borderRadius:99,padding:"4px 10px",display:"flex",alignItems:"center",gap:5,zIndex:2}}>
+                  <Icon name="lock" size={11} color="white"/>
+                  <span style={{color:"#fff",fontSize:11,fontWeight:700,letterSpacing:.5}}>FROZEN</span>
                 </div>
-
-                {/* Key info row */}
-                <div style={{padding:"14px 20px",display:"flex",gap:0,borderBottom:"1px solid var(--border)"}}>
-                  <div style={{flex:1}}>
-                    <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Utilization</p>
-                    <p style={{color:uc(u),fontSize:14,fontWeight:700}}>{u}%</p>
-                  </div>
-                  <div style={{flex:1}}>
-                    <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Min. Payment</p>
-                    <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${f(card.minPayment)}</p>
-                  </div>
-                  <div style={{flex:1}}>
-                    <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Due In</p>
-                    <p style={{color:urgencyColor(days),fontSize:14,fontWeight:700}}>{days >= 0 ? `${days} days` : "Overdue"}</p>
-                  </div>
-                  <div style={{flex:1}}>
-                    <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Rewards</p>
-                    <p style={{color:"var(--accent)",fontSize:14,fontWeight:700}}>${f(Math.round(card.points*.015))}</p>
-                  </div>
+              )}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18}}>
+                <div>
+                  <p style={{color:"rgba(255,255,255,.5)",fontSize:12,letterSpacing:1.2,textTransform:"uppercase",marginBottom:3}}>{card.issuer}</p>
+                  <p style={{color:"#fff",fontSize:19,fontWeight:700}}>{card.name}</p>
                 </div>
-
-                {/* Utilization bar */}
-                <div style={{padding:"10px 20px"}}>
-                  <Bar v={card.balance} max={card.limit} color={uc(u)} h={6}/>
-                </div>
-
-                {/* Expanded details */}
-                {isOpen && (
-                  <div className="ai" style={{padding:"0 20px 20px",borderTop:"1px solid var(--border)"}}>
-                    {/* Active offers */}
-                    <p style={{color:"var(--text2)",fontSize:13,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:10,marginTop:14}}>Active Offers & Cashback</p>
-                    {(card.offers||[]).map((offer,oi)=>(
-                      <div key={oi} style={{background:"var(--surface2)",borderRadius:12,padding:"10px 14px",marginBottom:8,display:"flex",gap:10,alignItems:"center"}}>
-                        <span style={{color:"var(--amber)",display:"flex"}}><Icon name="gift" size={17}/></span>
-                        <div style={{flex:1}}>
-                          <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{offer.title}</p>
-                          <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{offer.merchant}  Expires {offer.expires}</p>
-                        </div>
-                        <span className="pill pill-emerald" style={{fontSize:11}}>{offer.value}</span>
-                      </div>
-                    ))}
-
-                    {/* Detailed metrics */}
-                    <p style={{color:"var(--text2)",fontSize:13,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:10,marginTop:16}}>Card Analytics</p>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                      {[
-                        {l:"Annual Fee",v:`$${card.annualFee}`,c:"var(--text)"},
-                        {l:"Perks Value",v:`$${card.perksValue}/yr`,c:"var(--green)"},
-                        {l:"Net Benefit",v:`+$${card.perksValue-card.annualFee}/yr`,c:card.perksValue>card.annualFee?"var(--green)":"var(--red)"},
-                        {l:"APR",v:card.apr,c:"var(--text2)"},
-                        {l:"Points Value",v:`~$${f(Math.round(card.points*.015))}`,c:"var(--accent)"},
-                        {l:"Pay Before",v:"Statement close",c:"var(--amber)"},
-                      ].map(({l,v,c})=>(
-                        <div key={l} style={{background:"var(--surface2)",borderRadius:11,padding:"10px 12px"}}>
-                          <p style={{color:"var(--text3)",fontSize:11,marginBottom:4}}>{l}</p>
-                          <p style={{color:c,fontSize:14,fontWeight:700}}>{v}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <p style={{color:"var(--text3)",fontSize:11,marginTop:8,lineHeight:1.4}}>APR shown is the issuer's published range as of mid-2026. Your actual rate depends on your individual creditworthiness. Sign-up bonuses vary by applicant and may differ from what's shown -- always confirm current terms on the issuer's site before applying.</p>
-
-                    {/* AI tip */}
-                    <div style={{background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",borderRadius:14,padding:"12px 16px",marginTop:14}}>
-                      <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Icon name="rocket" size={13}/> AI Payment Tip</p>
-                      <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>
-                        Pay ${f(Math.round(card.balance*.5))} before your statement closes to reduce reported utilization by {Math.round(u/2)}%. This could boost your credit score by 8-12 points within 30 days.
-                      </p>
-                    </div>
-
-                    {/* Reward rate */}
-                    <div style={{background:"rgba(79,110,247,.08)",border:"1px solid rgba(79,110,247,.2)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
-                      <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,marginBottom:4}}>Earning Rate</p>
-                      <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{card.rewardRate}</p>
-                    </div>
-                    {card.bestPlaces && card.bestPlaces.length > 0 && (
-                      <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.2)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
-                        <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,marginBottom:8}}>Best Places to Use This Card</p>
-                        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                          {(card.bestPlaces||[]).map((place:string,pi:number)=>(
-                            <span key={pi} style={{background:"rgba(201,168,76,.1)",border:"1px solid rgba(201,168,76,.2)",borderRadius:20,padding:"3px 10px",fontSize:11,color:"var(--accent)"}}>
-                              {place.split(" (")[0]}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {card.keyBenefits && card.keyBenefits.length > 0 && (
-                      <div style={{background:"rgba(45,200,160,.06)",border:"1px solid rgba(45,200,160,.2)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
-                        <p style={{color:"var(--green)",fontSize:13,fontWeight:600,marginBottom:8}}>Key Card Benefits</p>
-                        {(card.keyBenefits||[]).slice(0,5).map((b:string,bi:number)=>(
-                          <div key={bi} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:bi<Math.min(card.keyBenefits.length,5)-1?6:0}}>
-                            <span style={{color:"var(--green)",fontSize:11,flexShrink:0,marginTop:2}}>check</span>
-                            <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {card.signupBonus && (
-                      <div style={{background:"rgba(240,164,41,.06)",border:"1px solid rgba(240,164,41,.25)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
-                        <p style={{color:"var(--amber)",fontSize:13,fontWeight:600,marginBottom:4}}>Welcome Bonus</p>
-                        <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{card.signupBonus}</p>
-                      </div>
-                    )}
-                    {card.notGoodFor && card.notGoodFor.length > 0 && (
-                      <div style={{background:"rgba(244,97,122,.05)",border:"1px solid rgba(244,97,122,.15)",borderRadius:14,padding:"12px 16px",marginTop:10}}>
-                        <p style={{color:"var(--red)",fontSize:13,fontWeight:600,marginBottom:8}}>Not Great For</p>
-                        {(card.notGoodFor||[]).map((b:string,bi:number)=>(
-                          <div key={bi} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:bi<card.notGoodFor.length-1?5:0}}>
-                            <span style={{color:"var(--red)",fontSize:11,flexShrink:0,marginTop:2}}>x</span>
-                            <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Freeze card button */}
-                    {onToggleFreeze && (
-                      <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--border)"}}>
-                        <button onClick={e=>{e.stopPropagation();onToggleFreeze(card.id);}} className="press" style={{
-                          width:"100%",padding:"11px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",
-                          background:card.isFrozen?"var(--greenbg)":"var(--surface2)",
-                          border:`1px solid ${card.isFrozen?"rgba(34,197,94,.25)":"var(--border)"}`,
-                          color:card.isFrozen?"var(--green)":"var(--text)",
-                          display:"flex",alignItems:"center",justifyContent:"center",gap:8,
-                        }}>
-                          <Icon name={card.isFrozen?"unlock":"lock"} size={15}/>
-                          {card.isFrozen ? "Unfreeze Card" : "Freeze Card"}
-                        </button>
-                        <p style={{color:"var(--text3)",fontSize:11,marginTop:6,textAlign:"center"}}>{card.isFrozen?"New purchases would be blocked while frozen":"Instantly block new purchases if your card is lost or stolen"}</p>
-                      </div>
-                    )}
-
-                    {/* Delete card button */}
-                    {onDelete && (
-                      <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--border)"}}>
-                        {confirmDelete===card.id ? (
-                          <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                            <span style={{fontSize:13,color:"var(--text2)",flex:1}}>Remove this card permanently?</span>
-                            <button onClick={e=>{e.stopPropagation();onDelete(card.id);setConfirmDelete(null);}} style={{background:"var(--redbg)",border:"1px solid rgba(239,68,68,.3)",color:"var(--red)",borderRadius:8,padding:"7px 14px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Yes, remove</button>
-                            <button onClick={e=>{e.stopPropagation();setConfirmDelete(null);}} style={{background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text2)",borderRadius:8,padding:"7px 14px",fontSize:13,cursor:"pointer"}}>Cancel</button>
-                          </div>
-                        ) : (
-                          <button onClick={e=>{e.stopPropagation();setConfirmDelete(card.id);}} style={{background:"none",border:"none",color:"var(--text3)",fontSize:13,cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:6}}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                            Remove card
-                          </button>
-                        )}
-                      </div>
-                    )}
+                <span className="pill" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:11}}>{card.cashback}</span>
+              </div>
+              <div style={{display:"flex",gap:20,marginBottom:14}}>
+                {[{l:"Balance",v:`$${f(card.balance)}`},{l:"Available",v:`$${f(card.limit-card.balance)}`},{l:"Points",v:f(card.points)}].map(({l,v})=>(
+                  <div key={l}>
+                    <p style={{color:"rgba(255,255,255,.4)",fontSize:10,textTransform:"uppercase",letterSpacing:.8,marginBottom:2}}>{l}</p>
+                    <p style={{color:"#fff",fontSize:15,fontWeight:700}}>{v}</p>
                   </div>
+                ))}
+              </div>
+              <div style={{position:"absolute",bottom:18,right:20}}>
+                <NetworkBadge issuer={card.issuer} size={15}/>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pagination dots */}
+      {cards.length>1 && (
+        <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:18}}>
+          {cards.map((_,i)=>(
+            <button key={i} onClick={()=>scrollToIdx(i)} aria-label={`Go to card ${i+1}`} style={{
+              width:i===activeIdx?16:6, height:6, borderRadius:99, border:"none", padding:0, cursor:"pointer",
+              background:i===activeIdx?"var(--accent)":"var(--border2)", transition:"all .25s ease",
+            }}/>
+          ))}
+        </div>
+      )}
+
+      {/* Full details for the active card -- always visible below, no accordion */}
+      <div className="px" key={active.id}>
+        <div className="ai" style={{background:"var(--surface)",border:"1px solid var(--border-soft)",borderRadius:"var(--radius-md)",boxShadow:"var(--elev-1)",overflow:"hidden",marginBottom:20}}>
+          {/* Key info row */}
+          <div style={{padding:"16px 18px",display:"flex",gap:0,borderBottom:"1px solid var(--border)"}}>
+            <div style={{flex:1}}>
+              <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Utilization</p>
+              <p style={{color:uc(u),fontSize:15,fontWeight:700}}>{u}%</p>
+            </div>
+            <div style={{flex:1}}>
+              <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Min. Payment</p>
+              <p style={{color:"var(--text)",fontSize:15,fontWeight:700}}>${f(active.minPayment)}</p>
+            </div>
+            <div style={{flex:1}}>
+              <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Due In</p>
+              <p style={{color:urgencyColor(days),fontSize:15,fontWeight:700}}>{days >= 0 ? `${days} days` : "Overdue"}</p>
+            </div>
+            <div style={{flex:1}}>
+              <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Rewards</p>
+              <p style={{color:"var(--accent)",fontSize:15,fontWeight:700}}>${f(Math.round(active.points*.015))}</p>
+            </div>
+          </div>
+          <div style={{padding:"12px 18px 0"}}>
+            <Bar v={active.balance} max={active.limit} color={uc(u)} h={6}/>
+          </div>
+
+          <div style={{padding:"18px"}}>
+            {/* Active offers */}
+            <p style={{color:"var(--text2)",fontSize:13,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:10}}>Active Offers & Cashback</p>
+            {(active.offers||[]).map((offer,oi)=>(
+              <div key={oi} style={{background:"var(--surface2)",borderRadius:"var(--radius-sm)",padding:"10px 14px",marginBottom:8,display:"flex",gap:10,alignItems:"center"}}>
+                <span style={{color:"var(--amber)",display:"flex"}}><Icon name="gift" size={17}/></span>
+                <div style={{flex:1}}>
+                  <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{offer.title}</p>
+                  <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{offer.merchant} · Expires {offer.expires}</p>
+                </div>
+                <span className="pill pill-emerald" style={{fontSize:11}}>{offer.value}</span>
+              </div>
+            ))}
+
+            {/* Detailed metrics */}
+            <p style={{color:"var(--text2)",fontSize:13,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:10,marginTop:16}}>Card Analytics</p>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[
+                {l:"Annual Fee",v:`$${active.annualFee}`,c:"var(--text)"},
+                {l:"Perks Value",v:`$${active.perksValue}/yr`,c:"var(--green)"},
+                {l:"Net Benefit",v:`+$${active.perksValue-active.annualFee}/yr`,c:active.perksValue>active.annualFee?"var(--green)":"var(--red)"},
+                {l:"APR",v:active.apr,c:"var(--text2)"},
+                {l:"Points Value",v:`~$${f(Math.round(active.points*.015))}`,c:"var(--accent)"},
+                {l:"Pay Before",v:"Statement close",c:"var(--amber)"},
+              ].map(({l,v,c})=>(
+                <div key={l} style={{background:"var(--surface2)",borderRadius:"var(--radius-sm)",padding:"10px 12px"}}>
+                  <p style={{color:"var(--text3)",fontSize:11,marginBottom:4}}>{l}</p>
+                  <p style={{color:c,fontSize:14,fontWeight:700}}>{v}</p>
+                </div>
+              ))}
+            </div>
+            <p style={{color:"var(--text3)",fontSize:11,marginTop:8,lineHeight:1.4}}>APR shown is the issuer's published range as of mid-2026. Your actual rate depends on your individual creditworthiness. Sign-up bonuses vary by applicant and may differ from what's shown -- always confirm current terms on the issuer's site before applying.</p>
+
+            {/* AI tip */}
+            <div style={{background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",borderRadius:"var(--radius-md)",padding:"12px 16px",marginTop:14}}>
+              <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Icon name="rocket" size={13}/> AI Payment Tip</p>
+              <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>
+                Pay ${f(Math.round(active.balance*.5))} before your statement closes to reduce reported utilization by {Math.round(u/2)}%. This could boost your credit score by 8-12 points within 30 days.
+              </p>
+            </div>
+
+            {/* Reward rate */}
+            <div style={{background:"rgba(79,110,247,.08)",border:"1px solid rgba(79,110,247,.2)",borderRadius:"var(--radius-md)",padding:"12px 16px",marginTop:10}}>
+              <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,marginBottom:4}}>Earning Rate</p>
+              <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{active.rewardRate}</p>
+            </div>
+            {active.bestPlaces && active.bestPlaces.length > 0 && (
+              <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.2)",borderRadius:"var(--radius-md)",padding:"12px 16px",marginTop:10}}>
+                <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,marginBottom:8}}>Best Places to Use This Card</p>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  {(active.bestPlaces||[]).map((place:string,pi:number)=>(
+                    <span key={pi} style={{background:"rgba(201,168,76,.1)",border:"1px solid rgba(201,168,76,.2)",borderRadius:"var(--radius-full)",padding:"3px 10px",fontSize:11,color:"var(--accent)"}}>
+                      {place.split(" (")[0]}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {active.keyBenefits && active.keyBenefits.length > 0 && (
+              <div style={{background:"rgba(45,200,160,.06)",border:"1px solid rgba(45,200,160,.2)",borderRadius:"var(--radius-md)",padding:"12px 16px",marginTop:10}}>
+                <p style={{color:"var(--green)",fontSize:13,fontWeight:600,marginBottom:8}}>Key Card Benefits</p>
+                {(active.keyBenefits||[]).slice(0,5).map((b:string,bi:number)=>(
+                  <div key={bi} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:bi<Math.min(active.keyBenefits.length,5)-1?6:0}}>
+                    <Icon name="check" size={11} color="var(--green)"/>
+                    <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {active.signupBonus && (
+              <div style={{background:"rgba(240,164,41,.06)",border:"1px solid rgba(240,164,41,.25)",borderRadius:"var(--radius-md)",padding:"12px 16px",marginTop:10}}>
+                <p style={{color:"var(--amber)",fontSize:13,fontWeight:600,marginBottom:4}}>Welcome Bonus</p>
+                <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{active.signupBonus}</p>
+              </div>
+            )}
+            {active.notGoodFor && active.notGoodFor.length > 0 && (
+              <div style={{background:"rgba(244,97,122,.05)",border:"1px solid rgba(244,97,122,.15)",borderRadius:"var(--radius-md)",padding:"12px 16px",marginTop:10}}>
+                <p style={{color:"var(--red)",fontSize:13,fontWeight:600,marginBottom:8}}>Not Great For</p>
+                {(active.notGoodFor||[]).map((b:string,bi:number)=>(
+                  <div key={bi} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:bi<active.notGoodFor.length-1?5:0}}>
+                    <Icon name="alert" size={11} color="var(--red)"/>
+                    <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Freeze card button */}
+            {onToggleFreeze && (
+              <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--border)"}}>
+                <button onClick={()=>onToggleFreeze(active.id)} className="press" style={{
+                  width:"100%",padding:"11px",borderRadius:"var(--radius-sm)",fontSize:14,fontWeight:600,cursor:"pointer",
+                  background:active.isFrozen?"var(--greenbg)":"var(--surface2)",
+                  border:`1px solid ${active.isFrozen?"rgba(34,197,94,.25)":"var(--border)"}`,
+                  color:active.isFrozen?"var(--green)":"var(--text)",
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+                }}>
+                  <Icon name={active.isFrozen?"unlock":"lock"} size={15}/>
+                  {active.isFrozen ? "Unfreeze Card" : "Freeze Card"}
+                </button>
+                <p style={{color:"var(--text3)",fontSize:11,marginTop:6,textAlign:"center"}}>{active.isFrozen?"New purchases would be blocked while frozen":"Instantly block new purchases if your card is lost or stolen"}</p>
+              </div>
+            )}
+
+            {/* Delete card button */}
+            {onDelete && (
+              <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--border)"}}>
+                {confirmDelete===active.id ? (
+                  <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                    <span style={{fontSize:13,color:"var(--text2)",flex:1}}>Remove this card permanently?</span>
+                    <button onClick={()=>{onDelete(active.id);setConfirmDelete(null);setActiveIdx(0);}} style={{background:"var(--redbg)",border:"1px solid rgba(239,68,68,.3)",color:"var(--red)",borderRadius:"var(--radius-sm)",padding:"7px 14px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Yes, remove</button>
+                    <button onClick={()=>setConfirmDelete(null)} style={{background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text2)",borderRadius:"var(--radius-sm)",padding:"7px 14px",fontSize:13,cursor:"pointer"}}>Cancel</button>
+                  </div>
+                ) : (
+                  <button onClick={()=>setConfirmDelete(active.id)} style={{background:"none",border:"none",color:"var(--text3)",fontSize:13,cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:6}}>
+                    <Icon name="trash" size={13}/>
+                    Remove card
+                  </button>
                 )}
               </div>
-            );
-          })
-        )}
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
