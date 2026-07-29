@@ -34,7 +34,7 @@ SCORE CALIBRATION (mapped to FICO-like scale):
 - 600-649: Poor (30-50%)
 - 300-599: Very Poor (>50%)
 
-You must respond in VALID JSON only. No markdown, no backticks, no explanation outside the JSON.`
+RESPONSE FORMAT: You MUST respond with ONLY a raw JSON object. No markdown, no backticks, no text before or after the JSON. Start your response with { and end with }. This is critical — any text outside the JSON will break the parser.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -112,13 +112,33 @@ Respond with this exact JSON structure:
       ? data.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('')
       : ''
 
-    // Parse the JSON response
+    // Robustly extract JSON from Claude's response
     try {
-      const clean = text.replace(/```json|```/g, '').trim()
+      // Strip markdown fences and any surrounding text
+      let clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+      // If there's text before the first {, strip it
+      const firstBrace = clean.indexOf('{')
+      const lastBrace = clean.lastIndexOf('}')
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        clean = clean.slice(firstBrace, lastBrace + 1)
+      }
       const parsed = JSON.parse(clean)
       return NextResponse.json(parsed)
-    } catch {
-      return NextResponse.json({ error: 'Failed to parse AI response', raw: text }, { status: 500 })
+    } catch (parseErr) {
+      // Fallback: generate a structured response from the raw text
+      return NextResponse.json({
+        summary: text.slice(0, 500) || 'AI analysis completed but response format was unexpected.',
+        recommendations: [{
+          title: 'Review your full analysis',
+          priority: 'MEDIUM',
+          impact: 'See details above',
+          why: 'The AI provided insights in text format rather than structured data.',
+          steps: ['Review the summary above', 'Check the SHAP Analysis tab for detailed factor breakdown', 'Adjust your profile sliders to explore what-if scenarios'],
+          timeframe: 'Ongoing'
+        }],
+        insights: ['AI response was received but could not be fully structured. The SHAP analysis on the Results tab provides accurate factor-by-factor breakdown.'],
+        three_month_plan: 'Focus on the highest-impact factors shown in your SHAP analysis: reduce utilization below 30%, eliminate late payments, and lower your debt-to-income ratio.'
+      })
     }
 
   } catch (error) {
