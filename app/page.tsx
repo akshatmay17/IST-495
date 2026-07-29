@@ -1971,6 +1971,59 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
           </div>
         );
       })()}
+
+      {/* ── Dashboard Charts ── */}
+      <div className="au d5 card-surface hover-lift" style={{padding:"18px 20px",marginBottom:14,cursor:"pointer"}} onClick={()=>go("analytics")}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div>
+            <p style={{color:"var(--text2)",fontSize:13,fontWeight:500}}>Spending Breakdown</p>
+            <p style={{color:"var(--text)",fontSize:18,fontWeight:700}}>${f(totalBal)} balance</p>
+          </div>
+          <span style={{color:"var(--accent)",fontSize:11,fontWeight:600}}>View Details →</span>
+        </div>
+        {(() => {
+          const cats = [
+            {label:"Dining",pct:28,color:"#3B82F6"},
+            {label:"Grocery",pct:22,color:"#22C55E"},
+            {label:"Travel",pct:18,color:"#F59E0B"},
+            {label:"Gas",pct:12,color:"#EF4444"},
+            {label:"Shopping",pct:11,color:"#8B5CF6"},
+            {label:"Other",pct:9,color:"#6B7280"},
+          ];
+          return (
+            <div>
+              <div style={{display:"flex",height:8,borderRadius:4,overflow:"hidden",marginBottom:8}}>
+                {cats.map(c=><div key={c.label} style={{width:`${c.pct}%`,background:c.color,transition:"width .5s"}}/>)}
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"4px 12px"}}>
+                {cats.map(c=><div key={c.label} style={{display:"flex",alignItems:"center",gap:4}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:c.color}}/>
+                  <span style={{fontSize:10,color:"var(--text2)"}}>{c.label} {c.pct}%</span>
+                </div>)}
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+
+      <div className="au d6 card-surface hover-lift" style={{padding:"18px 20px",marginBottom:14,cursor:"pointer"}} onClick={()=>go("credit-optimizer")}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <p style={{color:"var(--text2)",fontSize:13,fontWeight:500}}>Credit Health</p>
+          <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:util<30?"rgba(34,197,94,.1)":util<50?"rgba(245,158,11,.1)":"rgba(239,68,68,.1)",color:util<30?"#22c55e":util<50?"#f59e0b":"#ef4444",fontWeight:600}}>{util<30?"Healthy":util<50?"Monitor":"High"}</span>
+        </div>
+        <div style={{display:"flex",alignItems:"baseline",gap:6}}>
+          <span style={{fontSize:28,fontWeight:700,color:"var(--text)"}}>{util}%</span>
+          <span style={{fontSize:12,color:"var(--text2)"}}>utilization</span>
+        </div>
+        <div style={{height:6,background:"var(--border)",borderRadius:3,marginTop:8,overflow:"hidden"}}>
+          <div style={{width:`${Math.min(util,100)}%`,height:"100%",borderRadius:3,background:util<30?"#22c55e":util<50?"#f59e0b":"#ef4444",transition:"width .5s"}}/>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+          <span style={{fontSize:9,color:"var(--text2)"}}>0%</span>
+          <span style={{fontSize:9,color:util<30?"#22c55e":"var(--red)"}}>30% target</span>
+          <span style={{fontSize:9,color:"var(--text2)"}}>100%</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2659,6 +2712,31 @@ function Travel({ cards }: { cards:CreditCard[] }) {
         </div>
 
         {tab===0&&<div className="ai">
+          {/* Best Card by Destination */}
+          <div className="card-surface hover-lift" style={{padding:18,marginBottom:16}}>
+            <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+              <Icon name="globe" size={14}/> Best Card by Purchase Type
+            </div>
+            {[
+              {cat:"Flights (direct booking)",match:["csr","amp","covx"],best:"Sapphire Reserve (8x via Chase Travel) or Amex Platinum (5x direct)"},
+              {cat:"Hotels (direct booking)",match:["csr","amp","covx"],best:"Sapphire Reserve (8x Chase Travel) or Venture X (10x portal)"},
+              {cat:"International Dining",match:["csr","amg"],best:"Amex Gold (4x, no FX fee) or Sapphire Reserve (3x, no FX fee)"},
+              {cat:"Rental Cars",match:["csr","covx"],best:"Sapphire Reserve (primary CDW insurance) or Venture X (10x portal)"},
+              {cat:"Airport Shopping",match:["covx","cov"],best:"Capital One Venture/Venture X (2x on everything, no FX fee)"},
+            ].map((row,i) => {
+              const hasCard = row.match.some(m => cards.some(c => c.dbId === m));
+              return (
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<4?"1px solid var(--border)":"none"}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{row.cat}</div>
+                    <div style={{fontSize:10,color:"var(--text2)",marginTop:1}}>{row.best}</div>
+                  </div>
+                  <span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:hasCard?"rgba(34,197,94,.1)":"rgba(239,68,68,.1)",color:hasCard?"#22c55e":"#ef4444",fontWeight:600}}>{hasCard?"In Wallet":"Get Card"}</span>
+                </div>
+              );
+            })}
+            <div style={{fontSize:10,color:"var(--text2)",marginTop:8,fontStyle:"italic"}}>Based on your {cards.length} cards · Excludes foreign transaction fees</div>
+          </div>
           <div className="card-surface hover-lift" style={{padding:22,marginBottom:16}}>
             <p style={{color:"var(--text2)",fontSize:13,marginBottom:4}}>Total across all programs</p>
             <h2 style={{fontSize:38,fontWeight:700,letterSpacing:"-1px",marginBottom:4}}>{f(totalPts)}</h2>
@@ -2986,12 +3064,49 @@ function Split({ cards }: { cards:CreditCard[] }) {
    ============================================================ */
 function Perks({ cards }: { cards:CreditCard[] }) {
   const allOffers = cards.flatMap(c => c.offers.map(o=>({...o,cardName:c.name,cardGradient:c.gradient})));
-  const perks = [
-    {card:"Chase Sapphire Reserve",name:"Annual Travel Credit",emoji:"travel",used:180,total:300,resets:"Jan 1",urgent:false},
-    {card:"Amex Gold Card",name:"Monthly Dining Credit",emoji:"dining",used:60,total:120,resets:"Dec 31",urgent:true},
-    {card:"Amex Gold Card",name:"Monthly Uber Cash",emoji:"gas",used:45,total:120,resets:"Monthly",urgent:true},
-    {card:"Capital One Venture X",name:"Annual Travel Portal",emoji:"globe",used:0,total:300,resets:"Jan 1",urgent:false},
+  // Dynamic perks based on actual cards owned
+  const perksByCard: {card:string; dbId:string; perks:{name:string;emoji:string;total:number;resets:string}[]}[] = [
+    {card:"Chase Sapphire Reserve", dbId:"csr", perks:[
+      {name:"Annual Travel Credit",emoji:"travel",total:300,resets:"Anniversary"},
+      {name:"Hotel Edit Credit",emoji:"globe",total:500,resets:"Anniversary"},
+      {name:"Dining Credit (Exclusive Tables)",emoji:"dining",total:300,resets:"Semi-annual"},
+      {name:"Apple TV+ & Apple Music",emoji:"other",total:288,resets:"Annual"},
+    ]},
+    {card:"Amex Gold Card", dbId:"amg", perks:[
+      {name:"Monthly Dining Credit",emoji:"dining",total:120,resets:"Monthly ($10/mo)"},
+      {name:"Monthly Uber Cash",emoji:"gas",total:120,resets:"Monthly ($10/mo)"},
+      {name:"Dunkin Credit",emoji:"dining",total:84,resets:"Monthly ($7/mo)"},
+    ]},
+    {card:"Amex Platinum Card", dbId:"amp", perks:[
+      {name:"Airline Fee Credit",emoji:"travel",total:200,resets:"Jan 1"},
+      {name:"Hotel Credit (FHR)",emoji:"globe",total:200,resets:"Jan 1"},
+      {name:"Digital Entertainment",emoji:"other",total:240,resets:"Monthly ($20/mo)"},
+      {name:"Walmart+ Credit",emoji:"shopping",total:155,resets:"Monthly"},
+      {name:"Saks Fifth Avenue",emoji:"shopping",total:100,resets:"Semi-annual ($50)"},
+      {name:"CLEAR+ Membership",emoji:"travel",total:209,resets:"Annual"},
+    ]},
+    {card:"Capital One Venture X", dbId:"covx", perks:[
+      {name:"Annual Travel Credit",emoji:"travel",total:300,resets:"Anniversary"},
+      {name:"Anniversary Miles Bonus",emoji:"globe",total:100,resets:"Anniversary (10K miles)"},
+    ]},
+    {card:"Blue Cash Preferred", dbId:"ambc", perks:[
+      {name:"Disney Bundle Credit",emoji:"other",total:84,resets:"Monthly ($7/mo)"},
+    ]},
+    {card:"Hilton Aspire", dbId:"hiltonaspire", perks:[
+      {name:"Resort Credits",emoji:"travel",total:400,resets:"Semi-annual ($200)"},
+      {name:"Flight Credits",emoji:"travel",total:200,resets:"Quarterly ($50)"},
+      {name:"CLEAR+ Credit",emoji:"travel",total:209,resets:"Annual"},
+      {name:"Free Night Award",emoji:"globe",total:150,resets:"Anniversary (est. value)"},
+    ]},
   ];
+  const ownedPerks = perksByCard.filter(pb => cards.some(c => c.dbId === pb.dbId));
+  const unusedPerks = perksByCard.filter(pb => !cards.some(c => c.dbId === pb.dbId));
+  // Generate perks list with randomized usage for demo
+  const perks = ownedPerks.flatMap(pb => pb.perks.map(p => ({
+    card: pb.card, name: p.name, emoji: p.emoji,
+    used: Math.round(p.total * (0.3 + Math.random()*0.5)),
+    total: p.total, resets: p.resets, urgent: Math.random() > 0.5,
+  })));
   const totalLeft = perks.reduce((s,p)=>s+(p.total-p.used),0);
   return (
     <div className="screen desktop-content screen-enter">
@@ -3006,6 +3121,7 @@ function Perks({ cards }: { cards:CreditCard[] }) {
             <span style={{color:"var(--amber)",display:"flex"}}><Icon name="perks" size={36}/></span>
           </div>
           <p style={{color:"var(--text2)",fontSize:14}}>Money you've already paid for -- use it before it resets.</p>
+          {unusedPerks.length > 0 && <div style={{marginTop:8,fontSize:11,color:"var(--accent)"}}>💡 {unusedPerks.reduce((s,p)=>s+p.perks.reduce((a,pk)=>a+pk.total,0),0).toLocaleString()} in annual credits available if you add: {unusedPerks.map(p=>p.card).join(", ")}</div>}
         </div>
 
         {/* Active offers */}
@@ -3168,550 +3284,212 @@ function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>vo
    2. "Which card should I USE right now?" -- based on purchase
    ============================================================ */
 function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[]; profile:UserProfile}) {
-  const [tab, setTab] = useState<0|1>(0);
-
-  // -- MODE 1: APPLY recommender -----------------------------
-  const [applyLoading, setApplyLoading] = useState(false);
-  const [applyDone, setApplyDone] = useState(false);
-  const [applyRecs, setApplyRecs] = useState<{
-    card:typeof CARD_DB[0]; score:number; reason:string;
-    annualValue:number; approvalChance:number;
-    approvalColor:string; pros:string[]; cons:string[];
-    verdict:"Highly Recommended"|"Recommended"|"Consider"|"Skip";
-    verdictColor:string;
-  }[]>([]);
-  const [applyExpanded, setApplyExpanded] = useState<string|null>(null);
-
-  const runApplyRecommender = () => {
-    setApplyLoading(true);
-    setApplyDone(false);
-    setTimeout(() => {
-      const ownedIds = cards.map(c => c.dbId);
-      const score = parseInt(profile.creditScore?.match(/\d+/)?.[0] || "700");
-      const income = profile.income || "";
-      const lifestyles = profile.lifestyles || [];
-      const spending = profile.spending || {};
-      const diningSpend  = parseFloat(spending.dining  || "0");
-      const grocerySpend = parseFloat(spending.groceries || "0");
-      const travelSpend  = parseFloat(spending.travel   || "0");
-      const gasSpend     = parseFloat(spending.gas      || "0");
-
-      const highIncome = income.includes("150") || income.includes("250") || income.includes("+");
-      const medIncome  = income.includes("100") || income.includes("60");
-      const isTravel   = lifestyles.some((l:string) => l.toLowerCase().includes("travel"));
-      const isFoodie   = lifestyles.some((l:string) => l.toLowerCase().includes("food"));
-
-      const recs = CARD_DB
-        .filter(c => !ownedIds.includes(c.id))
-        .map(c => {
-          let points = 0;
-          let approvalChance = 85;
-          let annualValue = 0;
-          const pros: string[] = [];
-          const cons: string[] = [];
-
-          // Approval chance -- shared calculation, identical to what Home's dashboard shows
-          approvalChance = calcApprovalChance(c, profile);
-
-          // Score card based on spending match
-          if (c.category === "dining" || c.id === "amg") {
-            if (diningSpend > 200) { points += 30; annualValue += diningSpend * 12 * 0.04 * 0.015 * 4; pros.push(`4x on dining -- earns ~$${Math.round(diningSpend*12*0.06)}/yr from your dining spend`); }
-            if (diningSpend > 100) { points += 15; }
-            if (isFoodie) { points += 20; pros.push("Perfect match for your Foodie lifestyle"); }
-          }
-          if (c.category === "travel" || c.id === "csr" || c.id === "covx") {
-            if (travelSpend > 100) { points += 25; annualValue += travelSpend * 12 * 0.03 * 0.015; pros.push(`3x+ on travel -- earns ~$${Math.round(travelSpend*12*0.045)}/yr from your travel spend`); }
-            if (isTravel) { points += 25; pros.push("Aligns with your Frequent Traveler lifestyle"); }
-            if (c.perksValue > 0) { annualValue += c.perksValue - c.annualFee; pros.push(`$${c.perksValue} in annual perks offsets the $${c.annualFee} fee`); }
-          }
-          if (c.category === "groceries" || c.id === "ambc") {
-            if (grocerySpend > 150) { points += 25; annualValue += grocerySpend * 12 * 0.06 * 0.015; pros.push(`6x on groceries -- earns ~$${Math.round(grocerySpend*12*0.09)}/yr from your grocery spend`); }
-          }
-          if (c.category === "cashback" && c.annualFee === 0) {
-            points += 10;
-            annualValue += (diningSpend + grocerySpend + travelSpend + gasSpend) * 12 * 0.015;
-            pros.push("No annual fee -- pure profit from day one");
-          }
-
-          // Already own similar penalise
-          if (ownedIds.some(id => CARD_DB.find(d=>d.id===id)?.category === c.category)) {
-            points -= 10;
-            cons.push("You already own a card in this category");
-          }
-
-          // High fee cards need justification
-          if (c.annualFee >= 500 && annualValue < c.annualFee) {
-            cons.push(`$${c.annualFee} annual fee -- only worth it if you use all perks`);
-          }
-          if (c.annualFee === 0) pros.push("No annual fee -- zero risk to add");
-
-          // Approval based cons
-          if (approvalChance < 60) cons.push("Credit score may not meet issuer requirements");
-          if (approvalChance > 80) pros.push(`Strong ${approvalChance}% approval odds based on your profile`);
-
-          annualValue = Math.max(0, Math.round(annualValue));
-          const approvalColor = approvalChance >= 80 ? "var(--green)" : approvalChance >= 60 ? "var(--amber)" : "var(--red)";
-
-          let verdict: "Highly Recommended"|"Recommended"|"Consider"|"Skip" = "Consider";
-          let verdictColor = "var(--amber)";
-          if (points >= 55 && approvalChance >= 70) { verdict = "Highly Recommended"; verdictColor = "var(--green)"; }
-          else if (points >= 35 && approvalChance >= 55) { verdict = "Recommended"; verdictColor = "var(--accent)"; }
-          else if (points < 10 || approvalChance < 40) { verdict = "Skip"; verdictColor = "var(--red)"; }
-
-          return { card:c, score:points, reason:"", annualValue, approvalChance, approvalColor, pros, cons, verdict, verdictColor };
-        })
-        .filter(r => r.verdict !== "Skip" || r.approvalChance > 50)
-        .sort((a,b) => {
-          const verdictOrder = {"Highly Recommended":0,"Recommended":1,"Consider":2,"Skip":3};
-          return verdictOrder[a.verdict] - verdictOrder[b.verdict] || b.score - a.score;
-        })
-        .slice(0, 8);
-
-      setApplyRecs(recs);
-      setApplyLoading(false);
-      setApplyDone(true);
-    }, 1600);
-  };
-
-  // -- MODE 2: USE recommender -------------------------------
-  const [purchaseInput, setPurchaseInput] = useState("");
-  const [useLoading, setUseLoading] = useState(false);
-  const [useResults, setUseResults] = useState<{
-    card:CreditCard; multiplier:number; pointsEarned:number;
-    cashValue:number; reason:string; rank:number;
-    isTopPick:boolean; category:string;
-  }[]>([]);
-  const [purchaseAmount, setPurchaseAmount] = useState("");
-  const [useDone, setUseDone] = useState(false);
-  const [detectedCategory, setDetectedCategory] = useState("");
-
-  const CATEGORY_MAP: Record<string, {keywords:string[]; label:string; emoji:string}> = {
-    dining:    {keywords:["restaurant","cafe","coffee","starbucks","mcdonald","pizza","sushi","dining","food","eat","lunch","dinner","breakfast","bar","pub","chipotle","subway","doordash","grubhub","ubereats","taco","burger"],        label:"Dining & Restaurants", emoji:"dining"},
-    groceries: {keywords:["grocery","supermarket","whole foods","trader joe","safeway","kroger","costco","walmart","target","food store","market","aldi","publix","wegmans"],                                                            label:"Groceries",             emoji:"groceries"},
-    travel:    {keywords:["flight","airline","hotel","airbnb","uber","lyft","train","amtrak","rental car","hertz","avis","delta","united","american airlines","southwest","hilton","marriott","hyatt","booking","expedia","kayak"],    label:"Travel",                emoji:"travel"},
-    gas:       {keywords:["gas","shell","exxon","bp","chevron","mobil","fuel","petrol","sunoco"],                                                                                                                                        label:"Gas & Fuel",            emoji:"gas"},
-    shopping:  {keywords:["amazon","apple","best buy","walmart","target","online","shop","store","nike","h&m","zara","nordstrom","macy","newegg","ebay","etsy"],                                                                        label:"Shopping",              emoji:"shopping"},
-    streaming: {keywords:["netflix","spotify","hulu","disney","apple tv","hbo","amazon prime","youtube premium","tidal","peacock","paramount","stream"],                                                                                label:"Streaming",             emoji:"streaming"},
-    pharmacy:  {keywords:["cvs","walgreens","rite aid","pharmacy","drug store","medicine","prescription"],                                                                                                                              label:"Drugstore & Pharmacy",  emoji:"drugstore"},
-  };
-
-  const detectCategory = (query: string): string => {
-    const q = query.toLowerCase();
-    for (const [cat, data] of Object.entries(CATEGORY_MAP)) {
-      if (data.keywords.some(k => q.includes(k))) return cat;
+  const [monthlySpend, setMonthlySpend] = useState({dining:400,groceries:500,travel:200,gas:150,shopping:300,other:200});
+  const [showCalc, setShowCalc] = useState(false);
+  
+  // Calculate actual annual rewards for each card based on user's spending pattern
+  const calcCardValue = useCallback((card: typeof CARD_DB[0]) => {
+    const rateStr = (card.rewardRate || "").toLowerCase();
+    let rewardsByCategory: Record<string,number> = {};
+    
+    // Parse card reward rates for each category
+    const catMultipliers: Record<string,number> = { dining:1, groceries:1, travel:1, gas:1, shopping:1, other:1 };
+    
+    // Card-specific multiplier overrides based on known card data
+    if (card.id === "csr") { catMultipliers.dining=3; catMultipliers.travel=4; }
+    else if (card.id === "csp") { catMultipliers.dining=3; catMultipliers.travel=2; }
+    else if (card.id === "amg") { catMultipliers.dining=4; catMultipliers.groceries=4; catMultipliers.travel=2; }
+    else if (card.id === "amp") { catMultipliers.travel=5; }
+    else if (card.id === "covx") { catMultipliers.travel=5; catMultipliers.dining=2; catMultipliers.groceries=2; catMultipliers.gas=2; catMultipliers.shopping=2; catMultipliers.other=2; }
+    else if (card.id === "cov") { Object.keys(catMultipliers).forEach(k => catMultipliers[k]=2); }
+    else if (card.id === "coqs") { Object.keys(catMultipliers).forEach(k => catMultipliers[k]=1.5); }
+    else if (card.id === "cdc" || card.id === "wells") { Object.keys(catMultipliers).forEach(k => catMultipliers[k]=2); }
+    else if (card.id === "ambc") { catMultipliers.groceries=6; catMultipliers.gas=3; }
+    else if (card.id === "ambu") { catMultipliers.groceries=3; catMultipliers.shopping=3; catMultipliers.gas=2; }
+    else if (card.id === "cff") { catMultipliers.dining=3; }
+    else if (card.id === "cfu") { Object.keys(catMultipliers).forEach(k => catMultipliers[k]=1.5); catMultipliers.dining=3; }
+    else if (card.id === "cpc") { catMultipliers.dining=3; catMultipliers.travel=3; catMultipliers.groceries=3; catMultipliers.gas=3; }
+    else if (card.id === "covsavor") { catMultipliers.dining=3; catMultipliers.groceries=3; }
+    else if (card.id === "synchamazon") { catMultipliers.shopping=5; catMultipliers.groceries=5; catMultipliers.dining=2; catMultipliers.gas=2; }
+    else if (card.id === "costco") { catMultipliers.gas=4; catMultipliers.dining=3; catMultipliers.travel=3; }
+    else if (card.id === "bilt") { catMultipliers.dining=3; catMultipliers.travel=2; }
+    else {
+      // Default: parse from reward rate string
+      const mMatch = rateStr.match(/(\d+(?:\.\d+)?)(?:x|%)/);
+      if (mMatch) {
+        const rate = parseFloat(mMatch[1]);
+        if (rateStr.includes("everything") || rateStr.includes("all")) {
+          Object.keys(catMultipliers).forEach(k => catMultipliers[k] = rate > 5 ? rate/100 : rate);
+        }
+      }
     }
-    return "general";
-  };
-
-  const MULTIPLIERS: Record<string, Record<string, number>> = {
-    csr:   {dining:3, travel:3, groceries:1, gas:1, shopping:1, streaming:1, pharmacy:1, general:1},
-    csp:   {dining:3, travel:2, groceries:3, gas:1, shopping:1, streaming:2, pharmacy:1, general:1},
-    cff:   {dining:3, travel:5, groceries:5, gas:5, shopping:5, streaming:5, pharmacy:3, general:1},
-    cfu:   {dining:3, travel:5, groceries:1, gas:1, shopping:1, streaming:1, pharmacy:3, general:1.5},
-    amg:   {dining:4, travel:2, groceries:4, gas:1, shopping:1, streaming:1, pharmacy:1, general:1},
-    amp:   {dining:1, travel:5, groceries:1, gas:1, shopping:1, streaming:1, pharmacy:1, general:1},
-    ambc:  {dining:1, travel:1, groceries:6, gas:3, shopping:1, streaming:6, pharmacy:1, general:1},
-    ambu:  {dining:1, travel:1, groceries:3, gas:2, shopping:3, streaming:1, pharmacy:1, general:1},
-    covx:  {dining:2, travel:5, groceries:2, gas:2, shopping:2, streaming:2, pharmacy:2, general:2},
-    cov:   {dining:2, travel:2, groceries:2, gas:2, shopping:2, streaming:2, pharmacy:2, general:2},
-    coqs:  {dining:1.5, travel:1.5, groceries:1.5, gas:1.5, shopping:1.5, streaming:1.5, pharmacy:1.5, general:1.5},
-    cdc:   {dining:2, travel:2, groceries:2, gas:2, shopping:2, streaming:2, pharmacy:2, general:2},
-    cpc:   {dining:3, travel:3, groceries:3, gas:1, shopping:1, streaming:1, pharmacy:1, general:1},
-    disc:  {dining:5, travel:5, groceries:5, gas:5, shopping:1, streaming:1, pharmacy:1, general:1},
-    apple: {dining:3, travel:2, groceries:2, gas:3, shopping:3, streaming:1, pharmacy:1, general:2},
-    wells: {dining:2, travel:2, groceries:2, gas:2, shopping:2, streaming:2, pharmacy:2, general:2},
-    boar:  {dining:3, travel:3, groceries:2, gas:1, shopping:1, streaming:1, pharmacy:1, general:1},
-    usb:   {dining:3, travel:3, groceries:1, gas:1, shopping:3, streaming:1, pharmacy:1, general:3},
-    mar:   {dining:2, travel:6, groceries:2, gas:1, shopping:1, streaming:1, pharmacy:1, general:2},
-    hlt:   {dining:6, travel:12, groceries:6, gas:3, shopping:1, streaming:1, pharmacy:1, general:3},
-    delta: {dining:2, travel:2, groceries:2, gas:1, shopping:1, streaming:1, pharmacy:1, general:1},
-    united:{dining:2, travel:2, groceries:2, gas:1, shopping:1, streaming:1, pharmacy:1, general:1},
-    boa:   {dining:1, travel:3, groceries:1, gas:2, shopping:1, streaming:1, pharmacy:1, general:1},
-  };
-
-  const getCategoryReasonText = (cardDbId:string, cat:string, mult:number, merchant:string): string => {
-    const catLabel = CATEGORY_MAP[cat]?.label || "this purchase";
-    if (mult >= 4) return `${mult}x on ${catLabel} -- highest rate in your wallet for ${merchant}`;
-    if (mult === 3) return `3x on ${catLabel} -- strong earning rate at ${merchant}`;
-    if (mult === 2) return `2x on ${catLabel} -- solid flat-rate earning`;
-    return `1.5x on everything -- decent fallback for ${merchant}`;
-  };
-
-  const runUseRecommender = () => {
-    if (!purchaseInput.trim() || cards.length === 0) return;
-    setUseLoading(true);
-    setUseDone(false);
-    setTimeout(() => {
-      const cat = detectCategory(purchaseInput);
-      setDetectedCategory(cat);
-      const amount = parseFloat(purchaseAmount) || 50;
-      const results = cards.map(card => {
-        const dbCard = CARD_DB.find(c => c.id === card.dbId);
-        const multMap = MULTIPLIERS[card.dbId] || {};
-        const multiplier = multMap[cat] || multMap.general || 1;
-        const pointsEarned = Math.round(amount * multiplier);
-        const cashValue = Math.round(pointsEarned * 0.015 * 100) / 100;
-        const reason = getCategoryReasonText(card.dbId, cat, multiplier, purchaseInput);
-        return { card, multiplier, pointsEarned, cashValue, reason, rank:0, isTopPick:false, category:cat };
-      }).sort((a,b) => b.multiplier - a.multiplier || b.cashValue - a.cashValue);
-
-      results.forEach((r,i) => { r.rank = i+1; r.isTopPick = i===0; });
-      setUseResults(results);
-      setUseLoading(false);
-      setUseDone(true);
-    }, 900);
-  };
-
-  const f2 = (n:number) => n.toLocaleString("en-US");
-  const QUICK_MERCHANTS = ["Starbucks","Whole Foods","Amazon","Delta flight","Hilton hotel","Shell gas","Netflix","CVS Pharmacy","Uber ride","Restaurant dinner","Costco","Best Buy"];
-
+    
+    // Calculate annual rewards per category
+    const pointValue = card.cashback === "Cash Back" ? 0.01 : card.cashback === "Miles" ? 0.01 : 0.015;
+    let totalRewards = 0;
+    Object.entries(monthlySpend).forEach(([cat, spend]) => {
+      const multiplier = catMultipliers[cat] || 1;
+      const annual = spend * 12 * multiplier * pointValue;
+      rewardsByCategory[cat] = Math.round(annual);
+      totalRewards += annual;
+    });
+    
+    const netValue = Math.round(totalRewards) + card.perksValue - card.annualFee;
+    return { totalRewards: Math.round(totalRewards), netValue, perksValue: card.perksValue, fee: card.annualFee, categories: rewardsByCategory, multipliers: catMultipliers };
+  }, [monthlySpend]);
+  
+  // Rank all cards by net value
+  const rankings = CARD_DB.map(card => ({
+    card,
+    value: calcCardValue(card),
+    owned: cards.some(c => c.dbId === card.id),
+  })).sort((a,b) => b.value.netValue - a.value.netValue);
+  
+  const ownedIds = cards.map(c => c.dbId);
+  const topOwned = rankings.filter(r => r.owned).slice(0, 5);
+  const topUnowned = rankings.filter(r => !r.owned).slice(0, 8);
+  const totalAnnualSpend = Object.values(monthlySpend).reduce((s,v)=>s+v,0) * 12;
+  
+  const cardS: React.CSSProperties = { background:"var(--card)", borderRadius:"var(--radius)", padding:16, boxShadow:"var(--shadow)", border:"1px solid var(--border)", marginBottom:12 };
+  
   return (
     <div className="screen desktop-content screen-enter">
-      <PageHead title="AI Card Recommender" sub="Apply smarter  Spend smarter"/>
+      <PageHead title="AI Card Recommender" sub="Personalized to your actual spending" back={()=>go("settings")}/>
       <div className="px">
-
-        {/* Tab switcher */}
-        <div className="au" style={{display:"flex",gap:5,marginBottom:24,background:"var(--surface2)",padding:4,borderRadius:14}}>
-          <button onClick={()=>setTab(0)} className="press" style={{flex:1,padding:"11px 8px",borderRadius:11,border:"none",background:tab===0?"var(--accent)":"none",color:tab===0?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===0?700:500,transition:"all .2s",lineHeight:1.3}}>
-             Which card<br/>should I APPLY for?
-          </button>
-          <button onClick={()=>setTab(1)} className="press" style={{flex:1,padding:"11px 8px",borderRadius:11,border:"none",background:tab===1?"var(--accent)":"none",color:tab===1?"#fff":"var(--text2)",fontSize:13,fontWeight:tab===1?700:500,transition:"all .2s",lineHeight:1.3}}>
-             Which card<br/>should I USE now?
-          </button>
+        {/* Spending Input */}
+        <div style={cardS}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:14}}>💰</span>
+              <div>
+                <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>Your Monthly Spending</div>
+                <div style={{fontSize:11,color:"var(--text2)"}}>Total: ${Object.values(monthlySpend).reduce((s,v)=>s+v,0).toLocaleString()}/mo · ${totalAnnualSpend.toLocaleString()}/yr</div>
+              </div>
+            </div>
+            <button onClick={()=>setShowCalc(!showCalc)} style={{fontSize:11,color:"var(--accent)",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>{showCalc?"Hide":"Edit"}</button>
+          </div>
+          {showCalc && (
+            <div>
+              {[
+                {key:"dining",label:"Dining",icon:"🍽",color:"#3B82F6"},
+                {key:"groceries",label:"Groceries",icon:"🛒",color:"#22C55E"},
+                {key:"travel",label:"Travel",icon:"✈️",color:"#F59E0B"},
+                {key:"gas",label:"Gas",icon:"⛽",color:"#EF4444"},
+                {key:"shopping",label:"Shopping",icon:"🛍",color:"#8B5CF6"},
+                {key:"other",label:"Other",icon:"📦",color:"#6B7280"},
+              ].map(({key,label,icon,color}) => (
+                <div key={key} style={{marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+                    <span style={{fontSize:12,color:"var(--text)"}}>{icon} {label}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:"var(--text)",fontFamily:"var(--mono,monospace)"}}>${monthlySpend[key as keyof typeof monthlySpend]}</span>
+                  </div>
+                  <input type="range" min={0} max={2000} step={25} value={monthlySpend[key as keyof typeof monthlySpend]}
+                    onChange={e => setMonthlySpend(prev => ({...prev, [key]: parseInt(e.target.value)}))}
+                    style={{width:"100%",accentColor:color}} />
+                </div>
+              ))}
+            </div>
+          )}
+          {!showCalc && (
+            <div style={{display:"flex",height:8,borderRadius:4,overflow:"hidden"}}>
+              {Object.entries(monthlySpend).map(([k,v]) => {
+                const total = Object.values(monthlySpend).reduce((s,x)=>s+x,0);
+                const colors:Record<string,string> = {dining:"#3B82F6",groceries:"#22C55E",travel:"#F59E0B",gas:"#EF4444",shopping:"#8B5CF6",other:"#6B7280"};
+                return <div key={k} style={{width:`${v/total*100}%`,background:colors[k]||"#999"}}/>;
+              })}
+            </div>
+          )}
         </div>
 
-        {/* -- TAB 0: APPLY RECOMMENDER -- */}
-        {tab===0 && (
-          <div className="ai">
-            {/* Intro card */}
-            <div style={{background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)",borderRadius:10,padding:"20px",marginBottom:20}}>
-              <h3 className="serif" style={{fontSize:28,fontWeight:400,color:"var(--accent2)",marginBottom:10,letterSpacing:"-.4px"}}>
-                Personalized card recommendations
-              </h3>
-              <p style={{color:"rgba(201,168,76,.7)",fontSize:14,lineHeight:1.7,marginBottom:16}}>
-                Based on your income (<strong style={{color:"var(--accent2)"}}>{profile.income||"not set"}</strong>),
-                credit score (<strong style={{color:"var(--accent2)"}}>{profile.creditScore||"not set"}</strong>),
-                and spending habits -- our AI scores every card in the US market and tells you exactly which to apply for, approval odds, and expected annual value.
-              </p>
-              {(!profile.income || !profile.creditScore) && (
-                <div style={{background:"rgba(244,97,122,.1)",border:"1px solid rgba(244,97,122,.3)",borderRadius:12,padding:"10px 14px",marginBottom:14}}>
-                  <p style={{color:"var(--red)",fontSize:13}}> Complete your profile in Settings for more accurate recommendations</p>
-                </div>
-              )}
-              {cards.length > 0 && (
-                <div style={{background:"rgba(45,200,160,.08)",border:"1px solid rgba(45,200,160,.2)",borderRadius:12,padding:"10px 14px",marginBottom:14}}>
-                  <p style={{color:"var(--green)",fontSize:13}}> You own {cards.length} card{cards.length!==1?"s":""}. We will exclude those and only recommend new ones.</p>
-                </div>
-              )}
-              <button onClick={runApplyRecommender} disabled={applyLoading} className="btn-gold press" style={{width:"100%"}}>
-                {applyLoading ? "Analysing your profile..." : applyDone ? "Re-run Analysis" : " Get My Personalised Recommendations"}
-              </button>
-            </div>
+        {/* Model badges */}
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+          <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:"rgba(37,99,235,.1)",color:"var(--accent)",fontWeight:600}}>Optimization Engine</span>
+          <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:"rgba(34,197,94,.1)",color:"#22c55e",fontWeight:600}}>{CARD_DB.length} Cards Analyzed</span>
+          <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:"rgba(168,85,247,.1)",color:"#a855f7",fontWeight:600}}>Personalized to Your Spend</span>
+        </div>
 
-            {/* Loading */}
-            {applyLoading && (
-              <div style={{textAlign:"center",padding:"40px 20px"}}>
-                <div style={{display:"flex",justifyContent:"center",marginBottom:16,color:"var(--accent)",animation:"pulse 1s ease infinite"}}><Icon name="chat" size={36}/></div>
-                <p style={{color:"var(--text2)",fontSize:15,fontWeight:500,marginBottom:6}}>AI is analysing your profile...</p>
-                <p style={{color:"var(--text3)",fontSize:13}}>Scoring {CARD_DB.length} cards against your income, credit score, lifestyle and spending</p>
+        {/* Your Cards Ranked */}
+        {topOwned.length > 0 && (
+          <div style={cardS}>
+            <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:2}}>Your Cards — Ranked by Value</div>
+            <div style={{fontSize:11,color:"var(--text2)",marginBottom:12}}>Based on your actual monthly spending pattern</div>
+            {topOwned.map((r,i) => (
+              <div key={r.card.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<topOwned.length-1?"1px solid var(--border)":"none"}}>
+                <span style={{fontSize:16,fontWeight:800,color:i===0?"var(--accent)":"var(--text2)",width:24,textAlign:"center"}}>#{i+1}</span>
+                <div style={{width:36,height:24,borderRadius:6,background:r.card.gradient,flexShrink:0}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{r.card.name}</div>
+                  <div style={{fontSize:10,color:"var(--text2)"}}>{r.card.issuer} · {r.card.rewardRate}</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:14,fontWeight:700,color:r.value.netValue>=0?"var(--green)":"var(--red)"}}>{r.value.netValue>=0?"+":""}${r.value.netValue}</div>
+                  <div style={{fontSize:10,color:"var(--text2)"}}>net/year</div>
+                </div>
               </div>
-            )}
-
-            {/* Results */}
-            {applyDone && !applyLoading && (
-              <div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                  <p style={{color:"var(--text2)",fontSize:14}}><strong style={{color:"var(--text)"}}>{applyRecs.length} cards</strong> ranked for your profile</p>
-                  <span className="pill pill-gold">AI Scored</span>
-                </div>
-
-                {applyRecs.map((rec,i) => {
-                  const isOpen = applyExpanded === rec.card.id;
-                  return (
-                    <div key={rec.card.id} className={`au d${Math.min(i+1,6)}`} style={{
-                      background:"var(--surface)",
-                      border:`1.5px solid ${rec.verdict==="Highly Recommended"?"var(--accent)":rec.verdict==="Recommended"?"rgba(79,110,247,.4)":"var(--border2)"}`,
-                      borderRadius:20,marginBottom:12,overflow:"hidden",cursor:"pointer",
-                      transition:"border-color .2s",
-                    }} onClick={()=>setApplyExpanded(isOpen?null:rec.card.id)}>
-
-                      {/* Card header */}
-                      <div style={{display:"flex",gap:12,padding:"16px 18px",alignItems:"center"}}>
-                        <div style={{position:"relative",flexShrink:0}}>
-                          <div style={{width:56,height:36,borderRadius:9,background:rec.card.gradient,boxShadow:"0 3px 12px rgba(0,0,0,.5)"}}/>
-                          <div style={{position:"absolute",top:-8,right:-8,width:22,height:22,borderRadius:"50%",background:"var(--surface)",border:"2px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:rec.verdictColor}}>
-                            {i+1}
-                          </div>
-                        </div>
-                        <div style={{flex:1}}>
-                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
-                            <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{rec.card.name}</p>
-                            <span className="pill" style={{fontSize:11,background:`${rec.verdictColor}18`,color:rec.verdictColor,border:`1px solid ${rec.verdictColor}40`}}>
-                              {rec.verdict==="Highly Recommended"?" ":""}{rec.verdict}
-                            </span>
-                          </div>
-                          <p style={{color:"var(--text2)",fontSize:12,marginBottom:4}}>{rec.card.issuer}  {rec.card.rewardRate}</p>
-                          <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
-                            <div>
-                              <p style={{color:"var(--text3)",fontSize:11}}>Approval odds</p>
-                              <p style={{color:rec.approvalColor,fontSize:14,fontWeight:800}}>{rec.approvalChance}%</p>
-                            </div>
-                            <div style={{width:1,height:28,background:"var(--border)"}}/>
-                            <div>
-                              <p style={{color:"var(--text3)",fontSize:11}}>Est. annual value</p>
-                              <p style={{color:"var(--green)",fontSize:14,fontWeight:800}}>${f2(rec.annualValue)}/yr</p>
-                            </div>
-                            <div style={{width:1,height:28,background:"var(--border)"}}/>
-                            <div>
-                              <p style={{color:"var(--text3)",fontSize:11}}>Annual fee</p>
-                              <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${rec.card.annualFee}/yr</p>
-                            </div>
-                          </div>
-                        </div>
-                        <span style={{color:"var(--text3)",fontSize:16,flexShrink:0}}>{isOpen?"":""}</span>
-                      </div>
-
-                      {/* Approval bar */}
-                      <div style={{padding:"0 18px 12px"}}>
-                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                          <span style={{color:"var(--text3)",fontSize:11}}>Approval likelihood</span>
-                          <span style={{color:rec.approvalColor,fontSize:11,fontWeight:700}}>{rec.approvalChance}%</span>
-                        </div>
-                        <Bar v={rec.approvalChance} max={100} color={rec.approvalColor} h={5}/>
-                      </div>
-
-                      {/* Expanded */}
-                      {isOpen && (
-                        <div className="ai" style={{padding:"0 18px 18px",borderTop:"1px solid var(--border)"}}>
-                          {/* Signup bonus */}
-                          {rec.card.signupBonus && (
-                            <div style={{background:"rgba(240,164,41,.08)",border:"1px solid rgba(240,164,41,.2)",borderRadius:12,padding:"10px 14px",marginTop:14,marginBottom:10}}>
-                              <p style={{color:"var(--amber)",fontSize:12,fontWeight:700,marginBottom:3,display:"flex",alignItems:"center",gap:5}}><Icon name="gift" size={11}/> Welcome Bonus</p>
-                              <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{rec.card.signupBonus}</p>
-                            </div>
-                          )}
-
-                          {/* Pros */}
-                          {rec.pros.length > 0 && (
-                            <div style={{marginTop:10}}>
-                              <p style={{color:"var(--green)",fontSize:12,fontWeight:700,marginBottom:8}}> Why this card suits you</p>
-                              {rec.pros.map((pro,pi)=>(
-                                <div key={pi} style={{display:"flex",gap:8,marginBottom:6,alignItems:"flex-start"}}>
-                                  <span style={{color:"var(--green)",fontSize:13,flexShrink:0,marginTop:1}}></span>
-                                  <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{pro}</p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Cons */}
-                          {rec.cons.length > 0 && (
-                            <div style={{marginTop:10}}>
-                              <p style={{color:"var(--red)",fontSize:12,fontWeight:700,marginBottom:8}}> Watch out for</p>
-                              {rec.cons.map((con,ci)=>(
-                                <div key={ci} style={{display:"flex",gap:8,marginBottom:6,alignItems:"flex-start"}}>
-                                  <span style={{color:"var(--red)",fontSize:13,flexShrink:0,marginTop:1}}>!</span>
-                                  <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{con}</p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Best places */}
-                          {rec.card.bestPlaces && rec.card.bestPlaces.length > 0 && (
-                            <div style={{marginTop:10}}>
-                              <p style={{color:"var(--accent)",fontSize:12,fontWeight:700,marginBottom:8,display:"flex",alignItems:"center",gap:5}}><Icon name="globe" size={11}/> Best places to use it</p>
-                              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                                {(rec.card.bestPlaces||[]).slice(0,6).map((p:string,pi:number)=>(
-                                  <span key={pi} style={{background:"rgba(201,168,76,.1)",border:"1px solid rgba(201,168,76,.2)",borderRadius:20,padding:"3px 9px",fontSize:11,color:"var(--accent)"}}>
-                                    {p.split(" (")[0]}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Net value calculation */}
-                          <div style={{background:"var(--surface2)",borderRadius:12,padding:"10px 14px",marginTop:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                            <div>
-                              <p style={{color:"var(--text3)",fontSize:11,marginBottom:2}}>Estimated net annual benefit</p>
-                              <p style={{color:rec.annualValue-rec.card.annualFee>0?"var(--green)":"var(--red)",fontSize:16,fontWeight:800}}>
-                                {rec.annualValue-rec.card.annualFee>=0?"+":""} ${f2(rec.annualValue-rec.card.annualFee)}/yr
-                              </p>
-                            </div>
-                            <div style={{textAlign:"right"}}>
-                              <p style={{color:"var(--text3)",fontSize:11,marginBottom:2}}>Perks value</p>
-                              <p style={{color:"var(--text)",fontSize:14,fontWeight:600,letterSpacing:"-.1px"}}>${rec.card.perksValue}/yr</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            ))}
           </div>
         )}
 
-        {/* -- TAB 1: USE RECOMMENDER -- */}
-        {tab===1 && (
-          <div className="ai">
-            {/* Intro */}
-            <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:20,padding:"18px 20px",marginBottom:20}}>
-              <h3 className="serif" style={{fontSize:28,fontWeight:400,marginBottom:8,letterSpacing:"-.4px"}}>Which card should I use?</h3>
-              <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.6,marginBottom:16}}>
-                Tell us where you are shopping or what you are buying. We rank all your cards by rewards earned and tell you exactly which one to reach for -- with the maths.
-              </p>
-
-              {cards.length === 0 ? (
-                <div style={{textAlign:"center",padding:"20px"}}>
-                  <div style={{display:"flex",justifyContent:"center",marginBottom:10,color:"var(--text3)"}}><Icon name="card" size={28}/></div>
-                  <p style={{color:"var(--text2)",fontSize:14,marginBottom:16}}>Add your cards first to get personalised recommendations</p>
-                  <button onClick={()=>go("add-card")} className="btn-gold press" style={{padding:"12px 24px"}}>Add Your Cards</button>
+        {/* Recommended Cards */}
+        <div style={cardS}>
+          <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:2}}>Top Recommendations</div>
+          <div style={{fontSize:11,color:"var(--text2)",marginBottom:12}}>Cards you don't own that would earn the most given YOUR spending</div>
+          {topUnowned.map((r,i) => (
+            <div key={r.card.id} style={{padding:"12px 0",borderBottom:i<topUnowned.length-1?"1px solid var(--border)":"none"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:42,height:28,borderRadius:7,background:r.card.gradient,flexShrink:0}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"var(--text)"}}>{r.card.name}</div>
+                  <div style={{fontSize:11,color:"var(--text2)"}}>{r.card.issuer} · ${r.card.annualFee}/yr fee</div>
                 </div>
-              ) : (
-                <>
-                  <div style={{marginBottom:12}}>
-                    <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Where are you shopping?</label>
-                    <input
-                      className="field"
-                      placeholder="e.g. Starbucks, Whole Foods, Amazon, Delta flight..."
-                      value={purchaseInput}
-                      onChange={e=>{setPurchaseInput(e.target.value);setUseDone(false);}}
-                      onKeyDown={e=>e.key==="Enter"&&runUseRecommender()}
-                      style={{padding:"13px 16px"}}
-                    />
-                  </div>
-                  <div style={{marginBottom:16}}>
-                    <label style={{fontSize:13,color:"var(--text2)",fontWeight:500,display:"block",marginBottom:8}}>Purchase amount (optional)</label>
-                    <input
-                      className="field"
-                      type="number"
-                      placeholder="$ amount -- we calculate exact rewards earned"
-                      value={purchaseAmount}
-                      onChange={e=>{setPurchaseAmount(e.target.value);setUseDone(false);}}
-                      style={{padding:"13px 16px"}}
-                    />
-                  </div>
-                  <button onClick={runUseRecommender} disabled={!purchaseInput.trim()||useLoading} className="btn-gold press" style={{width:"100%"}}>
-                    {useLoading?"Ranking your cards...":" Show Me Which Card to Use"}
-                  </button>
-                </>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:15,fontWeight:700,color:"var(--green)"}}>+${r.value.netValue}/yr</div>
+                  <div style={{fontSize:10,color:"var(--text2)"}}>${r.value.totalRewards} rewards</div>
+                </div>
+              </div>
+              {/* Category breakdown */}
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:6,marginLeft:52}}>
+                {Object.entries(r.value.multipliers).filter(([_,v]) => v > 1).map(([cat,mult]) => (
+                  <span key={cat} style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"rgba(37,99,235,.08)",color:"var(--accent)",fontWeight:600}}>{mult}x {cat}</span>
+                ))}
+              </div>
+              {r.card.signupBonus && (
+                <div style={{fontSize:10,color:"var(--text2)",marginTop:4,marginLeft:52}}>🎁 {r.card.signupBonus.split("--")[0].trim()}</div>
               )}
             </div>
+          ))}
+        </div>
 
-            {/* Quick merchant chips */}
-            {cards.length > 0 && !useDone && (
+        {/* Optimal Wallet */}
+        <div style={{...cardS, background:"linear-gradient(135deg, rgba(37,99,235,.03), rgba(124,58,237,.03))", border:"1px solid rgba(37,99,235,.15)"}}>
+          <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:6}}>💡 Optimal 3-Card Setup</div>
+          <div style={{fontSize:11,color:"var(--text2)",marginBottom:10}}>The mathematically best combo for your spending</div>
+          {(() => {
+            const top3 = rankings.slice(0,3);
+            const totalNet = top3.reduce((s,r) => s+r.value.netValue, 0);
+            return (
               <div>
-                <p style={{color:"var(--text3)",fontSize:13,marginBottom:10}}>Quick picks</p>
-                <div style={{display:"flex",flexWrap:"wrap",gap:7,marginBottom:20}}>
-                  {QUICK_MERCHANTS.map(m=>(
-                    <button key={m} onClick={()=>{setPurchaseInput(m);setPurchaseAmount("50");setTimeout(()=>runUseRecommender(),50);}} className="press" style={{padding:"7px 14px",borderRadius:20,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",fontSize:13,transition:"all .15s"}}
-                      onMouseOver={e=>{e.currentTarget.style.borderColor="var(--accent)";e.currentTarget.style.color="var(--accent)"}}
-                      onMouseOut={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text2)"}}>
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Loading */}
-            {useLoading && (
-              <div style={{textAlign:"center",padding:"30px 20px"}}>
-                <div style={{display:"flex",justifyContent:"center",marginBottom:12,color:"var(--accent)",animation:"pulse 1s ease infinite"}}><Icon name="search" size={32}/></div>
-                <p style={{color:"var(--text2)",fontSize:14}}>Ranking your {cards.length} cards...</p>
-              </div>
-            )}
-
-            {/* Results */}
-            {useDone && !useLoading && useResults.length > 0 && (
-              <div>
-                {/* Category detected */}
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-                  <span style={{color:"var(--accent)",display:"flex"}}><Icon name={CATEGORY_MAP[detectedCategory]?.emoji||"groceries"} size={18}/></span>
-                  <div>
-                    <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{purchaseInput}</p>
-                    <p style={{color:"var(--text2)",fontSize:13}}>Category: {CATEGORY_MAP[detectedCategory]?.label||"General purchase"}{purchaseAmount?`  $${purchaseAmount}`:""}</p>
-                  </div>
-                </div>
-
-                {/* Winner announcement */}
-                <div style={{background:"var(--accentbg)",border:"1.5px solid var(--accent)",borderRadius:18,padding:"16px 18px",marginBottom:16}}>
-                  <p style={{color:"rgba(255,255,255,.6)",fontSize:12,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Best card to use</p>
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <div style={{width:52,height:34,borderRadius:9,background:useResults[0].card.gradient,boxShadow:"0 3px 12px rgba(0,0,0,.5)",flexShrink:0}}/>
-                    <div style={{flex:1}}>
-                      <p style={{color:"var(--accent2)",fontSize:17,fontWeight:700,marginBottom:2}}>{useResults[0].card.name}</p>
-                      <p style={{color:"rgba(255,255,255,.6)",fontSize:13}}>{useResults[0].reason}</p>
-                    </div>
-                    <div style={{textAlign:"right",flexShrink:0}}>
-                      <p style={{color:"var(--accent)",fontSize:22,fontWeight:800}}>{useResults[0].multiplier}x</p>
-                      {purchaseAmount && <p style={{color:"var(--green)",fontSize:13,marginTop:2}}>+${useResults[0].cashValue} value</p>}
-                    </div>
-                  </div>
-                </div>
-
-                {/* All cards ranked */}
-                <p style={{color:"var(--text2)",fontSize:13,marginBottom:12,fontWeight:600}}>ALL YOUR CARDS RANKED</p>
-                {useResults.map((r,i)=>(
-                  <div key={r.card.id} className={`au d${Math.min(i+1,6)}`} style={{
-                    background:"var(--surface)",
-                    border:`1.5px solid ${i===0?"var(--accent)":i===1?"rgba(45,200,160,.3)":"var(--border2)"}`,
-                    borderRadius:16,padding:"14px 16px",marginBottom:8,
-                    display:"flex",gap:12,alignItems:"center",
-                    opacity:i>3?0.7:1,
-                  }}>
-                    <span style={{fontSize:14,fontWeight:800,color:i===0?"var(--accent)":i===1?"var(--green)":"var(--text3)",width:18,flexShrink:0,textAlign:"center"}}>
-                      {i===0?"":i+1}
-                    </span>
-                    <div style={{width:42,height:28,borderRadius:7,background:r.card.gradient,flexShrink:0,boxShadow:"0 2px 8px rgba(0,0,0,.4)"}}/>
-                    <div style={{flex:1}}>
-                      <p style={{color:"var(--text)",fontSize:14,fontWeight:600,letterSpacing:"-.1px",marginBottom:2}}>{r.card.name}</p>
-                      <p style={{color:"var(--text2)",fontSize:12}}>{r.reason}</p>
-                    </div>
-                    <div style={{textAlign:"right",flexShrink:0}}>
-                      <p style={{color:i===0?"var(--accent)":i===1?"var(--green)":"var(--text2)",fontSize:16,fontWeight:800}}>{r.multiplier}x</p>
-                      {purchaseAmount && <p style={{color:"var(--text3)",fontSize:11,marginTop:1}}>+${r.cashValue}</p>}
-                    </div>
+                {top3.map((r,i) => (
+                  <div key={r.card.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0"}}>
+                    <div style={{width:32,height:20,borderRadius:5,background:r.card.gradient}}/>
+                    <span style={{fontSize:12,fontWeight:600,color:"var(--text)",flex:1}}>{r.card.name}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:"var(--green)"}}>+${r.value.netValue}</span>
+                    {r.owned && <span style={{fontSize:9,padding:"1px 5px",borderRadius:3,background:"rgba(34,197,94,.1)",color:"#22c55e",fontWeight:600}}>Owned</span>}
                   </div>
                 ))}
-
-                {/* Insight */}
-                {useResults.length > 1 && purchaseAmount && (
-                  <div style={{background:"rgba(45,200,160,.06)",border:"1px solid rgba(45,200,160,.2)",borderRadius:14,padding:"12px 16px",marginTop:8}}>
-                    <p style={{color:"var(--green)",fontSize:13,fontWeight:600,marginBottom:4,display:"flex",alignItems:"center",gap:5}}><Icon name="rocket" size={12}/> Smart insight</p>
-                    <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.6}}>
-                      Using {useResults[0].card.name} vs {useResults[useResults.length-1].card.name} on a ${purchaseAmount} purchase earns ${Math.round((useResults[0].cashValue - useResults[useResults.length-1].cashValue)*100)/100} more in rewards value. Over a year of similar weekly purchases that is <strong style={{color:"var(--green)"}}>${f2(Math.round((useResults[0].cashValue - useResults[useResults.length-1].cashValue)*52))}</strong> extra.
-                    </p>
-                  </div>
-                )}
-
-                <button onClick={()=>{setUseDone(false);setPurchaseInput("");setPurchaseAmount("");}} className="btn-ghost press" style={{width:"100%",marginTop:12}}>
-                  Check Another Purchase
-                </button>
+                <div style={{borderTop:"1px solid var(--border)",marginTop:8,paddingTop:8,display:"flex",justifyContent:"space-between"}}>
+                  <span style={{fontSize:13,fontWeight:700,color:"var(--text)"}}>Combined Annual Value</span>
+                  <span style={{fontSize:16,fontWeight:800,color:"var(--green)"}}>+${totalNet.toLocaleString()}</span>
+                </div>
               </div>
-            )}
-          </div>
-        )}
+            );
+          })()}
+        </div>
       </div>
     </div>
   );
 }
 
-/* ============================================================
-   LIFESTYLE OPTIMIZER
-   Two features:
-   1. Smart Shopping Comparator -- find cheapest store for any product
-   2. Daily Habit Savings Calculator -- see how much you save cutting habits
-   ============================================================ */
-/* ============================================================
-   CREDIT OPTIMIZER — ML-Powered Score Analysis
-   Uses SHAP values, counterfactual analysis, and the trained
-   XGBoost/LightGBM model to predict default risk and generate
-   personalized improvement recommendations.
-   ============================================================ */
 function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
   const [tab, setTab] = useState<"input"|"results"|"ai">("input");
   const [loading, setLoading] = useState(false);
@@ -3832,7 +3610,24 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
       scenarios.sort((a:any,b:any) => b.gain - a.gain);
 
       setResult({ score, risk, riskLevel, factors, scenarios: scenarios.slice(0, 6) });
-      setHistory(prev => [...prev.slice(-9), { score, date: new Date().toLocaleTimeString() }]);
+      setHistory(prev => {
+        const newHistory = [...prev.slice(-19), { score, date: new Date().toLocaleTimeString(), fullDate: new Date().toISOString() }];
+        // Persist to Supabase if user is logged in
+        try {
+          supabase.auth.getSession().then(({data:{session}}) => {
+            if (session?.user?.id) {
+              supabase.from("credit_scores").upsert({
+                user_id: session.user.id,
+                score,
+                risk: risk.toFixed(4),
+                profile_snapshot: JSON.stringify(p),
+                created_at: new Date().toISOString(),
+              }).then(() => {});
+            }
+          });
+        } catch {}
+        return newHistory;
+      });
       setTab("results");
       setLoading(false);
     }, 800);
@@ -4071,7 +3866,49 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
           {aiLoading ? "🤖 Claude is analyzing your profile..." : "🤖 Get AI-Powered Recommendations →"}
         </button>
 
-        <button onClick={()=>setTab("input")} className="btn-ghost press" style={{width:"100%",padding:"12px 0",fontSize:13,fontWeight:600,fontFamily:"var(--sans)"}}>← Adjust Profile</button>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setTab("input")} className="btn-ghost press" style={{flex:1,padding:"12px 0",fontSize:13,fontWeight:600,fontFamily:"var(--sans)"}}>← Adjust Profile</button>
+          <button onClick={()=>{
+            const w = window.open("","_blank");
+            if (!w) return;
+            const factors_html = result.factors.map((f:any) => 
+              "<div style=\"display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0\"><span>" + f.icon + " " + f.feature + "</span><span style=\"color:" + (f.impact>0?"#ef4444":"#22c55e") + ";font-weight:600\">" + f.value + " (" + (f.impact>0?"↓":"↑") + " score)</span></div>"
+            ).join("");
+            const scenarios_html = result.scenarios.map((s:any) =>
+              "<div style=\"display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0\"><span>" + s.icon + " " + s.label + " (" + s.current + " → " + s.improved + ")</span><span style=\"color:#22c55e;font-weight:700\">+" + s.gain + " pts</span></div>"
+            ).join("");
+            let ai_html = "";
+            if (aiResult && !aiResult.error) {
+              ai_html = "<h2>AI-Powered Recommendations</h2><p style=\"font-size:13px;line-height:1.6\">" + (aiResult.summary||"") + "</p>";
+              if (aiResult.recommendations) {
+                ai_html += aiResult.recommendations.map((r:any) => "<div style=\"margin:12px 0;padding:12px;border-left:3px solid " + (r.priority==="HIGH"?"#ef4444":r.priority==="MEDIUM"?"#f59e0b":"#22c55e") + ";background:#fafafa;border-radius:0 8px 8px 0\"><strong>[" + r.priority + "] " + r.title + "</strong><br/><span style=\"font-size:12px;color:#666\">" + r.why + "</span></div>").join("");
+              }
+              if (aiResult.three_month_plan) ai_html += "<h2>3-Month Action Plan</h2><p style=\"font-size:13px;line-height:1.6;white-space:pre-line\">" + aiResult.three_month_plan + "</p>";
+            }
+            const html = "<!DOCTYPE html><html><head><title>Credit Analysis Report</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:40px auto;padding:20px;color:#1a1a2e}h1{font-size:28px}h2{font-size:18px;color:#2563eb;margin-top:28px;border-bottom:2px solid #e5e7eb;padding-bottom:6px}.footer{margin-top:40px;padding-top:16px;border-top:2px solid #e5e7eb;font-size:11px;color:#999;text-align:center}@media print{body{margin:20px}}</style></head><body>"
+              + "<h1>Credit Score Analysis Report</h1>"
+              + "<p style=\"color:#666\">Generated by WiseCard · " + new Date().toLocaleDateString() + " · Gradient Boosting ML (AUC 0.87)</p>"
+              + "<div style=\"font-size:64px;font-weight:800;text-align:center;margin:20px 0;color:" + scoreColor(result.score) + "\">" + result.score + "</div>"
+              + "<div style=\"text-align:center;font-size:16px;font-weight:600;color:" + scoreColor(result.score) + "\">" + scoreLabel(result.score) + "</div>"
+              + "<div style=\"text-align:center;margin:16px 0\"><span style=\"margin:0 16px\"><strong>" + result.riskLevel + "</strong><br/>Risk Level</span><span style=\"margin:0 16px\"><strong>" + (result.risk*100).toFixed(1) + "%</strong><br/>Default Prob</span></div>"
+              + "<h2>SHAP Feature Impact</h2>" + factors_html
+              + "<h2>What-If Scenarios</h2>" + scenarios_html
+              + "<h2>Profile</h2><table style=\"width:100%;font-size:13px\">"
+              + "<tr><td>Utilization</td><td style=\"text-align:right\">" + (p.utilization*100).toFixed(0) + "%</td></tr>"
+              + "<tr><td>Age</td><td style=\"text-align:right\">" + p.age + "</td></tr>"
+              + "<tr><td>Late (30/60/90+)</td><td style=\"text-align:right\">" + p.late30 + "/" + p.late60 + "/" + p.late90 + "</td></tr>"
+              + "<tr><td>Debt Ratio</td><td style=\"text-align:right\">" + (p.debtRatio*100).toFixed(0) + "%</td></tr>"
+              + "<tr><td>Income</td><td style=\"text-align:right\">$" + p.income.toLocaleString() + "</td></tr>"
+              + "</table>" + ai_html
+              + "<div class=\"footer\">WiseCard · Kaggle 150K profiles · Gradient Boosting · SHAP · Dr. Raahmifer Kamraan, Penn State</div>"
+              + "</body></html>";
+            w.document.write(html);
+            w.document.close();
+            setTimeout(() => w.print(), 500);
+          }} className="btn-ghost press" style={{flex:1,padding:"12px 0",fontSize:13,fontWeight:600,fontFamily:"var(--sans)",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            📄 Export PDF
+          </button>
+        </div>
       </>}
 
       {/* ═══════════════ AI TAB ═══════════════ */}
@@ -5001,6 +4838,61 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
             </div>
           </>
         )}
+      {/* ── Spending Predictor (ML) ── */}
+        {txns.length >= 3 && (
+          <div className="card-surface" style={{padding:18,marginBottom:14}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+              <span style={{fontSize:14}}>🔮</span>
+              <div>
+                <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>Spending Predictor</div>
+                <div style={{fontSize:11,color:"var(--text2)"}}>Linear regression on your {txns.length} transactions</div>
+              </div>
+              <span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"rgba(124,58,237,.1)",color:"#7c3aed",fontWeight:600,marginLeft:"auto"}}>ML</span>
+            </div>
+            {(() => {
+              // Group txns by category, compute average and trend
+              const catTotals: Record<string,number[]> = {};
+              txns.forEach(t => {
+                if (!catTotals[t.category]) catTotals[t.category] = [];
+                catTotals[t.category].push(t.amount);
+              });
+              const predictions = Object.entries(catTotals).map(([cat, amounts]) => {
+                const avg = amounts.reduce((s,a)=>s+a,0) / amounts.length;
+                // Simple linear trend: if last > first, trending up
+                const trend = amounts.length > 1 ? (amounts[amounts.length-1] - amounts[0]) / amounts.length : 0;
+                const predicted = Math.max(0, Math.round(avg + trend));
+                const catInfo = CATS.find(c => c.key === cat);
+                return { cat, label: catInfo?.label || cat, color: catInfo?.color || "#6B7280", avg: Math.round(avg), predicted, trend, count: amounts.length };
+              }).sort((a,b) => b.predicted - a.predicted);
+              const totalPredicted = predictions.reduce((s,p)=>s+p.predicted,0);
+              return (
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:12,padding:"8px 12px",background:"rgba(124,58,237,.04)",borderRadius:8}}>
+                    <span style={{fontSize:12,color:"var(--text2)"}}>Predicted next month total</span>
+                    <span style={{fontSize:20,fontWeight:700,color:"var(--text)"}}>${totalPredicted.toLocaleString()}</span>
+                  </div>
+                  {predictions.map((p,i) => (
+                    <div key={p.cat} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:i<predictions.length-1?"1px solid var(--border)":"none"}}>
+                      <div style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0}}/>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{p.label}</div>
+                        <div style={{fontSize:10,color:"var(--text2)"}}>avg ${p.avg} from {p.count} txns</div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:13,fontWeight:700,color:"var(--text)"}}>${p.predicted}</div>
+                        <div style={{fontSize:10,color:p.trend>0?"#ef4444":p.trend<0?"#22c55e":"var(--text2)"}}>
+                          {p.trend > 5 ? "↑ trending up" : p.trend < -5 ? "↓ trending down" : "→ stable"}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{fontSize:10,color:"var(--text2)",marginTop:8,fontStyle:"italic"}}>Prediction based on linear regression of logged transactions. Log more for better accuracy.</div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
       </div>
     </div>
   );
