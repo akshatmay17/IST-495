@@ -487,12 +487,12 @@ interface CardApplication { id:string; issuer:string; date:string; }
    ============================================================ */
 const CARD_DB = [
   {
-    id:"csr", name:"Sapphire Reserve", issuer:"Chase", apr:"19.49%-27.99% Variable",
+    id:"csr", name:"Sapphire Reserve", issuer:"Chase", apr:"22.49%-29.49% Variable",
     gradient:"linear-gradient(135deg,#0F1832 0%,#1E3A6E 50%,#0D2347 100%)",
-    accentColor:"#4F9BF5", rewardRate:"3x Travel & Dining", annualFee:550, perksValue:620, cashback:"Points", category:"travel",
-    signupBonus:"100,000 points after spending $6,000 in first 3 months -- worth $1,500+ toward travel (current elevated offer)",
+    accentColor:"#4F9BF5", rewardRate:"8x Chase Travel, 4x Direct, 3x Dining", annualFee:795, perksValue:1400, cashback:"Points", category:"travel",
+    signupBonus:"125,000 points after spending $6,000 in first 3 months -- worth $2,500+ toward travel (current elevated offer, highest ever)",
     bestFor:["Restaurants & dining worldwide","Flights, hotels, car rentals","Airport lounge access (Priority Pass)","Luxury hotel collection benefits","Travel insurance & trip protection"],
-    keyBenefits:["$300 annual travel credit (auto-applied)","Priority Pass Select lounge access (1,300+ lounges)","Global Entry / TSA PreCheck credit ($100)","10x on Chase Dining & hotels through portal","Primary rental car insurance","Trip cancellation & interruption insurance"],
+    keyBenefits:["$300 annual travel credit (auto-applied)","$500 annual hotel credit via The Edit by Chase","$300 annual dining credit (Sapphire Reserve Exclusive Tables)","Priority Pass Select + Chase Sapphire Lounge access","8x on all Chase Travel, 4x on direct flights & hotels","Primary rental car insurance + comprehensive trip protection","IHG One Rewards Platinum Elite status","Apple TV+ and Apple Music complimentary subscriptions"],
     bestPlaces:["Any restaurant or cafe","Airlines & hotel bookings","Uber & Lyft rides","Chase Ultimate Rewards travel portal","Partner hotels: Hyatt, IHG, Marriott"],
     notGoodFor:["Groceries (only 1x)","Gas stations (only 1x)","Bills and subscriptions (only 1x)"],
   },
@@ -500,7 +500,7 @@ const CARD_DB = [
     id:"csp", name:"Sapphire Preferred", issuer:"Chase", apr:"19.24%-27.49% Variable",
     gradient:"linear-gradient(135deg,#0A2240 0%,#1A4A80 50%,#0A2240 100%)",
     accentColor:"#5BA8F7", rewardRate:"3x Dining, 2x Travel", annualFee:95, perksValue:220, cashback:"Points", category:"travel",
-    signupBonus:"75,000 points after spending $5,000 in first 3 months -- worth $935+ toward travel (refreshed card as of June 2026)",
+    signupBonus:"75,000 points after spending $4,000 in first 3 months -- worth $935+ toward travel",
     bestFor:["Dining and restaurants","Travel bookings","Streaming services (2x)","Online grocery (3x)"],
     keyBenefits:["$50 annual hotel credit through Chase portal","25% more value redeeming through Chase portal","Trip delay & cancellation insurance","No foreign transaction fees","Secondary rental car insurance"],
     bestPlaces:["Restaurants and takeout","Hotel and flight bookings","Streaming: Netflix, Spotify, Hulu","Grocery delivery: DoorDash, Instacart"],
@@ -529,8 +529,8 @@ const CARD_DB = [
   {
     id:"amg", name:"Gold Card", issuer:"Amex", apr:"21.49%-29.49% Variable",
     gradient:"linear-gradient(135deg,#2C1A00 0%,#8B6010 35%,#C9920A 65%,#8B6010 100%)",
-    accentColor:"#F0B429", rewardRate:"4x Dining & Groceries", annualFee:325, perksValue:430, cashback:"Points", category:"dining",
-    signupBonus:"Up to 100,000 Membership Rewards points after spending $6,000 in first 6 months (offers vary by applicant)",
+    accentColor:"#F0B429", rewardRate:"4x Dining & Groceries, 5x Hotels via Amex", annualFee:325, perksValue:424, cashback:"Points", category:"dining",
+    signupBonus:"Up to 100,000 Membership Rewards points after spending $8,000 in first 6 months (2026 refresh; offers vary by applicant)",
     bestFor:["Restaurants and dining worldwide","US supermarkets (up to $25k/year)","Flights booked directly with airlines","All other travel (2x)"],
     keyBenefits:["$120 Uber Cash credit annually ($10/month)","$120 dining credit at Grubhub, Cheesecake Factory, Goldbelly, Wine.com","4x at US supermarkets -- best grocery card in US","4x at restaurants worldwide -- including food delivery","No foreign transaction fees","Trip delay insurance"],
     bestPlaces:["Every restaurant, cafe, and food delivery app","Whole Foods, Kroger, Safeway, Trader Joes, Costco","Grubhub, DoorDash, Seamless, Uber Eats","Direct airline bookings (2x)","Amex Travel portal"],
@@ -540,7 +540,7 @@ const CARD_DB = [
     id:"amp", name:"Platinum Card", issuer:"Amex", apr:"20.99%-29.99% Variable",
     gradient:"linear-gradient(135deg,#1A1A1A 0%,#3D3D3D 50%,#1A1A1A 100%)",
     accentColor:"#C0C0C0", rewardRate:"5x Flights & Hotels", annualFee:895, perksValue:3500, cashback:"Points", category:"travel",
-    signupBonus:"Up to 175,000 Membership Rewards points after spending $12,000 in first 6 months (offers vary by applicant) -- fee increased to $895 in Jan 2026",
+    signupBonus:"Up to 175,000 Membership Rewards points after spending $12,000 in first 6 months (offers vary; fee is $895/year as of 2026)",
     bestFor:["Frequent flyers -- 5x on all flights","Luxury hotel stays","Lounge access worldwide","Premium travel benefits"],
     keyBenefits:["$200 airline fee credit annually","$200 hotel credit (Fine Hotels + Resorts)","$240 digital entertainment credit","$155 Walmart+ credit","$100 Saks Fifth Avenue credit","Centurion Lounge + Priority Pass access","Global Entry / TSA PreCheck credit","Hotel status: Marriott Gold, Hilton Gold"],
     bestPlaces:["Direct airline ticket purchases (5x)","Fine Hotels and Resorts collection","Centurion Lounges at major airports","Amex Travel portal","Saks Fifth Avenue"],
@@ -5086,25 +5086,48 @@ function Notifications({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
 function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
   const allCards = [...cards,...CARD_DB.filter(d=>!cards.find(c=>c.dbId===d.id)).map(d=>({
     id:d.id,dbId:d.id,name:d.name,issuer:d.issuer,gradient:d.gradient,accentColor:d.accentColor,
-    balance:0,limit:0,minPayment:0,dueDate:"",points:0,apr:"",
+    balance:0,limit:0,minPayment:0,dueDate:"",points:0,apr:d.apr||"",
     rewardRate:d.rewardRate,annualFee:d.annualFee,perksValue:d.perksValue,
     offers:[],cashback:d.cashback,category:d.category,
     signupBonus:d.signupBonus,bestFor:d.bestFor,keyBenefits:d.keyBenefits,bestPlaces:d.bestPlaces,notGoodFor:d.notGoodFor,
   }))];
   const [a,setA]=useState(allCards[0]?.dbId||"");
   const [b,setB]=useState(allCards[1]?.dbId||"");
+  const [monthlySpend, setMonthlySpend] = useState(2000);
   const cA=allCards.find(c=>c.dbId===a); const cB=allCards.find(c=>c.dbId===b);
+
+  // Calculate estimated annual rewards value
+  const calcAnnualValue = (c:any) => {
+    // Simple heuristic: parse reward rate for the multiplier
+    const rateStr = c.rewardRate || "";
+    let baseRate = 0.015; // default 1.5%
+    const match5 = rateStr.match(/(\d+)x/i);
+    if (match5) baseRate = parseInt(match5[1]) * 0.01; // e.g. "3x" → 3%
+    const match2 = rateStr.match(/(\d+)%/);
+    if (match2) baseRate = parseInt(match2[1]) / 100;
+    // Blended rate: assume 40% of spend is in bonus categories
+    const blendedRate = baseRate * 0.4 + 0.01 * 0.6;
+    const annualRewards = monthlySpend * 12 * blendedRate;
+    const netValue = annualRewards + c.perksValue - c.annualFee;
+    return { annualRewards: Math.round(annualRewards), netValue: Math.round(netValue), roi: c.annualFee > 0 ? ((annualRewards + c.perksValue - c.annualFee) / c.annualFee * 100).toFixed(0) : "∞" };
+  };
+
   const rows:[string,(c:any)=>string,(a:any,b:any)=>string][]=[
     ["Annual Fee",c=>`$${c.annualFee}`,(a,b)=>a.annualFee<b.annualFee?"a":a.annualFee>b.annualFee?"b":"tie"],
     ["Perks Value",c=>`$${c.perksValue}/yr`,(a,b)=>a.perksValue>b.perksValue?"a":a.perksValue<b.perksValue?"b":"tie"],
     ["Net Value",c=>`$${c.perksValue-c.annualFee}/yr`,(a,b)=>(a.perksValue-a.annualFee)>(b.perksValue-b.annualFee)?"a":(a.perksValue-a.annualFee)<(b.perksValue-b.annualFee)?"b":"tie"],
     ["Rewards",c=>c.rewardRate,()=>"tie"],
+    ["APR",c=>c.apr||"N/A",(a,b)=>{const pa=parseFloat((a.apr||"99").replace(/[^\d.]/g,"")); const pb=parseFloat((b.apr||"99").replace(/[^\d.]/g,"")); return pa<pb?"a":pa>pb?"b":"tie";}],
     ["Type",c=>c.cashback,()=>"tie"],
     ["Category",c=>c.category,()=>"tie"],
   ];
+
+  const valA = cA ? calcAnnualValue(cA) : null;
+  const valB = cB ? calcAnnualValue(cB) : null;
+
   return (
     <div className="screen desktop-content screen-enter">
-      <PageHead title="Compare Cards" sub="Side-by-side comparison" back={()=>go("settings")}/>
+      <PageHead title="Compare Cards" sub="Side-by-side with ROI analysis" back={()=>go("settings")}/>
       <div className="px">
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
           {[{val:a,set:setA,label:"Card A"},{val:b,set:setB,label:"Card B"}].map(({val,set,label})=>(
@@ -5116,6 +5139,19 @@ function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
             </div>
           ))}
         </div>
+
+        {/* Monthly spend slider for ROI calc */}
+        <div className="card-surface" style={{padding:14,marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <span style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>Monthly Spend Estimate</span>
+            <span style={{fontSize:13,fontWeight:700,color:"var(--accent)",fontFamily:"var(--mono,monospace)"}}>${monthlySpend.toLocaleString()}</span>
+          </div>
+          <input type="range" min={500} max={10000} step={100} value={monthlySpend}
+            onChange={e=>setMonthlySpend(parseInt(e.target.value))}
+            style={{width:"100%",accentColor:"var(--accent)"}} />
+          <div style={{fontSize:10,color:"var(--text2)",marginTop:2}}>Adjust to see estimated annual rewards value for each card</div>
+        </div>
+
         {cA&&cB&&(
           <>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18}}>
@@ -5127,6 +5163,26 @@ function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
                 </div>
               ))}
             </div>
+
+            {/* ROI Summary */}
+            {valA && valB && (
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+                {[{c:cA,v:valA,other:valB},{c:cB,v:valB,other:valA}].map(({c,v,other})=>{
+                  const winner = v.netValue > other.netValue;
+                  return (
+                    <div key={c.dbId} className="card-surface" style={{padding:14,border:winner?"2px solid var(--green)":"1px solid var(--border)"}}>
+                      {winner && <div style={{fontSize:9,fontWeight:700,color:"var(--green)",textTransform:"uppercase",letterSpacing:.5,marginBottom:6}}>⭐ Better Value</div>}
+                      <div style={{fontSize:11,color:"var(--text2)",marginBottom:2}}>Est. Annual Rewards</div>
+                      <div style={{fontSize:18,fontWeight:700,color:"var(--text)"}}>${v.annualRewards}</div>
+                      <div style={{fontSize:11,color:"var(--text2)",marginTop:6,marginBottom:2}}>Net Annual Value</div>
+                      <div style={{fontSize:16,fontWeight:700,color:v.netValue>=0?"var(--green)":"var(--red)"}}>{v.netValue>=0?"+":""}${v.netValue}</div>
+                      {c.annualFee > 0 && <div style={{fontSize:10,color:"var(--text2)",marginTop:4}}>ROI: {v.roi}%</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             <div className="card-surface" style={{overflow:"hidden",marginBottom:18}}>
               {rows.map(([label,fmt,winner],i,arr)=>{
                 const w=winner(cA,cB);
@@ -5139,11 +5195,23 @@ function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
                 );
               })}
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+
+            {/* Best For / Not Good For */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
               {[cA,cB].map(c=>(
                 <div key={c.dbId} className="card-surface" style={{padding:"14px"}}>
                   <p style={{color:"var(--green)",fontSize:12,fontWeight:700,marginBottom:8}}>Best for</p>
                   {(c.bestFor||[]).slice(0,3).map((b:string,i:number)=>(
+                    <p key={i} style={{color:"var(--text2)",fontSize:12,marginBottom:4,lineHeight:1.4}}>• {b}</p>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[cA,cB].map(c=>(
+                <div key={c.dbId} className="card-surface" style={{padding:"14px"}}>
+                  <p style={{color:"var(--red)",fontSize:12,fontWeight:700,marginBottom:8}}>Not ideal for</p>
+                  {(c.notGoodFor||[]).slice(0,3).map((b:string,i:number)=>(
                     <p key={i} style={{color:"var(--text2)",fontSize:12,marginBottom:4,lineHeight:1.4}}>• {b}</p>
                   ))}
                 </div>
@@ -5155,6 +5223,7 @@ function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
     </div>
   );
 }
+
 
 /* ============================================================
    EDIT PROFILE SCREEN
