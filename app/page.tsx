@@ -247,6 +247,8 @@ select.field { appearance:none; }
   .desktop-sidebar { display: none !important; }
   .desktop-main { margin-left: 0 !important; }
   .desktop-content { padding: 64px 16px 100px; max-width: 100%; }
+  /* Force single column on mobile for comparison grids */
+  .mobile-stack { grid-template-columns: 1fr !important; }
 }
 
 /* -- iPad / Tablet portrait (768px - 1023px) -- */
@@ -301,10 +303,22 @@ select.field { appearance:none; }
   to { transform: rotate(360deg); }
 }
 @keyframes screenFade {
-  from { opacity:0; transform:translateY(8px); }
+  from { opacity:0; transform:translateY(6px); }
   to   { opacity:1; transform:translateY(0); }
 }
-.screen-enter { animation: screenFade .2s ease both; }
+.screen-enter { animation: screenFade .25s cubic-bezier(.4,0,.2,1) both; }
+
+/* Skeleton shimmer for loading states */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--border) 25%, var(--surface2) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
 
 /* Landing page motion */
 @keyframes meshDrift {
@@ -1107,6 +1121,14 @@ function Icon({ name, size=18, color="currentColor", strokeWidth=1.8 }: { name:s
     case "globe": return <svg {...p}><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3c2.5 2.5 4 5.8 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.8-4-9s1.5-6.5 4-9z"/></svg>;
     case "credit-score": return <svg {...p}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>;
     case "refresh": return <svg {...p}><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0 0 20.5 15"/></svg>;
+    case "trending-up": return <svg {...p}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>;
+    case "dollar-sign": return <svg {...p}><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 6.5C17 5 15.4 4 12 4S7 5.3 7 7s1.8 2.5 5 3 5 1.5 5 3.5-2 3.5-5 3.5-5-1-5-2.5"/></svg>;
+    case "cpu": return <svg {...p}><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><line x1="9" y1="2" x2="9" y2="5"/><line x1="15" y1="2" x2="15" y2="5"/><line x1="9" y1="19" x2="9" y2="22"/><line x1="15" y1="19" x2="15" y2="22"/><line x1="2" y1="9" x2="5" y2="9"/><line x1="2" y1="15" x2="5" y2="15"/><line x1="19" y1="9" x2="22" y2="9"/><line x1="19" y1="15" x2="22" y2="15"/></svg>;
+    case "bar-chart": return <svg {...p}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
+    case "credit-card": return <svg {...p}><rect x="2" y="5" width="20" height="14" rx="2.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>;
+    case "alert-triangle": return <svg {...p}><path d="M12 3.5L21.5 20H2.5L12 3.5z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17" x2="12" y2="17.1"/></svg>;
+    case "building": return <svg {...p}><rect x="4" y="2" width="16" height="20" rx="1.5"/><line x1="9" y1="6" x2="9" y2="6.1"/><line x1="15" y1="6" x2="15" y2="6.1"/><line x1="9" y1="10" x2="9" y2="10.1"/><line x1="15" y1="10" x2="15" y2="10.1"/><line x1="9" y1="14" x2="9" y2="14.1"/><line x1="15" y1="14" x2="15" y2="14.1"/><path d="M10 22v-4h4v4"/></svg>;
+    case "clipboard": return <svg {...p}><path d="M9 3h6a1 1 0 0 1 1 1H8a1 1 0 0 1 1-1z"/><rect x="4" y="5" width="16" height="17" rx="2"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/></svg>;
     default: return <svg {...p}><circle cx="12" cy="12" r="9"/></svg>;
   }
 }
@@ -3354,13 +3376,13 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
   
   return (
     <div className="screen desktop-content screen-enter">
-      <PageHead title="AI Card Recommender" sub="Personalized to your actual spending" back={()=>go("settings")}/>
+      <PageHead title="Card Recommendations" sub="Find the best cards for your spending" back={()=>go("settings")}/>
       <div className="px">
         {/* Spending Input */}
         <div style={cardS}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:14}}>💰</span>
+              <span style={{color:"var(--accent)",display:"flex"}}><Icon name="dollar-sign" size={16}/></span>
               <div>
                 <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>Your Monthly Spending</div>
                 <div style={{fontSize:11,color:"var(--text2)"}}>Total: ${Object.values(monthlySpend).reduce((s,v)=>s+v,0).toLocaleString()}/mo · ${totalAnnualSpend.toLocaleString()}/yr</div>
@@ -3371,12 +3393,12 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
           {showCalc && (
             <div>
               {[
-                {key:"dining",label:"Dining",icon:"🍽",color:"#3B82F6"},
-                {key:"groceries",label:"Groceries",icon:"🛒",color:"#22C55E"},
-                {key:"travel",label:"Travel",icon:"✈️",color:"#F59E0B"},
-                {key:"gas",label:"Gas",icon:"⛽",color:"#EF4444"},
-                {key:"shopping",label:"Shopping",icon:"🛍",color:"#8B5CF6"},
-                {key:"other",label:"Other",icon:"📦",color:"#6B7280"},
+                {key:"dining",label:"Dining",icon:"dining",color:"#3B82F6"},
+                {key:"groceries",label:"Groceries",icon:"groceries",color:"#22C55E"},
+                {key:"travel",label:"Travel",icon:"travel",color:"#F59E0B"},
+                {key:"gas",label:"Gas",icon:"gas",color:"#EF4444"},
+                {key:"shopping",label:"Shopping",icon:"shopping",color:"#8B5CF6"},
+                {key:"other",label:"Other",icon:"other",color:"#6B7280"},
               ].map(({key,label,icon,color}) => (
                 <div key={key} style={{marginBottom:10}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
@@ -3401,12 +3423,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
           )}
         </div>
 
-        {/* Model badges */}
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-          <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:"rgba(37,99,235,.1)",color:"var(--accent)",fontWeight:600}}>Optimization Engine</span>
-          <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:"rgba(34,197,94,.1)",color:"#22c55e",fontWeight:600}}>{CARD_DB.length} Cards Analyzed</span>
-          <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:"rgba(168,85,247,.1)",color:"#a855f7",fontWeight:600}}>Personalized to Your Spend</span>
-        </div>
+
 
         {/* Your Cards Ranked */}
         {topOwned.length > 0 && (
@@ -3461,7 +3478,7 @@ function AIRecommender({go, cards, profile}:{go:(s:S)=>void; cards:CreditCard[];
         </div>
 
         {/* Optimal Wallet */}
-        <div style={{...cardS, background:"linear-gradient(135deg, rgba(37,99,235,.03), rgba(124,58,237,.03))", border:"1px solid rgba(37,99,235,.15)"}}>
+        <div style={{...cardS, background:"var(--accentbg)", border:"1px solid rgba(37,99,235,.12)"}}>
           <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:6}}>💡 Optimal 3-Card Setup</div>
           <div style={{fontSize:11,color:"var(--text2)",marginBottom:10}}>The mathematically best combo for your spending</div>
           {(() => {
@@ -3688,7 +3705,7 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
         <circle cx={fg.x} cy={fg.y} r={6} fill={scoreColor(score)} style={{filter:`drop-shadow(0 0 4px ${scoreColor(score)})`,transition:"all .6s cubic-bezier(.4,0,.2,1)"}}/>
         <text x={cx} y={cy-8} textAnchor="middle" fontSize="42" fontWeight="800" fill="var(--text)" style={{fontFamily:"var(--sans)"}}>{score}</text>
         <text x={cx} y={cy+14} textAnchor="middle" fontSize="13" fontWeight="700" fill={scoreColor(score)}>{scoreLabel(score)}</text>
-        <text x={cx} y={cy+30} textAnchor="middle" fontSize="10" fill="var(--text2)">out of 850 · powered by ML</text>
+        <text x={cx} y={cy+30} textAnchor="middle" fontSize="10" fill="var(--text2)">out of 850</text>
         <text x={toXY(startAngle).x+8} y={toXY(startAngle).y+14} fontSize="9" fill="var(--text2)">300</text>
         <text x={toXY(endAngle).x-14} y={toXY(endAngle).y+14} fontSize="9" fill="var(--text2)">850</text>
       </svg>
@@ -3731,14 +3748,9 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
 
   return (
     <div className="px" style={{paddingBottom:100}}>
-      <PageHead title="Credit Optimizer" sub="ML-powered score analysis · Trained on 150K consumer profiles"/>
+      <PageHead title="Credit Score" sub="Analyze and improve your credit profile"/>
 
-      {/* Model badge */}
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-        <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:"rgba(37,99,235,.1)",color:"var(--accent)",fontWeight:600}}>Gradient Boosting · AUC 0.87</span>
-        <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:"rgba(34,197,94,.1)",color:"#22c55e",fontWeight:600}}>SHAP Explainability</span>
-        <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:"rgba(168,85,247,.1)",color:"#a855f7",fontWeight:600}}>Kaggle Dataset · 150K Profiles</span>
-      </div>
+
 
       {/* Tab nav */}
       <div style={{display:"flex",gap:4,marginBottom:16,background:"var(--card)",borderRadius:10,padding:4,border:"1px solid var(--border)"}}>
@@ -3759,14 +3771,14 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
           <Gauge score={liveScore}/>
           <Sparkline data={history}/>
           {history.length > 0 && <div style={{fontSize:10,color:"var(--text2)",marginTop:4}}>Score history from this session</div>}
-          <div style={{fontSize:11,color:"var(--text2)",marginTop:4}}>Adjust sliders → score updates in real time</div>
+          <div style={{fontSize:11,color:"var(--text2)",marginTop:4}}>Adjust your profile below to see how changes affect your score</div>
         </div>
 
         <div style={cardS}>
           <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:4,display:"flex",alignItems:"center",gap:8}}>
             <Icon name="edit" size={14}/> Your Credit Profile
           </div>
-          <div style={{fontSize:11,color:"var(--text2)",marginBottom:14}}>Based on the 10 features from the Kaggle "Give Me Some Credit" dataset</div>
+          
           {sliders.map(({label,field,min,max,step,fmt,warn,tip}) => (
             <div key={field} style={{marginBottom:14}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
@@ -3783,11 +3795,11 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
 
         <button onClick={runAnalysis} disabled={loading} className="press" style={{
           width:"100%",padding:"15px 0",borderRadius:12,border:"none",cursor:"pointer",
-          background:loading?"var(--text2)":"linear-gradient(135deg, #2563eb, #7c3aed)",color:"white",
+          background:loading?"var(--border2)":"var(--accent)",color:"white",
           fontSize:15,fontWeight:700,boxShadow:"0 4px 14px rgba(37,99,235,.3)",
-          fontFamily:"var(--sans)",transition:"all .2s",letterSpacing:0.3,
+          fontFamily:"var(--sans)",transition:"all .2s",
         }}>
-          {loading ? "⏳ Running SHAP Analysis on 150K Model..." : "🔬 Analyze My Credit →"}
+          {loading ? "Analyzing..." : "Run Analysis"}
         </button>
       </>}
 
@@ -3812,15 +3824,15 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
 
         {/* SHAP breakdown */}
         <div style={cardS}>
-          <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:2}}>SHAP Feature Impact Analysis</div>
-          <div style={{fontSize:11,color:"var(--text2)",marginBottom:14}}>How each factor pushes your score up or down (trained on 150K profiles)</div>
+          <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:2}}>Factor Breakdown</div>
+          <div style={{fontSize:11,color:"var(--text2)",marginBottom:14}}>How each factor affects your score</div>
           {result.factors.map((f:any, i:number) => {
             const maxImp = Math.max(...result.factors.map((x:any)=>Math.abs(x.impact)), 1);
             const pct = Math.min(Math.abs(f.impact)/maxImp*100, 100);
             const hurts = f.impact > 0;
             return (
               <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:i<result.factors.length-1?"1px solid var(--border)":"none"}}>
-                <span style={{fontSize:14,width:22,textAlign:"center",flexShrink:0}}>{f.icon}</span>
+                <span style={{width:22,textAlign:"center",flexShrink:0,color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name={f.icon} size={13}/></span>
                 <div style={{width:110,fontSize:11,color:"var(--text)",fontWeight:500,flexShrink:0}}>{f.feature}</div>
                 <div style={{flex:1,height:8,background:"var(--border)",borderRadius:4,overflow:"hidden",position:"relative"}}>
                   <div style={{position:"absolute",left:"50%",top:-1,width:1,height:10,background:"var(--text2)",opacity:.3}}/>
@@ -3844,7 +3856,7 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
             {result.scenarios.map((s:any, i:number) => (
               <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:i<result.scenarios.length-1?"1px solid var(--border)":"none"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
-                  <span style={{fontSize:16}}>{s.icon}</span>
+                  <span style={{width:20,height:20,borderRadius:6,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Icon name="trending-up" size={11} color="var(--accent)"/></span>
                   <div>
                     <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{s.label}</div>
                     <div style={{fontSize:11,color:"var(--text2)",marginTop:1}}>{s.current} → {s.improved}</div>
@@ -3859,11 +3871,11 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
         {/* AI Analysis button */}
         <button onClick={runAI} disabled={aiLoading} className="press" style={{
           width:"100%",padding:"15px 0",borderRadius:12,border:"none",cursor:"pointer",
-          background:aiLoading?"var(--text2)":"linear-gradient(135deg, #7c3aed, #ec4899)",color:"white",
+          background:aiLoading?"var(--border2)":"#7c3aed",color:"white",
           fontSize:15,fontWeight:700,boxShadow:"0 4px 14px rgba(124,58,237,.3)",
-          fontFamily:"var(--sans)",transition:"all .2s",letterSpacing:0.3,marginBottom:10,
+          fontFamily:"var(--sans)",transition:"all .2s",marginBottom:10,
         }}>
-          {aiLoading ? "🤖 Claude is analyzing your profile..." : "🤖 Get AI-Powered Recommendations →"}
+          {aiLoading ? "Generating insights..." : "Get AI Insights"}
         </button>
 
         <div style={{display:"flex",gap:8}}>
@@ -3923,11 +3935,11 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
 
         {aiResult && !aiResult.error && !aiLoading && <>
           {/* AI Summary */}
-          <div style={{...cardS, background:"linear-gradient(135deg, rgba(124,58,237,.05), rgba(236,72,153,.05))", border:"1px solid rgba(124,58,237,.15)"}}>
+          <div style={{...cardS, background:"linear-gradient(135deg, rgba(124,58,237,.06), rgba(236,72,153,.04))", border:"1px solid rgba(124,58,237,.12)"}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <span style={{fontSize:18}}>🤖</span>
+              <span style={{color:"var(--accent)",display:"flex"}}><Icon name="cpu" size={18}/></span>
               <span style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>AI Assessment</span>
-              <span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"rgba(124,58,237,.15)",color:"#7c3aed",fontWeight:600}}>Claude · Sonnet</span>
+              <span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"var(--accentbg)",color:"var(--accent)",fontWeight:600}}>AI</span>
             </div>
             <p style={{fontSize:13,color:"var(--text)",lineHeight:1.6,margin:0}}>{aiResult.summary}</p>
           </div>
@@ -3956,7 +3968,7 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
           {/* Insights */}
           {aiResult.insights?.length > 0 && (
             <div style={cardS}>
-              <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:10}}>💡 Non-Obvious Insights</div>
+              <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:10}}>Key Insights</div>
               {aiResult.insights.map((insight:string, i:number) => (
                 <div key={i} style={{fontSize:12,color:"var(--text)",padding:"8px 12px",background:"rgba(37,99,235,.04)",borderRadius:8,marginBottom:6,lineHeight:1.5,borderLeft:"2px solid var(--accent)"}}>
                   {insight}
@@ -3968,7 +3980,7 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
           {/* 3-Month Plan */}
           {aiResult.three_month_plan && (
             <div style={{...cardS, background:"rgba(34,197,94,.03)", border:"1px solid rgba(34,197,94,.15)"}}>
-              <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:8}}>📅 Your 3-Month Action Plan</div>
+              <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:8}}>3-Month Action Plan</div>
               <p style={{fontSize:12,color:"var(--text)",lineHeight:1.7,margin:0,whiteSpace:"pre-line"}}>{aiResult.three_month_plan}</p>
             </div>
           )}
@@ -3988,12 +4000,10 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
         </div>
       </>}
 
-      {/* Footer info */}
-      <div style={{textAlign:"center",marginTop:16,padding:"12px 0"}}>
-        <div style={{fontSize:10,color:"var(--text2)",lineHeight:1.6}}>
-          Trained on Kaggle "Give Me Some Credit" · 150,000 consumer profiles<br/>
-          Gradient Boosting · 200 trees · AUC 0.87 · SHAP TreeExplainer<br/>
-          Research advisor: Dr. Raahmifer Kamraan · Penn State University
+      {/* Footer */}
+      <div style={{textAlign:"center",marginTop:20,padding:"12px 0"}}>
+        <div style={{fontSize:10,color:"var(--text3)",lineHeight:1.5}}>
+          Analysis powered by gradient boosting trained on 150K consumer credit profiles.
         </div>
       </div>
     </div>
@@ -4842,12 +4852,11 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
         {txns.length >= 3 && (
           <div className="card-surface" style={{padding:18,marginBottom:14}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-              <span style={{fontSize:14}}>🔮</span>
+              <span style={{color:"var(--accent)",display:"flex"}}><Icon name="trending-up" size={16}/></span>
               <div>
-                <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>Spending Predictor</div>
-                <div style={{fontSize:11,color:"var(--text2)"}}>Linear regression on your {txns.length} transactions</div>
+                <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>Predicted Spending</div>
+                <div style={{fontSize:11,color:"var(--text2)"}}>Based on {txns.length} logged transactions</div>
               </div>
-              <span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"rgba(124,58,237,.1)",color:"#7c3aed",fontWeight:600,marginLeft:"auto"}}>ML</span>
             </div>
             {(() => {
               // Group txns by category, compute average and trend
@@ -5021,7 +5030,7 @@ function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
     <div className="screen desktop-content screen-enter">
       <PageHead title="Compare Cards" sub="Side-by-side with ROI analysis" back={()=>go("settings")}/>
       <div className="px">
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+        <div className="mobile-stack" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
           {[{val:a,set:setA,label:"Card A"},{val:b,set:setB,label:"Card B"}].map(({val,set,label})=>(
             <div key={label}>
               <p style={{color:"var(--text3)",fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:.8,marginBottom:7}}>{label}</p>
