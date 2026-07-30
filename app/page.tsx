@@ -1670,127 +1670,241 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
   const totalLim = cards.reduce((s,c) => s+c.limit, 0);
   const totalPts = cards.reduce((s,c) => s+c.points, 0);
   const util = totalLim > 0 ? Math.round(totalBal/totalLim*100) : 0;
-  const f = (n:number) => n>=1000?(n/1000).toFixed(1).replace(/\.0$/,"")+"k":String(n);
   const hour = new Date().getHours();
   const greeting = hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
+  const [activeCard, setActiveCard] = useState(0);
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(0);
+  const trackRef = useRef<HTMLDivElement>(null);
 
   if (!dataLoaded) return (
     <div className="screen desktop-content" style={{padding:"60px 40px"}}>
-      <div style={{height:32,width:220}} className="skeleton-shimmer"/><br/>
-      <div style={{height:16,width:280}} className="skeleton-shimmer"/><br/><br/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
-        {[1,2,3].map(i=><div key={i} style={{height:100,borderRadius:14}} className="skeleton-shimmer"/>)}
-      </div>
+      <div style={{height:28,width:200}} className="skeleton-shimmer"/><br/>
+      <div style={{height:14,width:260}} className="skeleton-shimmer"/><br/><br/>
+      <div style={{height:200,borderRadius:14}} className="skeleton-shimmer"/>
     </div>
   );
 
   const utilColor = util<30?"var(--green)":util<50?"var(--amber)":"var(--red)";
-  const utilLabel = util<30?"Healthy":util<50?"Monitor":"High";
   const score = profile.creditRange?.split("–")[0]||"740";
-  const totalRewards = cards.reduce((s,c) => s + (c.points * 0.01), 0);
+  const ac = cards[activeCard] || cards[0];
+  const acUtil = ac ? (ac.limit > 0 ? Math.round(ac.balance/ac.limit*100) : 0) : 0;
+  const acUtilColor = acUtil<30?"var(--green)":acUtil<50?"var(--amber)":"var(--red)";
+
+  const cardDesigns: Record<string,{bg:string;network:string;accent:string}> = {
+    "Amex":{bg:"linear-gradient(135deg,#006FCF 0%,#004A8F 40%,#003170 100%)",network:"AMEX",accent:"#006FCF"},
+    "Chase":{bg:"linear-gradient(135deg,#1a1f3a 0%,#0c1629 50%,#1a2744 100%)",network:"VISA",accent:"#1a1f3a"},
+    "Capital One":{bg:"linear-gradient(135deg,#1b4332 0%,#2d6a4f 50%,#1b4332 100%)",network:"VISA",accent:"#2d6a4f"},
+    "Discover":{bg:"linear-gradient(135deg,#E85D1A 0%,#C44A15 100%)",network:"DISCOVER",accent:"#E85D1A"},
+    "Citi":{bg:"linear-gradient(135deg,#003B70 0%,#002855 100%)",network:"VISA",accent:"#003B70"},
+    "Wells Fargo":{bg:"linear-gradient(135deg,#D71E28 0%,#A0161D 100%)",network:"VISA",accent:"#D71E28"},
+    "US Bank":{bg:"linear-gradient(135deg,#002F6C 0%,#001E44 100%)",network:"VISA",accent:"#002F6C"},
+    "BoA":{bg:"linear-gradient(135deg,#012169 0%,#001540 100%)",network:"VISA",accent:"#012169"},
+  };
+  const getDesign = (issuer:string) => cardDesigns[issuer] || {bg:"linear-gradient(135deg,#1E293B,#0F172A)",network:"VISA",accent:"#1E293B"};
+
+  // Swipe handlers
+  const onPointerDown = (e:React.PointerEvent) => { startX.current = e.clientX; setDragging(true); };
+  const onPointerMove = (e:React.PointerEvent) => { if (!dragging) return; setDragX(e.clientX - startX.current); };
+  const onPointerUp = () => {
+    setDragging(false);
+    if (dragX < -50 && activeCard < cards.length - 1) setActiveCard(activeCard + 1);
+    else if (dragX > 50 && activeCard > 0) setActiveCard(activeCard - 1);
+    setDragX(0);
+  };
 
   return (
     <div className="screen desktop-content screen-enter">
       <div className="px" style={{paddingTop:8}}>
-        {/* Greeting */}
-        <div className="au" style={{marginBottom:32}}>
-          <h1 style={{fontSize:26,fontWeight:300,fontFamily:"var(--sans)",color:"var(--text)",letterSpacing:"-1px",lineHeight:1.2,margin:0}}>
-            {greeting}, <span style={{fontWeight:700}}>{profile.name||"there"}</span>.
+        {/* Greeting — refined */}
+        <div className="au" style={{marginBottom:28}}>
+          <h1 style={{fontSize:24,fontWeight:400,color:"var(--text)",letterSpacing:"-.3px",lineHeight:1.3,margin:0}}>
+            {greeting}, <span style={{fontWeight:600}}>{profile.name||"there"}</span>
           </h1>
-          <p style={{fontSize:14,color:"var(--text2)",marginTop:6,fontWeight:400}}>
+          <p style={{fontSize:13,color:"var(--text2)",marginTop:4,fontWeight:400}}>
             {util < 30 ? "Your finances look healthy." : util < 50 ? "A few things need attention." : "Some metrics need your focus."}
           </p>
         </div>
 
-        {/* Three key signals */}
-        <div className="au d1" className="stagger" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:28}}>
-          {[
-            {label:"Credit",value:score,sub:"+8 this month",color:"var(--accent)",click:()=>go("credit-optimizer")},
-            {label:"Utilization",value:`${util}%`,sub:utilLabel,color:utilColor,click:()=>go("credit-optimizer")},
-            {label:"Rewards",value:`$${Math.round(totalRewards)}`,sub:`Across ${cards.length} cards`,color:"var(--green)",click:()=>go("perks")},
-          ].map((s,i) => (
-            <div key={i} onClick={s.click} className="card-surface hover-lift press" style={{padding:"20px 18px",cursor:"pointer"}}>
-              <div style={{fontSize:11,color:"var(--text2)",fontWeight:500,letterSpacing:".3px",textTransform:"uppercase",marginBottom:8}}>{s.label}</div>
-              <div className="animate-number" style={{fontSize:28,fontWeight:600,color:s.color,letterSpacing:"-1.5px",lineHeight:1}}>{s.value}</div>
-              <div style={{fontSize:12,color:"var(--text2)",marginTop:6,fontWeight:450}}>{s.sub}</div>
+        {/* Hero — asymmetric: score left, util+rewards right */}
+        <div className="au d1" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:24}}>
+          <div onClick={()=>go("credit-optimizer")} className="card-surface hover-lift press" style={{padding:"22px 20px",cursor:"pointer"}}>
+            <div style={{fontSize:11,color:"var(--text2)",fontWeight:500,letterSpacing:".3px",marginBottom:10}}>Credit score</div>
+            <div className="animate-number" style={{fontSize:36,fontWeight:600,color:"var(--accent)",letterSpacing:"-1.5px",lineHeight:1}}>{score}</div>
+            <div style={{fontSize:12,color:"var(--green)",marginTop:6,fontWeight:500}}>+8 this month</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div onClick={()=>go("credit-optimizer")} className="card-surface hover-lift press" style={{padding:"14px 18px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+              <div className="animate-number" style={{fontSize:20,fontWeight:600,color:utilColor,letterSpacing:"-.5px",lineHeight:1}}>{util}%</div>
+              <div style={{fontSize:11,color:"var(--text2)",marginTop:3}}>Utilization · {util<30?"Healthy":util<50?"Monitor":"High"}</div>
             </div>
-          ))}
+            <div onClick={()=>go("perks")} className="card-surface hover-lift press" style={{padding:"14px 18px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+              <div className="animate-number" style={{fontSize:20,fontWeight:600,color:"var(--text)",letterSpacing:"-.5px",lineHeight:1}}>${Math.round(totalPts*0.01)}</div>
+              <div style={{fontSize:11,color:"var(--text2)",marginTop:3}}>Rewards · {cards.length} cards</div>
+            </div>
+          </div>
         </div>
 
-        {/* Today — most important action */}
-        {util > 15 && (
+        {/* Today — contextual action */}
+        {util > 10 && (
           <div className="au d2" style={{marginBottom:24}}>
-            <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:10}}>TODAY</div>
-            <div className="card-surface" style={{padding:"18px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}}>
-              <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-                <div style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)",marginTop:7,flexShrink:0}}/>
-                <div>
-                  <div style={{fontSize:13,fontWeight:600,color:"var(--text)",lineHeight:1.4}}>
-                    {util > 30 ? "Utilization is elevated" : "Statement closing soon"}
-                  </div>
-                  <div style={{fontSize:12,color:"var(--text2)",marginTop:2,lineHeight:1.5}}>
-                    Pay ${Math.round(totalBal * 0.5)} to reduce utilization from {util}% to {Math.round(util*0.5)}%.
-                    <span style={{color:"var(--green)",fontWeight:600}}> Potential impact: +8–12 pts</span>
-                  </div>
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",marginBottom:10}}>Today</div>
+            <div className="card-surface" style={{padding:"16px 18px",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)",flexShrink:0}}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>Statement closing soon</div>
+                <div style={{fontSize:12,color:"var(--text2)",marginTop:2}}>
+                  Pay ${Math.round(totalBal*0.5)} to drop to {Math.round(util*0.5)}%.
+                  <span style={{color:"var(--green)",fontWeight:500}}> +8–12 pts</span>
                 </div>
               </div>
-              <button onClick={()=>go("credit-optimizer")} className="press spring-hover" style={{padding:"8px 16px",borderRadius:8,border:"none",background:"var(--accent)",color:"white",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>Review</button>
+              <button onClick={()=>go("credit-optimizer")} className="press spring-hover" style={{padding:"7px 14px",borderRadius:8,border:"1px solid var(--border2)",background:"transparent",color:"var(--text)",fontSize:12,fontWeight:500,cursor:"pointer"}}>Review</button>
             </div>
           </div>
         )}
 
-        {/* Smart picks — ambient AI */}
-        <div className="au d3" style={{marginBottom:24}}>
-          <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:10}}>SMART PICKS</div>
+        {/* Smart picks */}
+        <div className="au d3" style={{marginBottom:28}}>
+          <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",marginBottom:10}}>Smart picks</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             {[
-              {q:"Dining tonight?",tip:"Use Amex Gold → 4x points",icon:"dining",click:()=>go("ai-recommender")},
-              {q:"Booking travel?",tip:"Use Sapphire Reserve → 8x",icon:"travel",click:()=>go("ai-recommender")},
+              {icon:"dining",q:"Dining tonight?",tip:"Amex Gold → 4x points"},
+              {icon:"travel",q:"Booking travel?",tip:"Sapphire Reserve → 8x"},
             ].map((pick,i) => (
-              <div key={i} onClick={pick.click} className="card-surface hover-lift press" style={{padding:"16px 18px",cursor:"pointer"}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                  <Icon name={pick.icon} size={14} color="var(--text2)"/>
-                  <span style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{pick.q}</span>
-                </div>
-                <div style={{fontSize:11,color:"var(--text2)",lineHeight:1.4}}>{pick.tip}</div>
+              <div key={i} onClick={()=>go("ai-recommender")} className="card-surface hover-lift press" style={{padding:"16px",cursor:"pointer"}}>
+                <div style={{color:"var(--text2)",marginBottom:8}}><Icon name={pick.icon} size={16} strokeWidth={1.5}/></div>
+                <div style={{fontSize:13,fontWeight:500,color:"var(--text)",marginBottom:2}}>{pick.q}</div>
+                <div style={{fontSize:12,color:"var(--text2)"}}>{pick.tip}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Cards */}
-        {cards.length > 0 && (
-          <div className="au d4" style={{marginBottom:24}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-              <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>YOUR CARDS</div>
-              <button onClick={()=>go("cards")} style={{fontSize:12,color:"var(--accent)",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>View all</button>
-            </div>
-            <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:4}} className="no-scrollbar">
-              {cards.slice(0,4).map(c => (
-                <div key={c.id} onClick={()=>go("cards")} className="press" style={{cursor:"pointer",flexShrink:0,width:200}}>
-                  <div onMouseMove={(e)=>{const el=e.currentTarget;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width;const y=(e.clientY-r.top)/r.height;el.style.transform=`perspective(800px) rotateX(${(y-.5)*-10}deg) rotateY(${(x-.5)*10}deg) scale(1.02)`;}} onMouseLeave={(e)=>{e.currentTarget.style.transform='perspective(800px) rotateX(0) rotateY(0) scale(1)';}} className="card-shimmer" style={{background:c.gradient,borderRadius:12,padding:"16px 14px",height:110,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"transform .4s cubic-bezier(.03,.98,.52,.99), box-shadow .4s",position:"relative",overflow:"hidden",transformStyle:"preserve-3d"}}>
-                    <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"linear-gradient(135deg,rgba(255,255,255,.08) 0%,transparent 50%)",pointerEvents:"none"}}/>
-                    <div style={{fontSize:10,color:"rgba(255,255,255,.6)",letterSpacing:"1px",textTransform:"uppercase"}}>{c.issuer}</div>
-                    <div>
-                      <div style={{fontSize:14,fontWeight:700,color:"white"}}>{c.name}</div>
-                      <div style={{fontSize:11,color:"rgba(255,255,255,.5)",marginTop:2}}>${c.balance.toLocaleString()} / ${c.limit.toLocaleString()}</div>
+        {/* ═══ WALLET CAROUSEL ═══ */}
+        {cards.length > 0 && (<>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase"}}>Your wallet</div>
+            <button onClick={()=>go("cards")} style={{fontSize:12,color:"var(--text2)",background:"none",border:"none",cursor:"pointer",fontWeight:500}}>Manage</button>
+          </div>
+
+          {/* Card carousel */}
+          <div className="au d4" style={{position:"relative",marginBottom:8,overflow:"hidden",touchAction:"pan-y",cursor:dragging?"grabbing":"grab"}}
+            onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={()=>{if(dragging){setDragging(false);setDragX(0)}}}>
+            <div ref={trackRef} style={{display:"flex",transition:dragging?"none":"transform .45s cubic-bezier(.22,1,.36,1)",
+              transform:`translateX(${-activeCard * 100 + (dragX / 6)}%)`,userSelect:"none"}}>
+              {cards.map((c,i) => {
+                const design = getDesign(c.issuer);
+                const isActive = i === activeCard;
+                return (
+                  <div key={c.id} style={{minWidth:"100%",display:"flex",justifyContent:"center",padding:"8px 20px",boxSizing:"border-box"}}>
+                    <div className="card-shimmer" style={{
+                      width:"100%",maxWidth:380,height:210,borderRadius:14,padding:"22px 24px",
+                      display:"flex",flexDirection:"column",justifyContent:"space-between",
+                      background:design.bg,position:"relative",overflow:"hidden",
+                      boxShadow:isActive?"0 8px 28px rgba(0,0,0,.2), 0 0 0 1px rgba(255,255,255,.05)":"0 4px 16px rgba(0,0,0,.1)",
+                      transform:isActive?"scale(1)":"scale(.95)",opacity:isActive?1:0.6,
+                      transition:"transform .4s cubic-bezier(.22,1,.36,1), opacity .4s, box-shadow .4s",
+                    }}
+                    onMouseMove={(e)=>{if(!isActive)return;const el=e.currentTarget;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width;const y=(e.clientY-r.top)/r.height;el.style.transform=`scale(1) perspective(800px) rotateX(${(y-.5)*-6}deg) rotateY(${(x-.5)*6}deg)`;}}
+                    onMouseLeave={(e)=>{e.currentTarget.style.transform=isActive?'scale(1)':'scale(.95)';}}>
+                      <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(255,255,255,.08) 0%,transparent 50%)",pointerEvents:"none"}}/>
+                      <div style={{position:"relative",zIndex:1}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                          <div style={{fontSize:11,letterSpacing:"1.5px",textTransform:"uppercase",color:"rgba(255,255,255,.5)",fontWeight:500}}>{c.issuer}</div>
+                          <div style={{fontSize:10,letterSpacing:"1px",color:"rgba(255,255,255,.4)",fontWeight:500}}>{design.network}</div>
+                        </div>
+                        <div style={{width:32,height:24,borderRadius:4,background:"linear-gradient(135deg,#d4a847,#b8922e)",margin:"12px 0",opacity:.85}}/>
+                        <div style={{fontSize:14,letterSpacing:"3px",color:"rgba(255,255,255,.55)",fontFamily:"var(--mono,monospace)"}}>•••• •••• •••• {String(i*1111+1008).slice(-4)}</div>
+                      </div>
+                      <div style={{position:"relative",zIndex:1,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+                        <div>
+                          <div style={{fontSize:12,letterSpacing:"1px",textTransform:"uppercase",color:"rgba(255,255,255,.6)"}}>{profile.name||"Cardholder"}</div>
+                          <div style={{fontSize:11,color:"rgba(255,255,255,.35)",marginTop:1}}>{c.name}</div>
+                        </div>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,.25)"}}>MEMBER SINCE '24</div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Dots */}
+          {cards.length > 1 && (
+            <div style={{display:"flex",justifyContent:"center",gap:5,marginBottom:20}}>
+              {cards.map((_,i) => (
+                <div key={i} onClick={()=>setActiveCard(i)} style={{
+                  width:i===activeCard?16:6,height:6,borderRadius:3,cursor:"pointer",
+                  background:i===activeCard?"var(--text)":"var(--border2)",
+                  transition:"all .3s cubic-bezier(.22,1,.36,1)",
+                }}/>
               ))}
             </div>
+          )}
+
+          {/* Active card details */}
+          {ac && (
+            <div className="au" style={{marginBottom:24}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:16}}>
+                <div>
+                  <div style={{fontSize:17,fontWeight:500,color:"var(--text)",letterSpacing:"-.2px"}}>{ac.name}</div>
+                  <div style={{fontSize:12,color:"var(--text2)",marginTop:2}}>{ac.issuer} · {ac.rewardRate?.split(",")[0]||"Rewards"}</div>
+                </div>
+              </div>
+
+              {/* Stats row — no cards, just numbers with dividers */}
+              <div style={{display:"flex",gap:0,marginBottom:18,background:"var(--surface)",borderRadius:12,border:"1px solid var(--border)",overflow:"hidden"}}>
+                {[
+                  {label:"Balance",value:`$${ac.balance.toLocaleString()}`},
+                  {label:"Available",value:`$${(ac.limit-ac.balance).toLocaleString()}`},
+                  {label:"Due",value:ac.dueDate||"Aug 15"},
+                ].map((s,i) => (
+                  <div key={i} style={{flex:1,padding:"14px 16px",textAlign:"center",borderRight:i<2?"1px solid var(--border)":"none"}}>
+                    <div style={{fontSize:16,fontWeight:500,color:"var(--text)",letterSpacing:"-.3px"}}>{s.value}</div>
+                    <div style={{fontSize:10,color:"var(--text2)",marginTop:3}}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Utilization */}
+              <div style={{marginBottom:16}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                  <span style={{fontSize:12,color:"var(--text2)"}}>Utilization</span>
+                  <span style={{fontSize:12,fontWeight:500,color:"var(--text)"}}>{acUtil}% · {acUtil<30?"Healthy":acUtil<50?"Fair":"High"}</span>
+                </div>
+                <div style={{height:4,borderRadius:2,background:"var(--border)",overflow:"hidden"}}>
+                  <div style={{width:`${acUtil}%`,height:"100%",borderRadius:2,background:acUtilColor,transition:"width .5s cubic-bezier(.22,1,.36,1)"}}/>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>go("card-detail")} className="press spring-hover" style={{flex:1,padding:"11px 0",borderRadius:8,border:"none",background:"var(--text)",color:"var(--surface)",fontSize:13,fontWeight:500,cursor:"pointer"}}>Pay now</button>
+                <button onClick={()=>go("card-detail")} className="press spring-hover" style={{flex:1,padding:"11px 0",borderRadius:8,border:"1px solid var(--border2)",background:"transparent",color:"var(--text)",fontSize:13,fontWeight:500,cursor:"pointer"}}>Details</button>
+                <button className="press spring-hover" style={{padding:"11px 16px",borderRadius:8,border:"1px solid var(--border2)",background:"transparent",color:"var(--text2)",fontSize:13,cursor:"pointer"}}><Icon name="lock" size={14} strokeWidth={1.5}/></button>
+              </div>
+            </div>
+          )}
+        </>)}
+
+        {/* Empty state for no cards */}
+        {cards.length === 0 && (
+          <div className="au d4" style={{textAlign:"center",padding:"40px 20px",marginBottom:24}}>
+            <div style={{fontSize:15,fontWeight:500,color:"var(--text)",marginBottom:4}}>Your wallet starts here</div>
+            <div style={{fontSize:13,color:"var(--text2)",marginBottom:16}}>Add your cards and WiseCard finds the best one for every purchase.</div>
+            <button onClick={()=>go("add-card")} className="press spring-hover" style={{padding:"11px 24px",borderRadius:8,border:"none",background:"var(--accent)",color:"white",fontSize:13,fontWeight:500,cursor:"pointer"}}>Add first card</button>
           </div>
         )}
 
-        {/* Spending snapshot */}
+        {/* Spending */}
         <div className="au d5" style={{marginBottom:24}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:12}}>
-            <div>
-              <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>SPENDING</div>
-              <div style={{fontSize:22,fontWeight:700,color:"var(--text)",letterSpacing:"-1px",marginTop:4}}>${totalBal.toLocaleString()}</div>
-            </div>
-            <button onClick={()=>go("analytics")} style={{fontSize:12,color:"var(--accent)",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Details →</button>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase"}}>Spending</div>
+            <button onClick={()=>go("analytics")} style={{fontSize:12,color:"var(--text2)",background:"none",border:"none",cursor:"pointer",fontWeight:500}}>Details →</button>
           </div>
+          <div style={{fontSize:22,fontWeight:600,color:"var(--text)",letterSpacing:"-1px",marginBottom:10}}>${totalBal.toLocaleString()}</div>
           {(() => {
             const cats = [
               {label:"Dining",pct:28,color:"#6C8EEF"},
@@ -1798,16 +1912,16 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
               {label:"Travel",pct:18,color:"#FBBF24"},
               {label:"Gas",pct:12,color:"#F87171"},
               {label:"Shopping",pct:11,color:"#A78BFA"},
-              {label:"Other",pct:9,color:"#6B7280"},
+              {label:"Other",pct:9,color:"#94A3B8"},
             ];
             return (
               <div>
-                <div style={{display:"flex",height:6,borderRadius:3,overflow:"hidden",marginBottom:10}}>
-                  {cats.map(c=><div key={c.label} style={{width:`${c.pct}%`,background:c.color,transition:"width .6s cubic-bezier(.4,0,.2,1)"}}/>)}
+                <div style={{display:"flex",height:5,borderRadius:3,overflow:"hidden",marginBottom:8}}>
+                  {cats.map(c=><div key={c.label} style={{width:`${c.pct}%`,background:c.color,transition:"width .6s cubic-bezier(.22,1,.36,1)"}}/>)}
                 </div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:"6px 16px"}}>
-                  {cats.map(c=><div key={c.label} style={{display:"flex",alignItems:"center",gap:5}}>
-                    <div style={{width:6,height:6,borderRadius:"50%",background:c.color}}/>
+                <div style={{display:"flex",flexWrap:"wrap",gap:"4px 14px"}}>
+                  {cats.map(c=><div key={c.label} style={{display:"flex",alignItems:"center",gap:4}}>
+                    <div style={{width:5,height:5,borderRadius:"50%",background:c.color}}/>
                     <span style={{fontSize:11,color:"var(--text2)"}}>{c.label} {c.pct}%</span>
                   </div>)}
                 </div>
@@ -1816,20 +1930,20 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
           })()}
         </div>
 
-        {/* Upcoming */}
-        {cards.length > 0 && (
+        {/* Upcoming payments */}
+        {cards.filter(c=>c.balance>0).length > 0 && (
           <div className="au d6" style={{marginBottom:24}}>
-            <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:10}}>UPCOMING PAYMENTS</div>
-            {cards.filter(c=>c.balance>0).slice(0,3).map(c => (
-              <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:"1px solid var(--border)"}}>
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",marginBottom:10}}>Upcoming payments</div>
+            {cards.filter(c=>c.balance>0).slice(0,3).map((c,i,arr) => (
+              <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:28,height:18,borderRadius:5,background:c.gradient,flexShrink:0}}/>
+                  <div style={{width:26,height:16,borderRadius:4,background:getDesign(c.issuer).bg,flexShrink:0}}/>
                   <div>
-                    <div style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{c.name}</div>
+                    <div style={{fontSize:13,fontWeight:400,color:"var(--text)"}}>{c.name}</div>
                     <div style={{fontSize:11,color:"var(--text2)"}}>Due {c.dueDate || "Aug 15"}</div>
                   </div>
                 </div>
-                <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>${c.balance.toLocaleString()}</div>
+                <div style={{fontSize:14,fontWeight:500,color:"var(--text)",letterSpacing:"-.3px"}}>${c.balance.toLocaleString()}</div>
               </div>
             ))}
           </div>
@@ -1838,6 +1952,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
     </div>
   );
 }
+
 
 function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void }) {
   const [search, setSearch] = useState("");
