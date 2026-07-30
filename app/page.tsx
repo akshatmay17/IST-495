@@ -2188,253 +2188,296 @@ function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void 
    ============================================================ */
 function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go:(s:S)=>void; onDelete?:(id:string)=>void; onToggleFreeze?:(id:string)=>void }) {
   const [activeIdx, setActiveIdx] = useState(0);
-  const [confirmDelete, setConfirmDelete] = useState<string|null>(null);
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const active = cards[Math.min(activeIdx, cards.length-1)];
+  const [tab, setTab] = useState<"overview"|"rewards"|"benefits"|"activity">("overview");
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(0);
 
-  // Track which card is centered as the user swipes
-  const handleScroll = () => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const cardW = el.scrollWidth / cards.length;
-    const idx = Math.round(el.scrollLeft / cardW);
-    setActiveIdx(Math.max(0, Math.min(cards.length-1, idx)));
+  const cardDesigns: Record<string,{bg:string;network:string;stageTint:string}> = {
+    "Amex":{bg:"linear-gradient(135deg,#006FCF 0%,#004A8F 40%,#003170 100%)",network:"AMEX",stageTint:"rgba(0,79,207,.07)"},
+    "Chase":{bg:"linear-gradient(135deg,#1a1f3a 0%,#0c1629 50%,#1a2744 100%)",network:"VISA",stageTint:"rgba(26,31,58,.06)"},
+    "Capital One":{bg:"linear-gradient(135deg,#1b4332 0%,#2d6a4f 50%,#1b4332 100%)",network:"VISA",stageTint:"rgba(45,106,79,.06)"},
+    "Discover":{bg:"linear-gradient(135deg,#E85D1A 0%,#C44A15 100%)",network:"DISCOVER",stageTint:"rgba(232,93,26,.05)"},
+    "Citi":{bg:"linear-gradient(135deg,#003B70 0%,#002855 100%)",network:"VISA",stageTint:"rgba(0,59,112,.06)"},
+    "Wells Fargo":{bg:"linear-gradient(135deg,#D71E28 0%,#A0161D 100%)",network:"VISA",stageTint:"rgba(215,30,40,.05)"},
   };
-  const scrollToIdx = (idx:number) => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const cardW = el.scrollWidth / cards.length;
-    el.scrollTo({ left: idx*cardW, behavior: "smooth" });
-    setActiveIdx(idx);
-  };
+  const getDesign = (issuer:string) => cardDesigns[issuer] || {bg:"linear-gradient(135deg,#1E293B,#0F172A)",network:"VISA",stageTint:"rgba(30,41,59,.05)"};
 
-  if (!active) {
-    return (
-      <div className="screen desktop-content screen-enter">
-        <PageHead title="My Cards" sub="No cards added yet"
-          right={<button onClick={()=>go("add-card")} className="btn-gold press" style={{padding:"10px 18px",fontSize:14}}>+ Add Card</button>}/>
-        <div className="px">
-          <EmptyState icon="card" title="No cards yet" sub="Add your credit cards to track balances, points, due dates, and get personalized recommendations." action="Add Your First Card" onAction={()=>go("add-card")}/>
-        </div>
+  const c = cards[activeIdx] || cards[0];
+  if (!c && cards.length === 0) return (
+    <div className="screen desktop-content screen-enter">
+      <div className="px" style={{textAlign:"center",paddingTop:80}}>
+        <div style={{fontSize:17,fontWeight:500,color:"var(--text)",marginBottom:4}}>Your wallet starts here</div>
+        <div style={{fontSize:13,color:"var(--text2)",marginBottom:20}}>Add your cards and WiseCard finds the best one for every purchase.</div>
+        <button onClick={()=>go("add-card")} className="press spring-hover" style={{padding:"11px 24px",borderRadius:8,border:"none",background:"var(--accent)",color:"white",fontSize:13,fontWeight:500,cursor:"pointer"}}>Add first card</button>
       </div>
-    );
-  }
+    </div>
+  );
 
-  const u = pct(active.balance, active.limit);
-  const days = daysUntil(active.dueDate);
+  const design = getDesign(c.issuer);
+  const util = c.limit > 0 ? Math.round(c.balance / c.limit * 100) : 0;
+  const utilLabel = util < 30 ? "Healthy" : util < 50 ? "Fair" : "High";
+
+  const onPointerDown = (e:React.PointerEvent) => { startX.current = e.clientX; setDragging(true); };
+  const onPointerMove = (e:React.PointerEvent) => { if (!dragging) return; setDragX(e.clientX - startX.current); };
+  const onPointerUp = () => {
+    setDragging(false);
+    if (dragX < -50 && activeIdx < cards.length - 1) { setActiveIdx(activeIdx + 1); setTab("overview"); }
+    else if (dragX > 50 && activeIdx > 0) { setActiveIdx(activeIdx - 1); setTab("overview"); }
+    setDragX(0);
+  };
+
+  const tabs = ["overview","rewards","benefits","activity"] as const;
 
   return (
     <div className="screen desktop-content screen-enter">
-      <PageHead title="My Cards" sub={`${cards.length} card${cards.length!==1?"s":""} · ${f(cards.reduce((s,c)=>s+c.points,0))} total points`}
-        right={<button onClick={()=>go("add-card")} className="btn-gold press" style={{padding:"10px 18px",fontSize:14}}>+ Add Card</button>}/>
+      {/* Stage — transparent gradient background from card color */}
+      <div style={{position:"relative",padding:"12px 20px 20px",marginBottom:20,borderRadius:"0 0 16px 16px",overflow:"hidden"}}>
+        <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg, ${design.stageTint} 0%, transparent 60%)`,pointerEvents:"none",transition:"background .5s"}}/>
 
-      {/* Swipeable card carousel -- one card centered at a time, adjacent cards peek at the edges */}
-      <div ref={scrollerRef} onScroll={handleScroll} style={{
-        display:"flex", overflowX:"auto", scrollSnapType:"x mandatory",
-        WebkitOverflowScrolling:"touch", paddingBottom:4,
-        gap:14, padding:"0 36px 4px", marginBottom:14,
-      }} className="no-scrollbar">
-        {cards.map((card,i)=>(
-          <div key={card.id} onClick={()=>scrollToIdx(i)} style={{
-            scrollSnapAlign:"center", flexShrink:0, width:"calc(100% - 72px)", maxWidth:340,
-            cursor:"pointer", transition:"opacity .25s, transform .25s",
-            opacity: i===activeIdx ? 1 : 0.45, transform: i===activeIdx ? "scale(1)" : "scale(0.92)",
-          }}>
-            <div style={{
-              background:card.gradient, borderRadius:"var(--radius-lg)", padding:"22px 20px",
-              position:"relative", overflow:"hidden", aspectRatio:"1.55",
-              filter:card.isFrozen?"grayscale(.6) brightness(.7)":"none", transition:"filter .3s",
-              boxShadow:"var(--elev-3)",
-            }}>
-              <div style={{position:"absolute",top:-25,right:-25,width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,.07)"}}/>
-              {card.isFrozen && (
-                <div style={{position:"absolute",top:14,left:14,background:"rgba(0,0,0,.5)",borderRadius:99,padding:"4px 10px",display:"flex",alignItems:"center",gap:5,zIndex:2}}>
-                  <Icon name="lock" size={11} color="white"/>
-                  <span style={{color:"#fff",fontSize:11,fontWeight:700,letterSpacing:.5}}>FROZEN</span>
-                </div>
-              )}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18}}>
-                <div>
-                  <p style={{color:"rgba(255,255,255,.5)",fontSize:12,letterSpacing:1.2,textTransform:"uppercase",marginBottom:3}}>{card.issuer}</p>
-                  <p style={{color:"#fff",fontSize:19,fontWeight:700}}>{card.name}</p>
-                </div>
-                <span className="pill" style={{background:"rgba(255,255,255,.15)",color:"#fff",fontSize:11}}>{card.cashback}</span>
-              </div>
-              <div style={{display:"flex",gap:20,marginBottom:14}}>
-                {[{l:"Balance",v:`$${f(card.balance)}`},{l:"Available",v:`$${f(card.limit-card.balance)}`},{l:"Points",v:f(card.points)}].map(({l,v})=>(
-                  <div key={l}>
-                    <p style={{color:"rgba(255,255,255,.4)",fontSize:10,textTransform:"uppercase",letterSpacing:.8,marginBottom:2}}>{l}</p>
-                    <p style={{color:"#fff",fontSize:15,fontWeight:700}}>{v}</p>
-                  </div>
-                ))}
-              </div>
-              <div style={{position:"absolute",bottom:18,right:20}}>
-                <NetworkBadge issuer={card.issuer} size={15}/>
+        {/* Header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,position:"relative"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div>
+              <div style={{fontSize:13,color:"var(--text2)"}}>
+                {cards.length} {cards.length===1?"card":"cards"} · {cards.reduce((s,cd)=>s+cd.points,0).toLocaleString()} points
               </div>
             </div>
           </div>
-        ))}
+          <button onClick={()=>go("add-card")} className="press spring-hover" style={{padding:"8px 16px",borderRadius:8,border:"1px solid var(--border2)",background:"transparent",color:"var(--text)",fontSize:12,fontWeight:500,cursor:"pointer"}}>+ Add card</button>
+        </div>
+
+        {/* Card carousel */}
+        <div style={{touchAction:"pan-y",cursor:dragging?"grabbing":"grab"}}
+          onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
+          onPointerLeave={()=>{if(dragging){setDragging(false);setDragX(0)}}}>
+          <div style={{display:"flex",transition:dragging?"none":"transform .45s cubic-bezier(.22,1,.36,1)",
+            transform:`translateX(${-activeIdx*100+(dragX/6)}%)`,userSelect:"none"}}>
+            {cards.map((cd,i) => {
+              const d = getDesign(cd.issuer);
+              const isActive = i === activeIdx;
+              return (
+                <div key={cd.id} style={{minWidth:"100%",display:"flex",justifyContent:"center",padding:"4px 16px",boxSizing:"border-box"}}>
+                  <div className="card-shimmer" style={{
+                    width:"100%",maxWidth:380,height:215,borderRadius:14,padding:"22px 24px",
+                    display:"flex",flexDirection:"column",justifyContent:"space-between",
+                    background:d.bg,position:"relative",overflow:"hidden",
+                    boxShadow:isActive?"0 12px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.08)":"0 4px 12px rgba(0,0,0,.08)",
+                    transform:isActive?"scale(1)":"scale(.93)",opacity:isActive?1:0.5,
+                    transition:"transform .45s cubic-bezier(.22,1,.36,1), opacity .45s, box-shadow .45s",
+                  }}
+                  onMouseMove={(e)=>{if(!isActive)return;const el=e.currentTarget;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width;const y=(e.clientY-r.top)/r.height;el.style.transform=`scale(1) perspective(800px) rotateX(${(y-.5)*-6}deg) rotateY(${(x-.5)*6}deg)`;}}
+                  onMouseLeave={(e)=>{e.currentTarget.style.transform=isActive?'scale(1)':'scale(.93)';}}>
+                    {/* Card light reflection */}
+                    <div style={{position:"absolute",inset:0,background:"linear-gradient(125deg,rgba(255,255,255,.1) 0%,transparent 40%,rgba(255,255,255,.02) 80%,transparent 100%)",pointerEvents:"none"}}/>
+                    <div style={{position:"relative",zIndex:1}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                        <div style={{fontSize:11,letterSpacing:"1.5px",textTransform:"uppercase",color:"rgba(255,255,255,.45)",fontWeight:500}}>{cd.issuer}</div>
+                        <div style={{fontSize:10,letterSpacing:"1px",color:"rgba(255,255,255,.35)",fontWeight:500}}>{d.network}</div>
+                      </div>
+                      <div style={{width:34,height:26,borderRadius:5,background:"linear-gradient(145deg,#d4a847,#b8922e)",margin:"14px 0",opacity:.85,boxShadow:"0 1px 2px rgba(0,0,0,.15)"}}/>
+                      <div style={{fontSize:14,letterSpacing:"3.5px",color:"rgba(255,255,255,.5)",fontFamily:"var(--mono,monospace)"}}>•••• •••• •••• {String(i*1111+1008).slice(-4)}</div>
+                    </div>
+                    <div style={{position:"relative",zIndex:1,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+                      <div>
+                        <div style={{fontSize:11.5,letterSpacing:"1.2px",textTransform:"uppercase",color:"rgba(255,255,255,.55)"}}>{cd.name.length > 20 ? cd.name.slice(0,20) : cd.name}</div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:9,color:"rgba(255,255,255,.2)",letterSpacing:".5px"}}>VALID THRU</div>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,.35)"}}>08/28</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Dots */}
+        {cards.length > 1 && (
+          <div style={{display:"flex",justifyContent:"center",gap:5,marginTop:14}}>
+            {cards.map((_,i) => (
+              <div key={i} onClick={()=>{setActiveIdx(i);setTab("overview");}} style={{
+                width:i===activeIdx?18:6,height:6,borderRadius:3,cursor:"pointer",
+                background:i===activeIdx?"var(--text)":"var(--border2)",
+                transition:"all .3s cubic-bezier(.22,1,.36,1)",
+              }}/>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Pagination dots */}
-      {cards.length>1 && (
-        <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:18}}>
-          {cards.map((_,i)=>(
-            <button key={i} onClick={()=>scrollToIdx(i)} aria-label={`Go to card ${i+1}`} style={{
-              width:i===activeIdx?16:6, height:6, borderRadius:99, border:"none", padding:0, cursor:"pointer",
-              background:i===activeIdx?"var(--accent)":"var(--border2)", transition:"all .25s ease",
-            }}/>
+      <div className="px">
+        {/* Card name */}
+        <div style={{marginBottom:0}}>
+          <div style={{fontSize:18,fontWeight:500,color:"var(--text)",letterSpacing:"-.3px"}}>{c.name}</div>
+          <div style={{fontSize:12,color:"var(--text2)",marginTop:2}}>{c.issuer} · {c.cashback || "Rewards"}{c.annualFee > 0 ? ` · $${c.annualFee}/yr` : " · No annual fee"}</div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{display:"flex",gap:0,borderBottom:"1px solid var(--border)",margin:"16px 0 0",position:"relative"}}>
+          {tabs.map(t => (
+            <button key={t} onClick={()=>setTab(t)} className="press" style={{
+              padding:"10px 18px",fontSize:13,border:"none",cursor:"pointer",
+              background:"transparent",position:"relative",
+              color:tab===t?"var(--text)":"var(--text2)",
+              fontWeight:tab===t?500:400,
+              transition:"color .2s",
+            }}>
+              {t.charAt(0).toUpperCase()+t.slice(1)}
+              {tab===t && <div style={{position:"absolute",bottom:-1,left:18,right:18,height:1.5,borderRadius:1,background:"var(--text)",transition:"all .25s cubic-bezier(.22,1,.36,1)"}}/>}
+            </button>
           ))}
         </div>
-      )}
 
-      {/* Full details for the active card -- always visible below, no accordion */}
-      <div className="px" key={active.id}>
-        <div className="ai" style={{background:"var(--surface)",border:"1px solid var(--border-soft)",borderRadius:"var(--radius-md)",boxShadow:"var(--elev-1)",overflow:"hidden",marginBottom:20}}>
-          {/* Key info row */}
-          <div style={{padding:"16px 18px",display:"flex",gap:0,borderBottom:"1px solid var(--border)"}}>
-            <div style={{flex:1}}>
-              <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Utilization</p>
-              <p style={{color:uc(u),fontSize:15,fontWeight:700}}>{u}%</p>
-            </div>
-            <div style={{flex:1}}>
-              <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Min. Payment</p>
-              <p style={{color:"var(--text)",fontSize:15,fontWeight:700}}>${f(active.minPayment)}</p>
-            </div>
-            <div style={{flex:1}}>
-              <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Due In</p>
-              <p style={{color:urgencyColor(days),fontSize:15,fontWeight:700}}>{days >= 0 ? `${days} days` : "Overdue"}</p>
-            </div>
-            <div style={{flex:1}}>
-              <p style={{color:"var(--text3)",fontSize:11,marginBottom:3}}>Rewards</p>
-              <p style={{color:"var(--accent)",fontSize:15,fontWeight:700}}>${f(Math.round(active.points*.015))}</p>
-            </div>
-          </div>
-          <div style={{padding:"12px 18px 0"}}>
-            <Bar v={active.balance} max={active.limit} color={uc(u)} h={6}/>
-          </div>
-
-          <div style={{padding:"18px"}}>
-            {/* Active offers */}
-            <p style={{color:"var(--text2)",fontSize:13,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:10}}>Active Offers & Cashback</p>
-            {(active.offers||[]).map((offer,oi)=>(
-              <div key={oi} style={{background:"var(--surface2)",borderRadius:"var(--radius-sm)",padding:"10px 14px",marginBottom:8,display:"flex",gap:10,alignItems:"center"}}>
-                <span style={{color:"var(--amber)",display:"flex"}}><Icon name="gift" size={17}/></span>
-                <div style={{flex:1}}>
-                  <p style={{color:"var(--text)",fontSize:13,fontWeight:600}}>{offer.title}</p>
-                  <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{offer.merchant} · Expires {offer.expires}</p>
-                </div>
-                <span className="pill pill-emerald" style={{fontSize:11}}>{offer.value}</span>
-              </div>
-            ))}
-
-            {/* Detailed metrics */}
-            <p style={{color:"var(--text2)",fontSize:13,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:10,marginTop:16}}>Card Analytics</p>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {/* ═══ OVERVIEW TAB ═══ */}
+        {tab === "overview" && (
+          <div className="ai" style={{paddingTop:4}}>
+            {/* Stats */}
+            <div style={{display:"flex",padding:"18px 0",borderBottom:"1px solid var(--border)"}}>
               {[
-                {l:"Annual Fee",v:`$${active.annualFee}`,c:"var(--text)"},
-                {l:"Perks Value",v:`$${active.perksValue}/yr`,c:"var(--green)"},
-                {l:"Net Benefit",v:`+$${active.perksValue-active.annualFee}/yr`,c:active.perksValue>active.annualFee?"var(--green)":"var(--red)"},
-                {l:"APR",v:active.apr,c:"var(--text2)"},
-                {l:"Points Value",v:`~$${f(Math.round(active.points*.015))}`,c:"var(--accent)"},
-                {l:"Pay Before",v:"Statement close",c:"var(--amber)"},
-              ].map(({l,v,c})=>(
-                <div key={l} style={{background:"var(--surface2)",borderRadius:"var(--radius-sm)",padding:"10px 12px"}}>
-                  <p style={{color:"var(--text3)",fontSize:11,marginBottom:4}}>{l}</p>
-                  <p style={{color:c,fontSize:14,fontWeight:700}}>{v}</p>
+                {label:"Balance",value:`$${c.balance.toLocaleString()}`},
+                {label:"Available",value:`$${(c.limit-c.balance).toLocaleString()}`},
+                {label:"Due",value:c.dueDate||"Aug 15"},
+                {label:"Minimum",value:`$${c.minPayment||25}`},
+              ].map((s,i) => (
+                <div key={i} style={{flex:1,textAlign:"center",borderRight:i<3?"1px solid var(--border)":"none"}}>
+                  <div style={{fontSize:17,fontWeight:500,color:"var(--text)",letterSpacing:"-.3px"}}>{s.value}</div>
+                  <div style={{fontSize:10,color:"var(--text2)",marginTop:3}}>{s.label}</div>
                 </div>
               ))}
             </div>
-            <p style={{color:"var(--text3)",fontSize:11,marginTop:8,lineHeight:1.4}}>APR shown is the issuer's published range as of mid-2026. Your actual rate depends on your individual creditworthiness. Sign-up bonuses vary by applicant and may differ from what's shown -- always confirm current terms on the issuer's site before applying.</p>
 
-            {/* AI tip */}
-            <div style={{background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",borderRadius:"var(--radius-md)",padding:"12px 16px",marginTop:14}}>
-              <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Icon name="rocket" size={13}/> AI Payment Tip</p>
-              <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>
-                Pay ${f(Math.round(active.balance*.5))} before your statement closes to reduce reported utilization by {Math.round(u/2)}%. This could boost your credit score by 8-12 points within 30 days.
-              </p>
+            {/* Utilization */}
+            <div style={{padding:"16px 0"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                <span style={{fontSize:12,color:"var(--text2)"}}>Utilization</span>
+                <span style={{fontSize:12,fontWeight:500,color:"var(--text)"}}>{util}% · {utilLabel}</span>
+              </div>
+              <div style={{height:3,borderRadius:2,background:"var(--border)",overflow:"hidden"}}>
+                <div style={{width:`${util}%`,height:"100%",borderRadius:2,background:"var(--text)",opacity:.4,transition:"width .6s cubic-bezier(.22,1,.36,1)"}}/>
+              </div>
             </div>
 
-            {/* Reward rate */}
-            <div style={{background:"rgba(79,110,247,.08)",border:"1px solid rgba(79,110,247,.2)",borderRadius:"var(--radius-md)",padding:"12px 16px",marginTop:10}}>
-              <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,marginBottom:4}}>Earning Rate</p>
-              <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{active.rewardRate}</p>
+            {/* Actions */}
+            <div style={{display:"flex",gap:8,marginBottom:16}}>
+              <button className="press spring-hover" style={{flex:1,padding:"11px 0",borderRadius:8,border:"none",background:"var(--text)",color:"var(--surface)",fontSize:13,fontWeight:500,cursor:"pointer"}}>Pay now</button>
+              <button className="press spring-hover" style={{flex:1,padding:"11px 0",borderRadius:8,border:"1px solid var(--border2)",background:"transparent",color:"var(--text)",fontSize:13,fontWeight:500,cursor:"pointer"}}>Autopay</button>
+              <button onClick={()=>onToggleFreeze?.(c.id)} className="press spring-hover" style={{padding:"11px 16px",borderRadius:8,border:"1px solid var(--border2)",background:"transparent",color:"var(--text2)",cursor:"pointer"}}><Icon name={c.isFrozen?"unlock":"lock"} size={14} strokeWidth={1.5}/></button>
             </div>
-            {active.bestPlaces && active.bestPlaces.length > 0 && (
-              <div style={{background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.2)",borderRadius:"var(--radius-md)",padding:"12px 16px",marginTop:10}}>
-                <p style={{color:"var(--accent)",fontSize:13,fontWeight:600,marginBottom:8}}>Best Places to Use This Card</p>
-                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                  {(active.bestPlaces||[]).map((place:string,pi:number)=>(
-                    <span key={pi} style={{background:"rgba(201,168,76,.1)",border:"1px solid rgba(201,168,76,.2)",borderRadius:"var(--radius-full)",padding:"3px 10px",fontSize:11,color:"var(--accent)"}}>
-                      {place.split(" (")[0]}
-                    </span>
-                  ))}
+
+            {/* AI Insight */}
+            {util > 15 && (
+              <div style={{padding:"14px 16px",borderRadius:10,background:"var(--surface2)",border:"1px solid var(--border)",marginBottom:16,fontSize:12,color:"var(--text2)",lineHeight:1.6}}>
+                <Icon name="cpu" size={13} color="var(--text2)"/> <span style={{fontWeight:500,color:"var(--text)"}}>Pay $600</span> before statement closes to drop utilization to <span style={{fontWeight:500,color:"var(--text)"}}>{Math.round(util*0.5)}%</span>. Estimated impact: <span style={{fontWeight:500,color:"var(--green)"}}>+8–12 pts</span>.
+              </div>
+            )}
+
+            {/* Offers */}
+            {c.offers.length > 0 && (<>
+              <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",margin:"4px 0 10px"}}>Offers</div>
+              {c.offers.map((o,i) => (
+                <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:i<c.offers.length-1?"1px solid var(--border)":"none",cursor:"pointer",transition:"padding-left .2s"}}
+                  onMouseEnter={e=>(e.currentTarget.style.paddingLeft="4px")} onMouseLeave={e=>(e.currentTarget.style.paddingLeft="0")}>
+                  <div>
+                    <div style={{fontSize:13,color:"var(--text)"}}>{o.title}</div>
+                    <div style={{fontSize:11,color:"var(--text2)",marginTop:1}}>{o.merchant} · Expires {o.expires}</div>
+                  </div>
+                  <span style={{fontSize:10,color:"var(--text2)",padding:"2px 8px",border:"1px solid var(--border)",borderRadius:4}}>{o.value}</span>
                 </div>
-              </div>
-            )}
-            {active.keyBenefits && active.keyBenefits.length > 0 && (
-              <div style={{background:"rgba(45,200,160,.06)",border:"1px solid rgba(45,200,160,.2)",borderRadius:"var(--radius-md)",padding:"12px 16px",marginTop:10}}>
-                <p style={{color:"var(--green)",fontSize:13,fontWeight:600,marginBottom:8}}>Key Card Benefits</p>
-                {(active.keyBenefits||[]).slice(0,5).map((b:string,bi:number)=>(
-                  <div key={bi} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:bi<Math.min(active.keyBenefits.length,5)-1?6:0}}>
-                    <Icon name="check" size={11} color="var(--green)"/>
-                    <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
-                  </div>
+              ))}
+            </>)}
+
+            {/* Earning rate */}
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",margin:"20px 0 10px"}}>Earning rate</div>
+            <div style={{fontSize:12,color:"var(--text2)",marginBottom:8}}>{c.rewardRate}</div>
+          </div>
+        )}
+
+        {/* ═══ REWARDS TAB ═══ */}
+        {tab === "rewards" && (
+          <div className="ai" style={{paddingTop:16}}>
+            <div style={{display:"flex",padding:"0 0 16px"}}>
+              {[
+                {label:"Points",value:c.points.toLocaleString()},
+                {label:"Value",value:`$${Math.round(c.points*0.01)}`},
+                {label:"This month",value:`+${Math.round(c.points*0.08)}`},
+              ].map((s,i) => (
+                <div key={i} style={{flex:1,textAlign:"center"}}>
+                  <div style={{fontSize:20,fontWeight:500,color:"var(--text)",letterSpacing:"-.3px"}}>{s.value}</div>
+                  <div style={{fontSize:10,color:"var(--text2)",marginTop:3}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            {c.bestPlaces?.length > 0 && (<>
+              <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",margin:"8px 0 10px"}}>Best places to use</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {c.bestPlaces.map((p,i) => (
+                  <span key={i} style={{fontSize:11,padding:"5px 10px",borderRadius:6,border:"1px solid var(--border)",color:"var(--text2)"}}>{p}</span>
                 ))}
               </div>
-            )}
-            {active.signupBonus && (
-              <div style={{background:"rgba(240,164,41,.06)",border:"1px solid rgba(240,164,41,.25)",borderRadius:"var(--radius-md)",padding:"12px 16px",marginTop:10}}>
-                <p style={{color:"var(--amber)",fontSize:13,fontWeight:600,marginBottom:4}}>Welcome Bonus</p>
-                <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5}}>{active.signupBonus}</p>
+            </>)}
+            {c.signupBonus && (
+              <div style={{margin:"20px 0 0",padding:"14px 16px",borderRadius:10,background:"var(--surface2)",border:"1px solid var(--border)",fontSize:12,color:"var(--text2)",lineHeight:1.6}}>
+                <span style={{fontWeight:500,color:"var(--text)"}}>Welcome bonus:</span> {c.signupBonus.split("--")[0].trim()}
               </div>
             )}
-            {active.notGoodFor && active.notGoodFor.length > 0 && (
-              <div style={{background:"rgba(244,97,122,.05)",border:"1px solid rgba(244,97,122,.15)",borderRadius:"var(--radius-md)",padding:"12px 16px",marginTop:10}}>
-                <p style={{color:"var(--red)",fontSize:13,fontWeight:600,marginBottom:8}}>Not Great For</p>
-                {(active.notGoodFor||[]).map((b:string,bi:number)=>(
-                  <div key={bi} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:bi<active.notGoodFor.length-1?5:0}}>
-                    <Icon name="alert" size={11} color="var(--red)"/>
-                    <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.4}}>{b}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+          </div>
+        )}
 
-            {/* Freeze card button */}
-            {onToggleFreeze && (
-              <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--border)"}}>
-                <button onClick={()=>onToggleFreeze(active.id)} className="press" style={{
-                  width:"100%",padding:"11px",borderRadius:"var(--radius-sm)",fontSize:14,fontWeight:600,cursor:"pointer",
-                  background:active.isFrozen?"var(--greenbg)":"var(--surface2)",
-                  border:`1px solid ${active.isFrozen?"rgba(34,197,94,.25)":"var(--border)"}`,
-                  color:active.isFrozen?"var(--green)":"var(--text)",
-                  display:"flex",alignItems:"center",justifyContent:"center",gap:8,
-                }}>
-                  <Icon name={active.isFrozen?"unlock":"lock"} size={15}/>
-                  {active.isFrozen ? "Unfreeze Card" : "Freeze Card"}
-                </button>
-                <p style={{color:"var(--text3)",fontSize:11,marginTop:6,textAlign:"center"}}>{active.isFrozen?"New purchases would be blocked while frozen":"Instantly block new purchases if your card is lost or stolen"}</p>
+        {/* ═══ BENEFITS TAB ═══ */}
+        {tab === "benefits" && (
+          <div className="ai" style={{paddingTop:16}}>
+            {c.keyBenefits?.map((b,i) => (
+              <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"11px 0",borderBottom:i<c.keyBenefits.length-1?"1px solid var(--border)":"none"}}>
+                <div style={{width:4,height:4,borderRadius:"50%",background:"var(--text3)",flexShrink:0,marginTop:6}}/>
+                <div style={{fontSize:13,color:"var(--text)",lineHeight:1.5}}>{b}</div>
               </div>
-            )}
+            ))}
+            {c.bestFor?.length > 0 && (<>
+              <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",margin:"20px 0 10px"}}>Best for</div>
+              {c.bestFor.map((b,i) => (
+                <div key={i} style={{fontSize:13,color:"var(--text2)",padding:"6px 0"}}>{b}</div>
+              ))}
+            </>)}
+            {c.notGoodFor?.length > 0 && (<>
+              <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",margin:"20px 0 10px"}}>Not ideal for</div>
+              {c.notGoodFor.map((b,i) => (
+                <div key={i} style={{fontSize:13,color:"var(--text2)",padding:"6px 0"}}>{b}</div>
+              ))}
+            </>)}
+          </div>
+        )}
 
-            {/* Delete card button */}
-            {onDelete && (
-              <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid var(--border)"}}>
-                {confirmDelete===active.id ? (
-                  <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                    <span style={{fontSize:13,color:"var(--text2)",flex:1}}>Remove this card permanently?</span>
-                    <button onClick={()=>{onDelete(active.id);setConfirmDelete(null);setActiveIdx(0);}} style={{background:"var(--redbg)",border:"1px solid rgba(239,68,68,.3)",color:"var(--red)",borderRadius:"var(--radius-sm)",padding:"7px 14px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Yes, remove</button>
-                    <button onClick={()=>setConfirmDelete(null)} style={{background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text2)",borderRadius:"var(--radius-sm)",padding:"7px 14px",fontSize:13,cursor:"pointer"}}>Cancel</button>
-                  </div>
-                ) : (
-                  <button onClick={()=>setConfirmDelete(active.id)} style={{background:"none",border:"none",color:"var(--text3)",fontSize:13,cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:6}}>
-                    <Icon name="trash" size={13}/>
-                    Remove card
-                  </button>
-                )}
-              </div>
-            )}
+        {/* ═══ ACTIVITY TAB ═══ */}
+        {tab === "activity" && (
+          <div className="ai" style={{paddingTop:16}}>
+            <div style={{display:"flex",padding:"0 0 16px"}}>
+              {[
+                {label:"APR",value:c.apr?.split("-")[0]||"N/A"},
+                {label:"Annual fee",value:c.annualFee>0?`$${c.annualFee}`:"$0"},
+                {label:"Perks value",value:`$${c.perksValue}/yr`},
+              ].map((s,i) => (
+                <div key={i} style={{flex:1,textAlign:"center"}}>
+                  <div style={{fontSize:17,fontWeight:500,color:"var(--text)",letterSpacing:"-.3px"}}>{s.value}</div>
+                  <div style={{fontSize:10,color:"var(--text2)",marginTop:3}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.6,padding:"12px 0 20px",borderTop:"1px solid var(--border)"}}>
+              Net annual value: <span style={{fontWeight:500,color:"var(--text)"}}>${c.perksValue - c.annualFee}/yr</span> after fee. {c.perksValue > c.annualFee ? "This card pays for itself." : "Consider whether the benefits justify the fee."}
+            </div>
+          </div>
+        )}
+
+        {/* Bottom actions */}
+        <div style={{borderTop:"1px solid var(--border)",marginTop:20,paddingTop:16}}>
+          <button onClick={()=>onToggleFreeze?.(c.id)} className="press spring-hover" style={{width:"100%",padding:"11px 0",borderRadius:8,border:"1px solid var(--border2)",background:"transparent",color:"var(--text)",fontSize:13,fontWeight:500,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:8}}>
+            <Icon name={c.isFrozen?"unlock":"lock"} size={14} strokeWidth={1.5}/> {c.isFrozen?"Unfreeze":"Freeze"} card
+          </button>
+          <div style={{textAlign:"center",marginTop:8}}>
+            <button onClick={()=>onDelete?.(c.id)} style={{fontSize:12,color:"var(--text3)",background:"none",border:"none",cursor:"pointer"}}>Remove card</button>
           </div>
         </div>
       </div>
@@ -2442,9 +2485,7 @@ function Cards({ cards, go, onDelete, onToggleFreeze }: { cards:CreditCard[]; go
   );
 }
 
-/* ============================================================
-   CHAT SCREEN
-   ============================================================ */
+
 function Chat({ cards, profile, go }: { cards:CreditCard[]; profile:UserProfile; go:(s:S)=>void }) {
   const [msgs, setMsgs] = useState<Msg[]>([
     {role:"ai",text:`Hi ${profile.name||"there"}! I'm your WiseCard AI advisor. I know your complete profile -- your cards, balances, spending habits, and goals. I can help you with: which card to use anywhere, how to maximize rewards and cashback, improving your credit score, paying off debt faster, applying for new cards, using any feature in the app, or any financial question. I can also search the web for current bonus offers and APRs if those have changed. What would you like to know?`,id:0},
