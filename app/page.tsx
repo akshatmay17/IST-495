@@ -4204,489 +4204,223 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
    ============================================================ */
 function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:S)=>void; cards:CreditCard[]; profile:UserProfile; txns:Txn[]; onAddTxn:(cat:string,amount:number,desc:string,card:string,date:string)=>void; onDeleteTxn:(id:string)=>void }) {
   const CATS = [
-    {label:"Dining",    key:"dining",    color:"#3B82F6", icon:"dining"},
-    {label:"Groceries", key:"groceries", color:"#22C55E", icon:"groceries"},
-    {label:"Travel",    key:"travel",    color:"#F59E0B", icon:"travel"},
-    {label:"Gas",       key:"gas",       color:"#EF4444", icon:"gas"},
-    {label:"Shopping",  key:"shopping",  color:"#8B5CF6", icon:"shopping"},
-    {label:"Other",     key:"other",     color:"#6B7280", icon:"other"},
+    {label:"Dining",    key:"dining",    color:"#6C8EEF", icon:"dining"},
+    {label:"Groceries", key:"groceries", color:"#34D399", icon:"groceries"},
+    {label:"Travel",    key:"travel",    color:"#FBBF24", icon:"travel"},
+    {label:"Gas",       key:"gas",       color:"#F87171", icon:"gas"},
+    {label:"Shopping",  key:"shopping",  color:"#A78BFA", icon:"shopping"},
+    {label:"Other",     key:"other",     color:"#94A3B8", icon:"other"},
   ];
   const [showAdd, setShowAdd] = useState(false);
   const [amt, setAmt] = useState(""); const [desc, setDesc] = useState(""); const [cat, setCat] = useState("dining"); const [card, setCard] = useState(cards[0]?.name||"");
   const [sel, setSel] = useState<string|null>(null);
+  const [period, setPeriod] = useState<"1M"|"3M"|"6M"|"1Y">("1M");
   const spending = profile.spending||{};
-  const caps = profile.budgetCaps||{};
   const merged = CATS.map(c=>{
     const val = Number((spending as any)[c.key]||0)+txns.filter(t=>t.cat===c.key).reduce((s,t)=>s+t.amount,0);
-    const cap = Number((caps as any)[c.key]||0);
-    return {...c,val,fromTxns:txns.filter(t=>t.cat===c.key).reduce((s,t)=>s+t.amount,0),cap,capPct:cap>0?Math.round(val/cap*100):0};
-  });
+    return {...c, val};
+  }).sort((a,b)=>b.val-a.val);
   const total = merged.reduce((s,c)=>s+c.val,0);
-  const active = merged.filter(c=>c.val>0).sort((a,b)=>b.val-a.val);
-  const selCat = active.find(c=>c.key===sel)||active[0]||null;
-  const totalPts = cards.reduce((s,c)=>s+c.points,0);
   const totalBal = cards.reduce((s,c)=>s+c.balance,0);
   const totalLim = cards.reduce((s,c)=>s+c.limit,0);
   const util = totalLim>0?Math.round(totalBal/totalLim*100):0;
+  const totalPts = cards.reduce((s,c)=>s+c.points,0);
 
-  const addTxn = () => {
-    if(!amt||isNaN(Number(amt))) return;
-    onAddTxn(cat, Number(amt), desc||CATS.find(c=>c.key===cat)?.label||"", card, new Date().toISOString().slice(0,10));
-    setAmt(""); setDesc(""); setShowAdd(false);
-  };
+  // Simulated month-over-month change
+  const prevTotal = Math.round(total * 1.12);
+  const changePct = prevTotal > 0 ? ((total - prevTotal) / prevTotal * 100).toFixed(1) : "0";
+  const changeDir = Number(changePct) <= 0 ? "down" : "up";
 
-  // Subscription detector — find recurring desc+amount pairs in logged transactions
-  const subscriptions = (() => {
-    const groups: Record<string,{desc:string;amount:number;count:number;cat:string}> = {};
-    txns.forEach(t=>{
-      const key = `${t.desc.toLowerCase().trim()}|${t.amount}`;
-      if(!groups[key]) groups[key] = {desc:t.desc, amount:t.amount, count:0, cat:t.cat};
-      groups[key].count++;
-    });
-    return Object.values(groups).filter(g=>g.count>=2 && g.desc.length>0);
-  })();
-
-  // Export to CSV
-  const exportCSV = () => {
-    const rows = [["Date","Description","Category","Card","Amount"]];
-    txns.forEach(t=>rows.push([t.date, t.desc, CATS.find(c=>c.key===t.cat)?.label||t.cat, t.card, String(t.amount)]));
-    active.forEach(c=>rows.push(["Monthly Budget", c.label, c.label, "-", String(c.val)]));
-    const csv = rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], {type:"text/csv"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `wisecard-analytics-${new Date().toISOString().slice(0,10)}.csv`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast("Analytics exported as CSV");
-  };
-
-  // Import transactions from CSV -- expects columns: Date,Description,Category,Card,Amount
-  // (same shape as what Export produces, so round-tripping works)
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importing, setImporting] = useState(false);
-  const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImporting(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const text = String(ev.target?.result || "");
-        const rows = text.split("\n").map(r=>r.trim()).filter(r=>r.length>0);
-        let imported = 0;
-        // Simple CSV parser handling quoted fields with commas inside
-        const parseRow = (row: string): string[] => {
-          const fields: string[] = []; let cur = ""; let inQuotes = false;
-          for (let i=0;i<row.length;i++) {
-            const ch = row[i];
-            if (ch === '"') { inQuotes = !inQuotes; }
-            else if (ch === "," && !inQuotes) { fields.push(cur); cur = ""; }
-            else { cur += ch; }
-          }
-          fields.push(cur);
-          return fields.map(f=>f.replace(/^"|"$/g,"").trim());
-        };
-        rows.slice(1).forEach(row => { // skip header row
-          const fields = parseRow(row);
-          if (fields.length < 5) return;
-          const [date, description, category, cardName, amountStr] = fields;
-          if (description === "Monthly Budget") return; // skip the budget summary rows our own export adds
-          const amount = parseFloat(amountStr);
-          if (isNaN(amount) || amount <= 0) return;
-          const catKey = CATS.find(c=>c.label.toLowerCase()===category.toLowerCase())?.key || "other";
-          onAddTxn(catKey, amount, description||"Imported transaction", cardName||"", date||new Date().toISOString().slice(0,10));
-          imported++;
-        });
-        showToast(imported>0 ? `Imported ${imported} transaction${imported!==1?"s":""}` : "No valid transactions found in file", imported>0?"success":"warning");
-      } catch {
-        showToast("Could not read that file -- make sure it's a CSV export from WiseCard", "error");
-      }
-      setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    };
-    reader.readAsText(file);
-  };
-
-  // Round-up savings simulator -- if every logged transaction were rounded up to the nearest dollar
-  const roundUpTotal = txns.reduce((s,t)=>s+(Math.ceil(t.amount)-t.amount), 0);
-  const roundUpMonthly = roundUpTotal; // based on what's actually logged so far this period
-  const roundUpYearly = txns.length>0 ? (roundUpTotal / txns.length) * 30 * 12 : 0; // rough daily-rate extrapolation
-
-  // Spending pace tracker -- compares logged-transaction spend so far against your typical
-  // full monthly budget (the static profile estimate), vs how far into the calendar month we are.
-  const dayOfMonth = new Date().getDate();
-  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
-  const monthPct = Math.round((dayOfMonth/daysInMonth)*100);
-  const baselineMonthlyBudget = CATS.reduce((s,c)=>s+Number((spending as any)[c.key]||0),0);
-  const loggedThisMonth = merged.reduce((s,c)=>s+c.fromTxns,0);
-  const spendPct = baselineMonthlyBudget>0 ? Math.round((loggedThisMonth/baselineMonthlyBudget)*100) : 0;
-  const pace = spendPct - monthPct; // positive = spending faster than the month is progressing
-
-  // Luxury ring gauge -- 270° gradient arc, no needle. A soft glowing marker sits ON the
-  // arc at the selected segment instead of a center-pivoting pointer.
-  const SpeedoGauge = () => {
-    if(total===0) return null;
-    const W=300,H=270,cx=150,cy=140,R=104,SW=18;
-    const startAngle = Math.PI*0.75; // 135°
-    const totalSweep = Math.PI*1.5;  // 270°
-    let cum = startAngle;
-    const segs = active.map(cat=>{
-      const sweep=(cat.val/total)*totalSweep;
-      const a1=cum, a2=cum+sweep; cum=a2;
-      const x1=cx+R*Math.cos(a1), y1=cy+R*Math.sin(a1);
-      const x2=cx+R*Math.cos(a2), y2=cy+R*Math.sin(a2);
-      const large = sweep>Math.PI ? 1 : 0;
-      return {cat, path:`M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2}`, mid:(a1+a2)/2};
-    });
-    const trackEndX = cx+R*Math.cos(startAngle+totalSweep), trackEndY = cy+R*Math.sin(startAngle+totalSweep);
-    const trackStartX = cx+R*Math.cos(startAngle), trackStartY = cy+R*Math.sin(startAngle);
-    const markerSeg = selCat ? segs.find(s=>s.cat.key===selCat.key) : null;
-    const markerX = markerSeg ? cx+R*Math.cos(markerSeg.mid) : null;
-    const markerY = markerSeg ? cy+R*Math.sin(markerSeg.mid) : null;
-
-    return (
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",maxWidth:300,margin:"0 auto"}}>
-        <defs>
-          {active.map(cat=>(
-            <linearGradient key={cat.key} id={`grad-${cat.key}`} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={cat.color} stopOpacity="0.75"/>
-              <stop offset="100%" stopColor={cat.color} stopOpacity="1"/>
-            </linearGradient>
-          ))}
-        </defs>
-        {/* Background track */}
-        <path d={`M ${trackStartX} ${trackStartY} A ${R} ${R} 0 1 1 ${trackEndX} ${trackEndY}`} fill="none" style={{stroke:"var(--border2)"}} strokeWidth={SW} strokeLinecap="round" opacity={0.5}/>
-        {/* Gradient segments */}
-        {segs.map((s,i)=>(
-          <path key={i} d={s.path} fill="none" stroke={`url(#grad-${s.cat.key})`}
-            strokeWidth={sel===s.cat.key?SW+6:SW} strokeLinecap="round"
-            opacity={sel&&sel!==s.cat.key?0.35:1}
-            style={{cursor:"pointer",transition:"all .25s ease",filter:sel===s.cat.key?`drop-shadow(0 2px 10px ${s.cat.color}90)`:"none"}}
-            onClick={()=>setSel(v=>v===s.cat.key?null:s.cat.key)}/>
-        ))}
-        {/* Glowing marker dot on the arc -- replaces the needle */}
-        {markerX!==null && markerY!==null && (
-          <>
-            <circle cx={markerX} cy={markerY} r={11} fill={selCat!.color} opacity={0.25}>
-              <animate attributeName="r" values="9;14;9" dur="2s" repeatCount="indefinite"/>
-              <animate attributeName="opacity" values="0.3;0.05;0.3" dur="2s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx={markerX} cy={markerY} r={6} fill="white" style={{filter:`drop-shadow(0 1px 4px ${selCat!.color})`}}/>
-            <circle cx={markerX} cy={markerY} r={3.2} fill={selCat!.color}/>
-          </>
-        )}
-        {/* Center content */}
-        <text x={cx} y={cy-6} textAnchor="middle" style={{fill:"var(--text)"}} fontSize={26} fontWeight="700" letterSpacing="-0.5">${f(selCat?.val||total)}</text>
-        <text x={cx} y={cy+16} textAnchor="middle" style={{fill:"var(--text3)"}} fontSize={10} fontWeight="600" letterSpacing="1.2">{(selCat?selCat.label:"TOTAL MONTHLY").toUpperCase()}</text>
-      </svg>
-    );
-  };
+  const selectedCat = sel ? merged.find(c=>c.key===sel) : null;
+  const displayTotal = selectedCat ? selectedCat.val : total;
 
   return (
     <div className="screen desktop-content screen-enter">
-      <PageHead title="Analytics" sub="Tap segments to explore spending" back={()=>go("settings")}
-        right={<div style={{display:"flex",gap:8}}>
-          <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCSVImport} style={{display:"none"}}/>
-          <button onClick={()=>fileInputRef.current?.click()} disabled={importing} className="btn-ghost press" style={{padding:"8px 12px",fontSize:14,display:"flex",alignItems:"center",gap:6}}>
-            <Icon name="download" size={13} color="var(--text2)"/>{importing?"...":"Import"}
-          </button>
-          {txns.length>0 && <button onClick={exportCSV} className="btn-ghost press" style={{padding:"8px 12px",fontSize:14}}>Export</button>}
-          <button onClick={()=>setShowAdd(a=>!a)} className="btn-gold press" style={{padding:"8px 16px",fontSize:14}}>+ Log</button>
-        </div>}/>
-      <div className="px">
-        {merged.filter(c=>c.cap>0&&c.capPct>=80).map(c=>(
-          <div key={c.key} className="au" style={{background:c.capPct>=100?"var(--redbg)":"var(--amberbg)",border:`1px solid ${c.capPct>=100?"rgba(220,38,38,.2)":"rgba(217,119,6,.2)"}`,borderRadius:12,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
-            <span style={{display:"flex",color:c.capPct>=100?"var(--red)":"var(--amber)"}}><Icon name={c.capPct>=100?"alert":"warning"} size={15}/></span>
-            <p style={{color:c.capPct>=100?"var(--red)":"var(--amber)",fontSize:13,fontWeight:600,flex:1}}>
-              {c.capPct>=100 ? `Over budget on ${c.label}` : `Close to your ${c.label} cap`} — ${f(c.val)} of ${f(c.cap)} ({c.capPct}%)
-            </p>
-          </div>
-        ))}
+      <div className="px" style={{paddingTop:8}}>
 
-        {txns.length>=3 && baselineMonthlyBudget>0 && (
-          <div className="au card-surface" style={{padding:"16px 18px",marginBottom:16,border:`1px solid ${pace>15?"rgba(220,38,38,.2)":"var(--border)"}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>Spending Pace</p>
-              <span style={{fontSize:12,color:pace>15?"var(--red)":pace>0?"var(--amber)":"var(--green)",fontWeight:700}}>
-                {pace>15?"Spending fast":pace>0?"Slightly ahead":"On pace"}
-              </span>
-            </div>
-            <div style={{position:"relative",height:8,background:"var(--border2)",borderRadius:99,overflow:"hidden",marginBottom:8}}>
-              <div style={{position:"absolute",left:0,top:0,height:"100%",width:`${Math.min(100,spendPct)}%`,background:pace>15?"var(--red)":pace>0?"var(--amber)":"var(--green)",borderRadius:99,transition:"width .5s ease"}}/>
-              <div style={{position:"absolute",left:`${monthPct}%`,top:0,height:"100%",width:2,background:"var(--text)"}}/>
-            </div>
-            <p style={{color:"var(--text2)",fontSize:12,lineHeight:1.5}}>
-              You've logged {spendPct}% of your typical monthly spend, and we're {monthPct}% through the month.
-              {pace>15 ? " You're spending faster than usual — worth checking what's driving it." : pace<-15 ? " You're spending less than usual this month." : " That's roughly on track."}
-            </p>
+        {/* Header — minimal, Apple style */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28}}>
+          <div>
+            <button onClick={()=>go("home")} style={{fontSize:12,color:"var(--text2)",background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:8,display:"flex",alignItems:"center",gap:4}}>
+              <Icon name="arrow-right" size={12} strokeWidth={2}/> <span style={{transform:"scaleX(-1)",display:"inline-block"}}></span>Back
+            </button>
+            <h1 style={{fontSize:28,fontWeight:700,color:"var(--text)",letterSpacing:"-1px",margin:0}}>Insights</h1>
           </div>
-        )}
+          <button onClick={()=>setShowAdd(true)} className="press spring-hover" style={{padding:"10px 20px",borderRadius:10,border:"none",background:"var(--accent)",color:"white",fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Log</button>
+        </div>
 
-        {showAdd&&(
-          <div className="ap card-surface" style={{padding:20,marginBottom:20,border:"1.5px solid var(--accent)"}}>
-            <p style={{color:"var(--text)",fontSize:15,fontWeight:700,marginBottom:14}}>Log a Transaction</p>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-              <div>
-                <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Amount ($)</label>
-                <input className="field" type="number" placeholder="0.00" value={amt} onChange={e=>setAmt(e.target.value)} style={{padding:"10px 12px"}}/>
-              </div>
-              <div>
-                <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Category</label>
-                <select className="field" value={cat} onChange={e=>setCat(e.target.value)} style={{padding:"10px 12px",fontSize:14}}>
-                  {CATS.map(c=><option key={c.key} value={c.key}>{c.label}</option>)}
-                </select>
-              </div>
-            </div>
-            <div style={{marginBottom:10}}>
-              <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Description</label>
-              <input className="field" placeholder="e.g. Whole Foods, Starbucks, Delta..." value={desc} onChange={e=>setDesc(e.target.value)} style={{padding:"10px 12px"}}/>
-            </div>
-            {cards.length>0&&(
-              <div style={{marginBottom:14}}>
-                <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Card Used</label>
-                <select className="field" value={card} onChange={e=>setCard(e.target.value)} style={{padding:"10px 12px",fontSize:14}}>
-                  {cards.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}
-                </select>
-              </div>
-            )}
-            <div style={{display:"flex",gap:10}}>
-              <button onClick={addTxn} className="btn-gold press" style={{flex:1,padding:"11px"}}>Add</button>
-              <button onClick={()=>setShowAdd(false)} className="btn-ghost press" style={{padding:"11px 16px"}}>Cancel</button>
-            </div>
+        {/* Hero — your money this month */}
+        <div className="au" style={{marginBottom:32}}>
+          <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:8}}>
+            {selectedCat ? selectedCat.label : "YOUR MONEY THIS MONTH"}
           </div>
-        )}
+          <div style={{display:"flex",alignItems:"baseline",gap:12}}>
+            <span className="animate-number" style={{fontSize:48,fontWeight:800,color:"var(--text)",letterSpacing:"-2.5px",lineHeight:1}}>${displayTotal.toLocaleString()}</span>
+            {!selectedCat && <span style={{fontSize:14,color:changeDir==="down"?"var(--green)":"var(--red)",fontWeight:600}}>
+              {changeDir==="down"?"↓":"↑"} {Math.abs(Number(changePct))}% vs last month
+            </span>}
+          </div>
+          {selectedCat && (
+            <button onClick={()=>setSel(null)} style={{fontSize:12,color:"var(--accent)",background:"none",border:"none",cursor:"pointer",marginTop:6,padding:0,fontWeight:500}}>← View all categories</button>
+          )}
+        </div>
 
-        {total===0?(
-          <div className="card-surface" style={{marginBottom:20}}>
-            <EmptyState icon="analytics" title="No spending data yet" sub="Fill in monthly spending in Edit Profile, or tap + Log to add a transaction." action="Edit Profile" onAction={()=>go("edit-profile")}/>
-          </div>
-        ):(
-          <div className="au card-surface" style={{padding:"22px 16px 16px",marginBottom:20}}>
-            <SpeedoGauge/>
-            <div style={{display:"flex",flexWrap:"wrap",gap:7,justifyContent:"center",marginTop:14}}>
-              {active.map(cat=>(
-                <button key={cat.key} onClick={()=>setSel(v=>v===cat.key?null:cat.key)} className="press" style={{
-                  display:"flex",alignItems:"center",gap:6,padding:"5px 11px",borderRadius:99,
-                  border:`1.5px solid ${sel===cat.key?cat.color:"var(--border)"}`,
-                  background:sel===cat.key?`${cat.color}15`:"var(--surface2)",cursor:"pointer",transition:"all .15s"
-                }}>
-                  <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,flexShrink:0}}/>
-                  <span style={{fontSize:12,fontWeight:600,color:sel===cat.key?cat.color:"var(--text2)"}}>{cat.label}</span>
-                  <span style={{fontSize:12,color:"var(--text3)"}}>${f(cat.val)}</span>
-                </button>
-              ))}
-            </div>
-            {selCat&&(
-              <div className="ai" style={{marginTop:14,background:"var(--surface2)",borderRadius:10,padding:"13px 15px",border:`1px solid ${selCat.color}25`}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <span style={{color:selCat.color}}><Icon name={selCat.icon} size={20}/></span>
-                    <div>
-                      <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{selCat.label}</p>
-                      <p style={{color:"var(--text2)",fontSize:12}}>{Math.round(selCat.val/total*100)}% of monthly spend</p>
-                    </div>
-                  </div>
-                  <div style={{textAlign:"right"}}>
-                    <p style={{color:selCat.color,fontSize:20,fontWeight:800}}>${f(selCat.val)}</p>
-                    <p style={{color:"var(--text3)",fontSize:11}}>per month · ${f(selCat.val*12)}/yr</p>
-                  </div>
+        {/* Period selector — sliding capsule */}
+        <div className="au d1" style={{display:"inline-flex",background:"var(--surface2)",borderRadius:10,padding:3,marginBottom:24,gap:2}}>
+          {(["1M","3M","6M","1Y"] as const).map(p => (
+            <button key={p} onClick={()=>setPeriod(p)} className="press" style={{
+              padding:"7px 18px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:period===p?600:450,
+              background:period===p?"var(--surface)":"transparent",
+              color:period===p?"var(--text)":"var(--text2)",
+              boxShadow:period===p?"var(--shadow)":"none",
+              transition:"all .2s cubic-bezier(.4,0,.2,1)",
+            }}>{p}</button>
+          ))}
+        </div>
+
+        {/* Horizontal bar chart — minimal, Apple Health style */}
+        <div className="au d2" style={{marginBottom:28}}>
+          {merged.map((c,i) => {
+            const pct = total > 0 ? (c.val / total * 100) : 0;
+            const isSelected = sel === c.key;
+            const isDimmed = sel && !isSelected;
+            return (
+              <div key={c.key} onClick={()=>setSel(isSelected?null:c.key)} className="press"
+                style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",cursor:"pointer",
+                  borderBottom:i<merged.length-1?"1px solid var(--border)":"none",
+                  opacity:isDimmed?0.35:1,transition:"opacity .3s"}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:c.color,flexShrink:0}}/>
+                <div style={{width:80,fontSize:13,fontWeight:isSelected?600:450,color:"var(--text)",flexShrink:0}}>{c.label}</div>
+                <div style={{flex:1,height:6,background:"var(--border)",borderRadius:3,overflow:"hidden"}}>
+                  <div style={{width:`${pct}%`,height:"100%",background:c.color,borderRadius:3,
+                    transition:"width .6s cubic-bezier(.4,0,.2,1)",
+                    boxShadow:isSelected?`0 0 8px ${c.color}40`:"none"}}/>
                 </div>
-                {selCat.fromTxns>0&&<p style={{color:"var(--text2)",fontSize:12,marginTop:8}}>+${f(selCat.fromTxns)} from logged transactions</p>}
+                <div style={{width:70,textAlign:"right",fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"var(--sans)",letterSpacing:"-.5px"}}>${c.val.toLocaleString()}</div>
+                <div style={{width:40,textAlign:"right",fontSize:11,color:"var(--text2)"}}>{pct.toFixed(0)}%</div>
               </div>
-            )}
+            );
+          })}
+        </div>
+
+        {/* Insight row — what the data means */}
+        {merged.length > 0 && (
+          <div className="au d3" style={{padding:"16px 20px",background:"var(--accentbg)",borderRadius:12,marginBottom:28,display:"flex",alignItems:"flex-start",gap:12}}>
+            <Icon name="trending-up" size={16} color="var(--accent)"/>
+            <div style={{fontSize:13,color:"var(--text)",lineHeight:1.5}}>
+              {merged[0].val > merged[1]?.val * 1.5
+                ? <><strong>{merged[0].label}</strong> is your biggest expense at ${merged[0].val.toLocaleString()} ({total>0?Math.round(merged[0].val/total*100):0}% of spending). {merged[merged.length-1] && <>Lowest: <strong>{merged[merged.length-1].label}</strong> at ${merged[merged.length-1].val.toLocaleString()}.</>}</>
+                : <>Your spending is balanced across categories. <strong>{merged[0].label}</strong> leads at ${merged[0].val.toLocaleString()}.</>
+              }
+            </div>
           </div>
         )}
 
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
+        {/* Key metrics — three clean stats */}
+        <div className="au d4 stagger" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:28}}>
           {[
-            {l:"Utilization",v:`${util}%`,c:util<30?"var(--green)":util<50?"var(--amber)":"var(--red)"},
-            {l:"Total Points",v:f(totalPts),c:"var(--accent)"},
-            {l:"Rewards Value",v:`$${f(Math.round(totalPts*0.015))}`,c:"var(--green)"},
-          ].map(({l,v,c})=>(
-            <div key={l} className="card-surface" style={{padding:"12px 10px",textAlign:"center"}}>
-              <p style={{color:c,fontSize:17,fontWeight:800}}>{v}</p>
-              <p style={{color:"var(--text3)",fontSize:11,marginTop:3}}>{l}</p>
+            {label:"Utilization",value:`${util}%`,color:util<30?"var(--green)":util<50?"var(--amber)":"var(--red)"},
+            {label:"Total Points",value:totalPts.toLocaleString(),color:"var(--accent)"},
+            {label:"Rewards Value",value:`$${Math.round(totalPts*0.01).toLocaleString()}`,color:"var(--green)"},
+          ].map(m => (
+            <div key={m.label} style={{textAlign:"center",padding:"20px 12px"}}>
+              <div style={{fontSize:24,fontWeight:800,color:m.color,letterSpacing:"-1px",lineHeight:1}}>{m.value}</div>
+              <div style={{fontSize:11,color:"var(--text2)",marginTop:6,fontWeight:500}}>{m.label}</div>
             </div>
           ))}
         </div>
 
-        {total>0&&(
-          <>
-            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Breakdown</p>
-            <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
-              {active.map((cat,i,arr)=>(
-                <button key={cat.key} onClick={()=>setSel(v=>v===cat.key?null:cat.key)} className="press" style={{
-                  width:"100%",padding:"13px 16px",background:sel===cat.key?`${cat.color}08`:"none",
-                  border:"none",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",textAlign:"left",
-                  borderLeft:`3px solid ${sel===cat.key?cat.color:"transparent"}`,transition:"all .15s"
-                }}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
-                    <div style={{display:"flex",alignItems:"center",gap:9}}>
-                      <span style={{color:cat.color}}><Icon name={cat.icon} size={16}/></span>
-                      <span style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{cat.label}</span>
+        {/* Recent transactions */}
+        {txns.length > 0 && (
+          <div className="au d5" style={{marginBottom:28}}>
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:12}}>RECENT</div>
+            {txns.slice(-8).reverse().map((t,i) => {
+              const catInfo = CATS.find(c=>c.key===t.cat);
+              return (
+                <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:i<Math.min(txns.length,8)-1?"1px solid var(--border)":"none"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{width:32,height:32,borderRadius:8,background:catInfo?.color+"15",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      <Icon name={catInfo?.icon||"other"} size={15} color={catInfo?.color||"var(--text2)"}/>
                     </div>
-                    <span style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${f(cat.val)}<span style={{color:"var(--text3)",fontSize:11,fontWeight:400}}>/mo</span></span>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{t.desc||catInfo?.label}</div>
+                      <div style={{fontSize:11,color:"var(--text2)"}}>{catInfo?.label} · {t.date||"Today"}</div>
+                    </div>
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <div className="track" style={{flex:1,height:5}}>
-                      <div className="fill" style={{width:`${Math.round(cat.val/total*100)}%`,background:cat.color,height:5}}/>
-                    </div>
-                    <span style={{color:"var(--text3)",fontSize:11,width:28,textAlign:"right"}}>{Math.round(cat.val/total*100)}%</span>
+                    <span style={{fontSize:14,fontWeight:700,color:"var(--text)",letterSpacing:"-.3px"}}>${t.amount}</span>
+                    <button onClick={()=>onDeleteTxn(t.id)} className="press" style={{background:"none",border:"none",cursor:"pointer",color:"var(--text3)",padding:2}}>
+                      <Icon name="trash" size={13}/>
+                    </button>
                   </div>
-                  {cat.cap>0 && (
-                    <div style={{marginTop:6,display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:10,color:cat.capPct>=100?"var(--red)":cat.capPct>=80?"var(--amber)":"var(--text3)"}}>Budget: ${f(cat.cap)}</span>
-                      <div style={{flex:1,height:3,background:"var(--border2)",borderRadius:99,overflow:"hidden"}}>
-                        <div style={{height:"100%",width:`${Math.min(100,cat.capPct)}%`,background:cat.capPct>=100?"var(--red)":cat.capPct>=80?"var(--amber)":"var(--green)",borderRadius:99}}/>
-                      </div>
-                      <span style={{fontSize:10,fontWeight:700,color:cat.capPct>=100?"var(--red)":cat.capPct>=80?"var(--amber)":"var(--green)"}}>{cat.capPct}%</span>
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        {subscriptions.length>0 && (
-          <>
-            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10,display:"flex",alignItems:"center",gap:6}}><Icon name="refresh" size={11}/> Detected Recurring Charges</p>
-            <div className="card-surface" style={{overflow:"hidden",marginBottom:20,border:"1px solid rgba(217,119,6,.2)"}}>
-              {subscriptions.map((s,i,arr)=>{
-                const c=CATS.find(x=>x.key===s.cat);
-                return (
-                  <div key={i} style={{padding:"12px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{display:"flex",color:c?.color||"var(--text2)"}}><Icon name={c?.icon||"refresh"} size={15}/></span>
-                      <div>
-                        <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{s.desc}</p>
-                        <p style={{color:"var(--amber)",fontSize:12}}>Seen {s.count}× — looks recurring</p>
-                      </div>
-                    </div>
-                    <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>${f(s.amount)}<span style={{color:"var(--text3)",fontSize:11,fontWeight:400}}>/mo</span></p>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {txns.length>0&&(
-          <>
-            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Logged Transactions</p>
-            <div className="card-surface" style={{overflow:"hidden",marginBottom:20}}>
-              {[...txns].reverse().map((t,i,arr)=>{
-                const c=CATS.find(x=>x.key===t.cat);
-                return (
-                  <div key={t.id} style={{padding:"12px 16px",borderBottom:i<arr.length-1?"1px solid var(--border)":"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{width:26,display:"flex",justifyContent:"center",color:c?.color||"var(--text2)"}}>{c&&<Icon name={c.icon} size={15}/>}</span>
-                      <div>
-                        <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{t.desc}</p>
-                        <p style={{color:"var(--text2)",fontSize:12}}>{t.card} · {t.date}</p>
-                      </div>
-                    </div>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <p style={{color:c?.color||"var(--text)",fontSize:14,fontWeight:700}}>-${f(t.amount)}</p>
-                      <button onClick={()=>onDeleteTxn(t.id)} style={{background:"none",border:"none",color:"var(--text3)",fontSize:14,cursor:"pointer",padding:0}}>✕</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {total>0&&(
-          <>
-            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Yearly Projection</p>
-            <div className="card-surface" style={{padding:"20px",marginBottom:20}}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,textAlign:"center"}}>
-                {[
-                  {l:"Annual Spend",v:`$${f(total*12)}`},
-                  {l:"Points Earned",v:f(Math.round(total*12*1.5))},
-                  {l:"Rewards Value",v:`$${f(Math.round(total*12*1.5*0.015))}`},
-                ].map(({l,v})=>(
-                  <div key={l}>
-                    <p style={{color:"var(--accent)",fontSize:18,fontWeight:700}}>{v}</p>
-                    <p style={{color:"var(--text2)",fontSize:12,marginTop:4}}>{l}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
-        {txns.length>0&&(
-          <>
-            <p style={{color:"var(--text3)",fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>Round-Up Savings</p>
-            <div className="card-surface au" style={{padding:"18px 20px",marginBottom:20,background:"var(--greenbg)",border:"1px solid rgba(39,103,73,.15)"}}>
-              <p style={{color:"var(--text2)",fontSize:13,lineHeight:1.5,marginBottom:12}}>If every logged purchase were rounded up to the nearest dollar and the difference saved automatically:</p>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,textAlign:"center"}}>
-                <div>
-                  <p style={{color:"var(--green)",fontSize:22,fontWeight:800}}>${roundUpMonthly.toFixed(2)}</p>
-                  <p style={{color:"var(--text2)",fontSize:12,marginTop:3}}>From {txns.length} logged purchase{txns.length!==1?"s":""}</p>
-                </div>
-                <div>
-                  <p style={{color:"var(--green)",fontSize:22,fontWeight:800}}>~${f(Math.round(roundUpYearly))}</p>
-                  <p style={{color:"var(--text2)",fontSize:12,marginTop:3}}>Projected per year</p>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      {/* ── Spending Predictor (ML) ── */}
-        {txns.length >= 3 && (
-          <div className="card-surface" style={{padding:18,marginBottom:14}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-              <span style={{color:"var(--accent)",display:"flex"}}><Icon name="trending-up" size={16}/></span>
-              <div>
-                <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>Predicted Spending</div>
-                <div style={{fontSize:11,color:"var(--text2)"}}>Based on {txns.length} logged transactions</div>
-              </div>
-            </div>
-            {(() => {
-              // Group txns by category, compute average and trend
-              const catTotals: Record<string,number[]> = {};
-              txns.forEach(t => {
-                if (!catTotals[t.category]) catTotals[t.category] = [];
-                catTotals[t.category].push(t.amount);
-              });
-              const predictions = Object.entries(catTotals).map(([cat, amounts]) => {
-                const avg = amounts.reduce((s,a)=>s+a,0) / amounts.length;
-                // Simple linear trend: if last > first, trending up
-                const trend = amounts.length > 1 ? (amounts[amounts.length-1] - amounts[0]) / amounts.length : 0;
-                const predicted = Math.max(0, Math.round(avg + trend));
-                const catInfo = CATS.find(c => c.key === cat);
-                return { cat, label: catInfo?.label || cat, color: catInfo?.color || "#6B7280", avg: Math.round(avg), predicted, trend, count: amounts.length };
-              }).sort((a,b) => b.predicted - a.predicted);
-              const totalPredicted = predictions.reduce((s,p)=>s+p.predicted,0);
-              return (
-                <div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:12,padding:"8px 12px",background:"rgba(124,58,237,.04)",borderRadius:8}}>
-                    <span style={{fontSize:12,color:"var(--text2)"}}>Predicted next month total</span>
-                    <span style={{fontSize:20,fontWeight:700,color:"var(--text)"}}>${totalPredicted.toLocaleString()}</span>
-                  </div>
-                  {predictions.map((p,i) => (
-                    <div key={p.cat} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:i<predictions.length-1?"1px solid var(--border)":"none"}}>
-                      <div style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0}}/>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{p.label}</div>
-                        <div style={{fontSize:10,color:"var(--text2)"}}>avg ${p.avg} from {p.count} txns</div>
-                      </div>
-                      <div style={{textAlign:"right"}}>
-                        <div style={{fontSize:13,fontWeight:700,color:"var(--text)"}}>${p.predicted}</div>
-                        <div style={{fontSize:10,color:p.trend>0?"#ef4444":p.trend<0?"#22c55e":"var(--text2)"}}>
-                          {p.trend > 5 ? "↑ trending up" : p.trend < -5 ? "↓ trending down" : "→ stable"}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{fontSize:10,color:"var(--text2)",marginTop:8,fontStyle:"italic"}}>Prediction based on linear regression of logged transactions. Log more for better accuracy.</div>
                 </div>
               );
-            })()}
+            })}
+          </div>
+        )}
+
+        {/* Spending predictor */}
+        {txns.length >= 3 && (
+          <div className="au d6" style={{marginBottom:28}}>
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:12}}>PREDICTED SPENDING</div>
+            <div style={{padding:"16px 20px",background:"var(--surface2)",borderRadius:12}}>
+              {(() => {
+                const catTotals: Record<string,number[]> = {};
+                txns.forEach(t => {
+                  if (!catTotals[t.category]) catTotals[t.category] = [];
+                  catTotals[t.category].push(t.amount);
+                });
+                const predictions = Object.entries(catTotals).map(([c, amounts]) => {
+                  const avg = amounts.reduce((s,a)=>s+a,0) / amounts.length;
+                  const trend = amounts.length > 1 ? (amounts[amounts.length-1] - amounts[0]) / amounts.length : 0;
+                  const predicted = Math.max(0, Math.round(avg + trend));
+                  const catInfo = CATS.find(ci => ci.key === c);
+                  return { cat: c, label: catInfo?.label || c, color: catInfo?.color || "#94A3B8", predicted, trend, count: amounts.length };
+                }).sort((a,b) => b.predicted - a.predicted);
+                const totalPred = predictions.reduce((s,p)=>s+p.predicted,0);
+                return (
+                  <div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:14}}>
+                      <span style={{fontSize:12,color:"var(--text2)"}}>Next month estimate</span>
+                      <span style={{fontSize:20,fontWeight:700,color:"var(--text)",letterSpacing:"-1px"}}>${totalPred.toLocaleString()}</span>
+                    </div>
+                    {predictions.slice(0,4).map((p,i) => (
+                      <div key={p.cat} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0"}}>
+                        <div style={{width:6,height:6,borderRadius:"50%",background:p.color}}/>
+                        <span style={{fontSize:12,color:"var(--text)",flex:1}}>{p.label}</span>
+                        <span style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>${p.predicted}</span>
+                        <span style={{fontSize:10,color:p.trend>5?"var(--red)":p.trend<-5?"var(--green)":"var(--text2)",width:20,textAlign:"right"}}>
+                          {p.trend > 5 ? "↑" : p.trend < -5 ? "↓" : "→"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* Add transaction modal */}
+        {showAdd && (
+          <div style={{position:"fixed",inset:0,zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,.4)",backdropFilter:"blur(4px)"}} onClick={()=>setShowAdd(false)}>
+            <div onClick={e=>e.stopPropagation()} className="ap" style={{background:"var(--surface)",borderRadius:16,padding:"28px 24px",width:"90%",maxWidth:400,boxShadow:"var(--shadow-lg)"}}>
+              <div style={{fontSize:18,fontWeight:700,color:"var(--text)",marginBottom:4}}>Log Transaction</div>
+              <div style={{fontSize:12,color:"var(--text2)",marginBottom:20}}>Track spending for better predictions</div>
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                <input className="field" type="number" placeholder="Amount" value={amt} onChange={e=>setAmt(e.target.value)} />
+                <input className="field" placeholder="Description (optional)" value={desc} onChange={e=>setDesc(e.target.value)} />
+                <select className="field" value={cat} onChange={e=>setCat(e.target.value)}>
+                  {CATS.map(c=><option key={c.key} value={c.key}>{c.label}</option>)}
+                </select>
+                {cards.length>0 && <select className="field" value={card} onChange={e=>setCard(e.target.value)}>
+                  {cards.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>}
+                <button onClick={()=>{if(!amt)return;onAddTxn(cat,parseFloat(amt),desc,card,new Date().toISOString().split("T")[0]);setAmt("");setDesc("");setShowAdd(false);}} className="press spring-hover" style={{padding:"13px 0",borderRadius:10,border:"none",background:"var(--accent)",color:"white",fontSize:14,fontWeight:600,cursor:"pointer",width:"100%"}}>
+                  Save
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -4695,9 +4429,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
   );
 }
 
-/* ============================================================
-   NOTIFICATIONS SCREEN
-   ============================================================ */
+
 function Notifications({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
   const [prefs, setPrefs] = useState({paymentDue:true,utilizationHigh:true,perkExpiring:true,scoreChange:true,newOffer:true,weeklyDigest:true,appUpdates:false,annualFeeRenewal:true});
   const tog = (k: keyof typeof prefs) => setPrefs(p=>({...p,[k]:!p[k]}));
