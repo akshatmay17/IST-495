@@ -49,9 +49,9 @@ const DARK_CSS = `
   --serif:     'Fraunces', Georgia, 'Times New Roman', serif;
   --shadow:    0 4px 24px rgba(0,0,0,.35);
   --shadow-lg: 0 12px 40px rgba(0,0,0,.5);
-  --radius:    14px;
+  --radius:    12px;
   --radius-sm: 9px;   /* inputs, small buttons, badges */
-  --radius-md: 14px;  /* cards, panels, list rows */
+  --radius-md: 12px;  /* cards, panels, list rows */
   --radius-lg: 22px;  /* hero blocks, feature surfaces */
   --radius-full: 999px; /* pills, avatars */
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
@@ -86,9 +86,9 @@ const LIGHT_CSS = `
   --serif:     'Fraunces', Georgia, 'Times New Roman', serif;
   --shadow:    0 1px 3px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.03);
   --shadow-lg: 0 12px 40px rgba(0,0,0,.08);
-  --radius:    14px;
+  --radius:    12px;
   --radius-sm: 9px;   /* inputs, small buttons, badges */
-  --radius-md: 14px;  /* cards, panels, list rows */
+  --radius-md: 12px;  /* cards, panels, list rows */
   --radius-lg: 22px;  /* hero blocks, feature surfaces */
   --radius-full: 999px; /* pills, avatars */
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
@@ -136,7 +136,7 @@ button, input, select, textarea { font-family: var(--sans); cursor: pointer; }
   content: "";
   position: fixed; top: -20%; right: -15%; width: 50%; height: 50%;
   z-index: -1; pointer-events: none;
-  background: radial-gradient(ellipse at center, rgba(212,168,71,.03) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(212,168,71,.015) 0%, transparent 70%);
   filter: blur(80px);
 }
 ::-webkit-scrollbar { display: none; }
@@ -327,7 +327,7 @@ select.field { appearance:none; }
   will-change: transform;
 }
 .card-3d-inner:hover {
-  box-shadow: 0 20px 40px rgba(0,0,0,.3), 0 0 0 1px rgba(255,255,255,.05);
+  box-shadow: 0 8px 24px rgba(15,23,42,.15), 0 1px 2px rgba(15,23,42,.08);
 }
 
 /* Shimmer sweep across cards */
@@ -338,7 +338,7 @@ select.field { appearance:none; }
 .card-shimmer::after {
   content: "";
   position: absolute; inset: 0;
-  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.08) 45%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.08) 55%, transparent 70%);
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.04) 45%, rgba(255,255,255,.08) 50%, rgba(255,255,255,.04) 55%, transparent 70%);
   transform: translateX(-150%) skewX(-20deg);
   pointer-events: none;
 }
@@ -357,9 +357,8 @@ select.field { appearance:none; }
 
 /* Score entrance — dramatic reveal */
 @keyframes scoreReveal {
-  0% { opacity: 0; transform: scale(0.8); filter: blur(8px); }
-  60% { opacity: 1; transform: scale(1.02); filter: blur(0); }
-  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
 }
 .score-entrance {
   animation: scoreReveal .8s cubic-bezier(.16,1,.3,1) both;
@@ -388,14 +387,14 @@ select.field { appearance:none; }
   0%, 100% { box-shadow: 0 0 0 0 rgba(212,168,71,.3); }
   50% { box-shadow: 0 0 0 8px rgba(212,168,71,0); }
 }
-.pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
+.{ animation: pulseGlow 2s ease-in-out infinite; }
 
 /* Spring hover for buttons */
 .spring-hover {
-  transition: transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease;
+  transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease;
 }
-.spring-hover:hover { transform: translateY(-2px) scale(1.01); }
-.spring-hover:active { transform: translateY(0) scale(0.98); transition-duration: .1s; }
+.spring-hover:hover { transform: translateY(-1px); }
+.spring-hover:active { transform: scale(.97); transition-duration: .08s; }
 @keyframes screenFade {
   from { opacity:0; transform:translateY(6px); }
   to   { opacity:1; transform:translateY(0); }
@@ -1161,7 +1160,7 @@ const cardNetwork = (issuer: string): "Visa"|"Mastercard"|"Amex"|"Discover" => {
    ICON SYSTEM -- clean, minimal line icons (replaces emoji)
    Apple-style: thin stroke, rounded caps, monochrome, inherits color
    ============================================================ */
-function Icon({ name, size=18, color="currentColor", strokeWidth=1.8 }: { name:string; size?:number; color?:string; strokeWidth?:number }) {
+function Icon({ name, size=18, color="currentColor", strokeWidth=1.5 }: { name:string; size?:number; color?:string; strokeWidth?:number }) {
   const p = { width:size, height:size, viewBox:"0 0 24 24", fill:"none" as const, style:{stroke:color}, strokeWidth, strokeLinecap:"round" as const, strokeLinejoin:"round" as const };
   switch(name) {
     case "card": return <svg {...p}><rect x="2" y="5" width="20" height="14" rx="2.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>;
@@ -1455,11 +1454,11 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
       {/* Theme + Sign out */}
       <div style={{padding:"12px 8px 8px",borderTop:"1px solid var(--border)",display:"flex",flexDirection:"column",gap:4}}>
         <button onClick={toggleTheme} className="press" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",color:"var(--text2)",width:"100%",justifyContent:expanded?"flex-start":"center"}}>
-          <Icon name={theme==="dark"?"sun":"moon"} size={18} strokeWidth={1.6}/>
+          <Icon name={theme==="dark"?"sun":"moon"} size={18} strokeWidth={1.5}/>
           {expanded && <span style={{fontSize:13,fontWeight:450}}>{theme==="dark"?"Light":"Dark"}</span>}
         </button>
         {onSignOut && <button onClick={onSignOut} className="press" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",color:"var(--text2)",width:"100%",justifyContent:expanded?"flex-start":"center"}}>
-          <Icon name="logout" size={18} strokeWidth={1.6}/>
+          <Icon name="logout" size={18} strokeWidth={1.5}/>
           {expanded && <span style={{fontSize:13,fontWeight:450}}>Sign Out</span>}
         </button>}
       </div>
@@ -1712,7 +1711,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
           ].map((s,i) => (
             <div key={i} onClick={s.click} className="card-surface hover-lift press" style={{padding:"20px 18px",cursor:"pointer"}}>
               <div style={{fontSize:11,color:"var(--text2)",fontWeight:500,letterSpacing:".3px",textTransform:"uppercase",marginBottom:8}}>{s.label}</div>
-              <div className="animate-number" style={{fontSize:28,fontWeight:800,color:s.color,letterSpacing:"-1.5px",lineHeight:1}}>{s.value}</div>
+              <div className="animate-number" style={{fontSize:28,fontWeight:600,color:s.color,letterSpacing:"-1.5px",lineHeight:1}}>{s.value}</div>
               <div style={{fontSize:12,color:"var(--text2)",marginTop:6,fontWeight:450}}>{s.sub}</div>
             </div>
           ))}
@@ -1735,7 +1734,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
                   </div>
                 </div>
               </div>
-              <button onClick={()=>go("credit-optimizer")} className="press pulse-glow spring-hover" style={{padding:"8px 16px",borderRadius:8,border:"none",background:"var(--accent)",color:"white",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>Review</button>
+              <button onClick={()=>go("credit-optimizer")} className="press spring-hover" style={{padding:"8px 16px",borderRadius:8,border:"none",background:"var(--accent)",color:"white",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>Review</button>
             </div>
           </div>
         )}
@@ -3473,7 +3472,7 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
     const pct = Math.max(0, Math.min(100, ((score - 300) / 550) * 100));
     return (
       <div style={{textAlign:"center",padding:"8px 0 16px"}}>
-        <div className="score-entrance" style={{fontSize:56,fontWeight:800,color:scoreColor(score),letterSpacing:"-3px",lineHeight:1,transition:"color .4s"}}>{score}</div>
+        <div className="score-entrance" style={{fontSize:48,fontWeight:600,color:scoreColor(score),letterSpacing:"-2px",lineHeight:1,transition:"color .4s"}}>{score}</div>
         <div style={{fontSize:14,fontWeight:600,color:scoreColor(score),marginTop:4,letterSpacing:".5px",textTransform:"uppercase",transition:"color .4s"}}>{scoreLabel(score)}</div>
         <div style={{fontSize:12,color:"var(--green)",marginTop:6,fontWeight:500}}>+8 this month</div>
 
@@ -4255,7 +4254,7 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
             {selectedCat ? selectedCat.label : "YOUR MONEY THIS MONTH"}
           </div>
           <div style={{display:"flex",alignItems:"baseline",gap:12}}>
-            <span className="animate-number" style={{fontSize:48,fontWeight:800,color:"var(--text)",letterSpacing:"-2.5px",lineHeight:1}}>${displayTotal.toLocaleString()}</span>
+            <span className="animate-number" style={{fontSize:44,fontWeight:600,color:"var(--text)",letterSpacing:"-1.5px",lineHeight:1}}>${displayTotal.toLocaleString()}</span>
             {!selectedCat && <span style={{fontSize:14,color:changeDir==="down"?"var(--green)":"var(--red)",fontWeight:600}}>
               {changeDir==="down"?"↓":"↑"} {Math.abs(Number(changePct))}% vs last month
             </span>}
@@ -4731,7 +4730,7 @@ function Referral({ go }: { go:(s:S)=>void }) {
           <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.6,maxWidth:280,margin:"0 auto 22px"}}>Share WiseCard with a friend. When they sign up and add their first card, you both get $20 in rewards.</p>
           <div style={{background:"var(--surface)",border:"2px dashed var(--accent)",borderRadius:12,padding:"16px",marginBottom:14}}>
             <p style={{color:"var(--text3)",fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Your referral code</p>
-            <p style={{color:"var(--accent)",fontSize:28,fontWeight:800,letterSpacing:4}}>{code}</p>
+            <p style={{color:"var(--accent)",fontSize:26,fontWeight:600,letterSpacing:4}}>{code}</p>
           </div>
           <button onClick={copy} className="btn-gold press" style={{width:"100%",padding:"13px",fontSize:14}}>{copied?"✓ Copied!":"Copy Code"}</button>
         </div>
