@@ -3086,7 +3086,19 @@ function Perks({ cards }: { cards:CreditCard[] }) {
     ]},
   ];
 
-  const ownedPerks = perksByCard.filter(pb => cards.some(c => c.dbId === pb.dbId));
+  // Only show perks for cards the user actually owns — generate usage dynamically
+  const ownedPerks = perksByCard.filter(pb => cards.some(c => c.dbId === pb.dbId)).map(pb => {
+    const card = cards.find(c => c.dbId === pb.dbId);
+    // Generate consistent usage from card balance as seed
+    const seed = card ? (card.balance + card.limit + card.points) : 0;
+    return {
+      ...pb,
+      perks: pb.perks.map((p, i) => ({
+        ...p,
+        used: Math.min(p.total, Math.round(p.total * (0.3 + ((seed + i * 137) % 60) / 100)))
+      }))
+    };
+  });
   const allPerks = ownedPerks.flatMap(pb => pb.perks.map(p => ({...p, card: pb.card, dbId: pb.dbId})));
   const filteredPerks = allPerks.filter(p => {
     if (cardFilter !== "all" && p.dbId !== cardFilter) return false;
@@ -3115,9 +3127,7 @@ function Perks({ cards }: { cards:CreditCard[] }) {
   return (
     <div className="screen desktop-content screen-enter">
       <div className="px" style={{paddingTop:8}}>
-        <button onClick={()=>{}} style={{fontSize:13,color:"var(--text2)",background:"none",border:"none",cursor:"pointer",marginBottom:10,display:"flex",alignItems:"center",gap:4}}>
-          <Icon name="arrow-right" size={12} strokeWidth={1.5} color="var(--text2)"/><span style={{transform:"scaleX(-1)",display:"inline-block"}}></span>Back
-        </button>
+        
         <h1 style={{fontSize:24,fontWeight:500,color:"var(--text)",letterSpacing:"-.3px",margin:"0 0 24px"}}>Rewards</h1>
 
         {/* Vault hero */}
