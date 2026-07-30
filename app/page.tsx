@@ -30,8 +30,8 @@ const DARK_CSS = `
   --bg2:       #111827;
   --surface:   rgba(255,255,255,.04);
   --surface2:  rgba(255,255,255,.06);
-  --border:    rgba(255,255,255,.06);
-  --border2:   rgba(255,255,255,.10);
+  --border:    rgba(255,255,255,.08);
+  --border2:   rgba(255,255,255,.12);
   --border-soft: rgba(255,255,255,.03);
   --text:      #F1F3F8;
   --text2:     #7B89A8;
@@ -136,7 +136,7 @@ button, input, select, textarea { font-family: var(--sans); cursor: pointer; }
   content: "";
   position: fixed; top: -20%; right: -15%; width: 50%; height: 50%;
   z-index: -1; pointer-events: none;
-  background: radial-gradient(ellipse at center, rgba(108,142,239,.045) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(212,168,71,.03) 0%, transparent 70%);
   filter: blur(80px);
 }
 ::-webkit-scrollbar { display: none; }
@@ -1320,7 +1320,7 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
     ]},
   ];
 
-  const scoreColor = profile.creditRange?.includes("800") || profile.creditRange?.includes("Excellent") ? "var(--green)" : "var(--accent)";
+  const scoreColor = "var(--accent)";
 
   return (
     <div className="desktop-sidebar" onMouseEnter={()=>setExpanded(true)} onMouseLeave={()=>setExpanded(false)}
@@ -1356,12 +1356,12 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
                 <button key={item.id} onClick={()=>go(item.id)} className="press"
                   style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:expanded?"10px 12px":"10px 0",
                     borderRadius:10,border:"none",cursor:"pointer",position:"relative",
-                    background:isActive?"var(--accentbg)":"transparent",
-                    color:isActive?"var(--accent)":"var(--text2)",
+                    background:isActive?"rgba(255,255,255,.08)":"transparent",
+                    color:isActive?"var(--text)":"var(--text2)",
                     transition:"all .2s cubic-bezier(.4,0,.2,1)",
                     justifyContent:expanded?"flex-start":"center",
                   }}>
-                  {isActive && <div style={{position:"absolute",left:expanded?0:-4,top:"50%",transform:"translateY(-50%)",width:3,height:20,borderRadius:2,background:"var(--accent)",transition:"all .25s cubic-bezier(.4,0,.2,1)"}}/>}
+                  {isActive && <div style={{position:"absolute",left:expanded?0:-4,top:"50%",transform:"translateY(-50%)",width:2,height:16,borderRadius:1,background:"var(--accent)",transition:"all .25s cubic-bezier(.4,0,.2,1)"}}/>}
                   <span style={{display:"flex",flexShrink:0}}><Icon name={item.icon} size={18} strokeWidth={isActive?2:1.6}/></span>
                   {expanded && <span style={{fontSize:13,fontWeight:isActive?600:450,whiteSpace:"nowrap",letterSpacing:"-.1px"}}>{item.name}</span>}
                 </button>
@@ -1614,7 +1614,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
       <div className="px" style={{paddingTop:8}}>
         {/* Greeting */}
         <div className="au" style={{marginBottom:32}}>
-          <h1 style={{fontSize:28,fontWeight:300,color:"var(--text)",letterSpacing:"-1px",lineHeight:1.2,margin:0}}>
+          <h1 style={{fontSize:26,fontWeight:300,fontFamily:"var(--sans)",color:"var(--text)",letterSpacing:"-1px",lineHeight:1.2,margin:0}}>
             {greeting}, <span style={{fontWeight:700}}>{profile.name||"there"}</span>.
           </h1>
           <p style={{fontSize:14,color:"var(--text2)",marginTop:6,fontWeight:400}}>
@@ -1625,7 +1625,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         {/* Three key signals */}
         <div className="au d1" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:28}}>
           {[
-            {label:"Credit Score",value:score,sub:"+8 this month",color:"var(--accent)",click:()=>go("credit-optimizer")},
+            {label:"Credit",value:score,sub:"+8 this month",color:"var(--accent)",click:()=>go("credit-optimizer")},
             {label:"Utilization",value:`${util}%`,sub:utilLabel,color:utilColor,click:()=>go("credit-optimizer")},
             {label:"Rewards",value:`$${Math.round(totalRewards)}`,sub:`Across ${cards.length} cards`,color:"var(--green)",click:()=>go("perks")},
           ].map((s,i) => (
@@ -1669,7 +1669,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
             ].map((pick,i) => (
               <div key={i} onClick={pick.click} className="card-surface hover-lift press" style={{padding:"16px 18px",cursor:"pointer"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                  <Icon name={pick.icon} size={14} color="var(--accent)"/>
+                  <Icon name={pick.icon} size={14} color="var(--text2)"/>
                   <span style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{pick.q}</span>
                 </div>
                 <div style={{fontSize:11,color:"var(--text2)",lineHeight:1.4}}>{pick.tip}</div>
@@ -3400,7 +3400,7 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
         <div style={{position:"relative",margin:"20px auto 0",maxWidth:320}}>
           <div style={{height:4,borderRadius:2,background:"var(--border)",position:"relative",overflow:"visible"}}>
             <div style={{position:"absolute",left:0,top:0,height:"100%",width:`${pct}%`,borderRadius:2,
-              background:`linear-gradient(90deg, #F87171, #FBBF24 40%, #34D399 70%, ${scoreColor(score)})`,
+              background:`linear-gradient(90deg, #F87171 0%, #FBBF24 35%, #D4A847 55%, #34D399 80%)`,
               transition:"width .6s cubic-bezier(.4,0,.2,1)",boxShadow:`0 0 8px ${scoreColor(score)}30`}}/>
             <div style={{position:"absolute",left:`${pct}%`,top:-4,width:12,height:12,borderRadius:"50%",
               background:scoreColor(score),border:"2px solid var(--surface)",
