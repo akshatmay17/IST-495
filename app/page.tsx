@@ -274,24 +274,24 @@ select.field { appearance:none; }
 
 /* -- iPad Pro / Large Tablet landscape (1024px - 1199px) -- */
 @media (min-width: 1024px) and (max-width: 1199px) {
-  .desktop-sidebar { position: fixed; left: 0; top: 0; width: 240px; height: 100vh; overflow-y: auto; border-right: 1px solid var(--border); background: var(--surface); z-index: 100; display: flex !important; flex-direction: column; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
-  .desktop-main { margin-left: 240px; }
+  .desktop-sidebar { position: fixed; left: 0; top: 0; height: 100vh; overflow-y: auto; z-index: 100; display: flex !important; flex-direction: column; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
+  .desktop-main { margin-left: 72px; transition: margin-left .3s cubic-bezier(.4,0,.2,1); }
   .mobile-nav { display: none !important; }
   .desktop-content { max-width: 720px; margin: 0 auto; padding: 36px 28px 80px; }
 }
 
 /* -- Laptop (1200px - 1439px) -- */
 @media (min-width: 1200px) and (max-width: 1439px) {
-  .desktop-sidebar { position: fixed; left: 0; top: 0; width: 280px; height: 100vh; overflow-y: auto; border-right: 1px solid var(--border); background: var(--surface); z-index: 100; display: flex !important; flex-direction: column; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
-  .desktop-main { margin-left: 280px; }
+  .desktop-sidebar { position: fixed; left: 0; top: 0; height: 100vh; overflow-y: auto; z-index: 100; display: flex !important; flex-direction: column; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
+  .desktop-main { margin-left: 72px; transition: margin-left .3s cubic-bezier(.4,0,.2,1); }
   .mobile-nav { display: none !important; }
   .desktop-content { max-width: 900px; margin: 0 auto; padding: 40px 32px 80px; }
 }
 
 /* -- Desktop / iMac / Large Monitor (1440px+) -- */
 @media (min-width: 1440px) {
-  .desktop-sidebar { position: fixed; left: 0; top: 0; width: 300px; height: 100vh; overflow-y: auto; border-right: 1px solid var(--border); background: var(--surface); z-index: 100; display: flex !important; flex-direction: column; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
-  .desktop-main { margin-left: 300px; }
+  .desktop-sidebar { position: fixed; left: 0; top: 0; height: 100vh; overflow-y: auto; z-index: 100; display: flex !important; flex-direction: column; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
+  .desktop-main { margin-left: 72px; transition: margin-left .3s cubic-bezier(.4,0,.2,1); }
   .mobile-nav { display: none !important; }
   .desktop-content { max-width: 1100px; margin: 0 auto; padding: 48px 40px 80px; }
 }
@@ -1142,6 +1142,8 @@ function Icon({ name, size=18, color="currentColor", strokeWidth=1.8 }: { name:s
     case "alert-triangle": return <svg {...p}><path d="M12 3.5L21.5 20H2.5L12 3.5z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17" x2="12" y2="17.1"/></svg>;
     case "building": return <svg {...p}><rect x="4" y="2" width="16" height="20" rx="1.5"/><line x1="9" y1="6" x2="9" y2="6.1"/><line x1="15" y1="6" x2="15" y2="6.1"/><line x1="9" y1="10" x2="9" y2="10.1"/><line x1="15" y1="10" x2="15" y2="10.1"/><line x1="9" y1="14" x2="9" y2="14.1"/><line x1="15" y1="14" x2="15" y2="14.1"/><path d="M10 22v-4h4v4"/></svg>;
     case "clipboard": return <svg {...p}><path d="M9 3h6a1 1 0 0 1 1 1H8a1 1 0 0 1 1-1z"/><rect x="4" y="5" width="16" height="17" rx="2"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/></svg>;
+    case "sun": return <svg {...p}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>;
+    case "moon": return <svg {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
     default: return <svg {...p}><circle cx="12" cy="12" r="9"/></svg>;
   }
 }
@@ -1292,79 +1294,98 @@ function PageHead({ title, sub, right, back }: { title:string; sub?:string; righ
 function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
   active:S; go:(s:S)=>void; theme:"dark"|"light"; toggleTheme:()=>void; profile:UserProfile; onSignOut?:()=>void;
 }) {
-  const navItems: [S,string,string][] = [
-    ["home","home","Dashboard"],["cards","card","My Cards"],["chat","chat","AI Advisor"],
-    ["travel","travel","Travel"],["goals","goal","Goals"],["split","split","Split Bills"],
-    ["perks","perks","Perks"],["analytics","analytics","Analytics"],["credit-optimizer","credit-score","Credit Score"],["lifestyle","optimize","Optimizer"],["ai-recommender","star","AI Picks"],["tools","trophy","Tools"],["settings","settings","Settings"],
+  const [expanded, setExpanded] = useState(false);
+  const groups: {label:string; items:{id:S; icon:string; name:string; badge?:string}[]}[] = [
+    { label:"", items:[
+      {id:"home",icon:"home",name:"Overview"},
+    ]},
+    { label:"MONEY", items:[
+      {id:"cards",icon:"credit-card",name:"Cards",badge:String(0)},
+      {id:"perks",icon:"gift",name:"Rewards"},
+      {id:"analytics",icon:"bar-chart",name:"Insights"},
+    ]},
+    { label:"INTELLIGENCE", items:[
+      {id:"chat",icon:"cpu",name:"Advisor"},
+      {id:"credit-optimizer",icon:"trending-up",name:"Credit"},
+      {id:"ai-recommender",icon:"star",name:"Optimizer"},
+    ]},
+    { label:"PLAN", items:[
+      {id:"travel",icon:"travel",name:"Travel"},
+      {id:"goals",icon:"goal",name:"Goals"},
+      {id:"split",icon:"split",name:"Split"},
+    ]},
+    { label:"SYSTEM", items:[
+      {id:"tools",icon:"optimize",name:"Tools"},
+      {id:"settings",icon:"settings",name:"Settings"},
+    ]},
   ];
+
+  const scoreColor = profile.creditRange?.includes("800") || profile.creditRange?.includes("Excellent") ? "var(--green)" : "var(--accent)";
+
   return (
-    <div className="desktop-sidebar" style={{display:"flex",flexDirection:"column",paddingTop:28,paddingBottom:20}}>
-      <div style={{padding:"0 20px 24px"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:34,height:34,borderRadius:9,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    <div className="desktop-sidebar" onMouseEnter={()=>setExpanded(true)} onMouseLeave={()=>setExpanded(false)}
+      style={{padding:"20px 0",display:"flex",flexDirection:"column",gap:0,transition:"width .3s cubic-bezier(.4,0,.2,1)",
+        width:expanded?280:72,overflow:"hidden",background:"var(--surface)",borderRight:"1px solid var(--border)"}}>
+
+      {/* Identity */}
+      <div style={{padding:"0 16px 20px",borderBottom:"1px solid var(--border)",marginBottom:8,overflow:"hidden"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:36,height:36,borderRadius:10,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:14,fontWeight:700,color:"white"}}>
+            {profile.name?.[0]||"W"}
           </div>
-          <div>
-            <div style={{fontSize:15,fontWeight:700,color:"var(--text)",letterSpacing:"-.3px",lineHeight:1.2}}>WiseCard</div>
-            <div style={{fontSize:11,color:"var(--text2)",fontWeight:500,letterSpacing:.6,textTransform:"uppercase"}}>Elite</div>
+          <div style={{opacity:expanded?1:0,transition:"opacity .2s",whiteSpace:"nowrap",minWidth:0}}>
+            <div style={{fontSize:13,fontWeight:700,color:"var(--text)",letterSpacing:"-.2px"}}>{profile.name||"User"}</div>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>
+              <span style={{fontSize:20,fontWeight:800,color:scoreColor,letterSpacing:"-1px",lineHeight:1}}>{profile.creditRange?.split("–")[0]||"740"}</span>
+              <span style={{fontSize:10,color:"var(--text2)",fontWeight:500}}>Very Good</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {profile.name && (
-        <div style={{padding:"0 16px 20px"}}>
-          <div style={{background:"var(--accentbg)",borderRadius:8,padding:"10px 12px",border:"1px solid rgba(37,99,235,.12)"}}>
-            <div style={{fontSize:12,color:"var(--accent)",marginBottom:2,fontWeight:500}}>Signed in as</div>
-            <div style={{fontSize:14,fontWeight:600,color:"var(--text)",letterSpacing:"-.1px"}}>{profile.name}</div>
-            {profile.creditScore && <div style={{fontSize:12,color:"var(--green)",marginTop:2,fontWeight:500}}>{profile.creditScore}</div>}
+      {/* Navigation */}
+      <div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"0 8px"}}>
+        {groups.map((g,gi) => (
+          <div key={gi} style={{marginBottom:4}}>
+            {g.label && expanded && <div style={{fontSize:10,fontWeight:600,color:"var(--text3)",letterSpacing:"1.2px",padding:"12px 12px 6px",textTransform:"uppercase"}}>{g.label}</div>}
+            {!g.label && !expanded && <div style={{height:4}}/>}
+            {g.label && !expanded && <div style={{height:1,background:"var(--border)",margin:"8px 12px"}}/>}
+            {g.items.map(item => {
+              const isActive = active === item.id || (item.id==="cards" && active==="card-detail") || (item.id==="credit-optimizer" && active==="credit-optimizer");
+              return (
+                <button key={item.id} onClick={()=>go(item.id)} className="press"
+                  style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:expanded?"10px 12px":"10px 0",
+                    borderRadius:10,border:"none",cursor:"pointer",position:"relative",
+                    background:isActive?"var(--accentbg)":"transparent",
+                    color:isActive?"var(--accent)":"var(--text2)",
+                    transition:"all .2s cubic-bezier(.4,0,.2,1)",
+                    justifyContent:expanded?"flex-start":"center",
+                  }}>
+                  {isActive && <div style={{position:"absolute",left:expanded?0:-4,top:"50%",transform:"translateY(-50%)",width:3,height:20,borderRadius:2,background:"var(--accent)",transition:"all .25s cubic-bezier(.4,0,.2,1)"}}/>}
+                  <span style={{display:"flex",flexShrink:0}}><Icon name={item.icon} size={18} strokeWidth={isActive?2:1.6}/></span>
+                  {expanded && <span style={{fontSize:13,fontWeight:isActive?600:450,whiteSpace:"nowrap",letterSpacing:"-.1px"}}>{item.name}</span>}
+                </button>
+              );
+            })}
           </div>
-        </div>
-      )}
+        ))}
+      </div>
 
-      <div className="divider"/>
-
-      <nav style={{flex:1,padding:"12px 12px 0"}}>
-        {navItems.map(([id,icon,label]) => {
-          const on = active === id;
-          return (
-            <button key={id} onClick={()=>go(id)} className="press" style={{
-              width:"100%",display:"flex",alignItems:"center",gap:9,
-              padding:"9px 10px",borderRadius:7,border:"none",
-              background:on?"var(--accentbg)":"transparent",
-              color:on?"var(--accent)":"var(--text2)",
-              fontSize:14.5,fontWeight:on?600:400,
-              textAlign:"left",marginBottom:1,
-              transition:"background .12s, color .12s",
-              borderLeft:on?"2px solid var(--accent)":"2px solid transparent",
-            }}>
-              <span style={{width:18,display:"flex",alignItems:"center",justifyContent:"center",opacity:on?1:.7}}><Icon name={icon} size={15}/></span>
-              {label}
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="divider" style={{marginTop:16,marginBottom:16}}/>
-
-      <div style={{padding:"0 16px"}}>
-        {onSignOut && (
-          <button onClick={onSignOut} className="press" style={{
-            width:"100%",padding:"9px 14px",fontSize:14,
-            color:"var(--red)",background:"transparent",
-            border:"1px solid rgba(197,48,48,.25)",borderRadius:7,
-            fontWeight:500,cursor:"pointer",fontFamily:"var(--sans)",
-          }}>
-            Sign out
-          </button>
-        )}
+      {/* Theme + Sign out */}
+      <div style={{padding:"12px 8px 8px",borderTop:"1px solid var(--border)",display:"flex",flexDirection:"column",gap:4}}>
+        <button onClick={toggleTheme} className="press" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",color:"var(--text2)",width:"100%",justifyContent:expanded?"flex-start":"center"}}>
+          <Icon name={theme==="dark"?"sun":"moon"} size={18} strokeWidth={1.6}/>
+          {expanded && <span style={{fontSize:13,fontWeight:450}}>{theme==="dark"?"Light":"Dark"}</span>}
+        </button>
+        {onSignOut && <button onClick={onSignOut} className="press" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",color:"var(--text2)",width:"100%",justifyContent:expanded?"flex-start":"center"}}>
+          <Icon name="logout" size={18} strokeWidth={1.6}/>
+          {expanded && <span style={{fontSize:13,fontWeight:450}}>Sign Out</span>}
+        </button>}
       </div>
     </div>
   );
 }
 
-/* ============================================================
-   MOBILE NAV
-   ============================================================ */
 function MobileNav({ active, go }: { active:S; go:(s:S)=>void }) {
   const tabs: [S,string,string][] = [
     ["home","home","Home"],["cards","card","Cards"],["chat","chat","AI"],["travel","travel","Travel"],["goals","goal","Goals"],
@@ -1565,507 +1586,179 @@ function Onboard({ done }: { done:(p:UserProfile)=>void }) {
    HOME SCREEN
    ============================================================ */
 function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserProfile; cards:CreditCard[]; go:(s:S)=>void; dataLoaded?:boolean; onUpdateCard?:(id:string,balance:number,points:number)=>void }) {
-  const h = new Date().getHours();
-  const greet = h<12?"Good morning":h<17?"Good afternoon":"Good evening";
-  const totalPts = cards.reduce((s,c)=>s+c.points,0);
-  const totalBal = cards.reduce((s,c)=>s+c.balance,0);
-  const totalLim = cards.reduce((s,c)=>s+c.limit,0);
-  const util = pct(totalBal, totalLim);
-  const ptsVal = Math.round(totalPts*.015);
-  const [selCard, setSelCard] = useState<string|null>(null);
-  const [search, setSearch] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
-  const [editingCard, setEditingCard] = useState<string|null>(null);
-  const [editBal, setEditBal] = useState("");
-  const [editPts, setEditPts] = useState("");
-  const dueSoon = cards.filter(c=>{ const d=daysUntil(c.dueDate); return d>=0&&d<=7; });
-  const highUtil = cards.filter(c=>c.limit>0&&c.balance/c.limit>0.3);
-  const totalSpend = Object.values(profile.spending||{}).reduce((s,v)=>s+Number(v||0),0);
-  const topCat = Object.entries(profile.spending||{}).sort((a,b)=>Number(b[1])-Number(a[1]))[0];
-  const missingRewards = cards.length<3 ? Math.round((3-cards.length)*140) : 0;
-  const COLORS = ["#3B82F6","#22C55E","#F59E0B","#EF4444","#8B5CF6","#EC4899"];
+  const totalBal = cards.reduce((s,c) => s+c.balance, 0);
+  const totalLim = cards.reduce((s,c) => s+c.limit, 0);
+  const totalPts = cards.reduce((s,c) => s+c.points, 0);
+  const util = totalLim > 0 ? Math.round(totalBal/totalLim*100) : 0;
+  const f = (n:number) => n>=1000?(n/1000).toFixed(1).replace(/\.0$/,"")+"k":String(n);
+  const hour = new Date().getHours();
+  const greeting = hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
 
-  // Search results
-  const searchResults = search.trim().length>1 ? [
-    ...cards.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.issuer.toLowerCase().includes(search.toLowerCase())).map(c=>({type:"card",label:c.name,sub:c.issuer,action:()=>go("cards")})),
-    ...["Analytics","Compare Cards","Travel & Points","Goals","Split Bills","Perks","AI Advisor","Optimizer","Notifications","Referral"].filter(l=>l.toLowerCase().includes(search.toLowerCase())).map(l=>({type:"screen",label:l,sub:"Go to screen",action:()=>go(l.toLowerCase().replace(/ &.*/,"").replace(/ /g,"-") as S)})),
-  ].slice(0,6) : [];
-
-  // Speedometer gauge
-  // Luxury ring gauge -- 270° gradient arc, no needle. A soft glowing marker sits ON the
-  // arc at the selected card instead of a center-pivoting pointer.
-  const HomeGauge = () => {
-    if(cards.length===0) return null;
-    const W=300,H=260,cx=150,cy=130,R=100,SW=16;
-    const total=totalLim||1;
-    const startAngle = Math.PI*0.75; // 135°
-    const totalSweep = Math.PI*1.5;  // 270°
-    let cum=startAngle;
-    const segs=cards.map((card,i)=>{
-      const frac=card.limit/total;
-      const sweep=frac*totalSweep;
-      const a1=cum,a2=cum+sweep; cum=a2;
-      const x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);
-      const x2=cx+R*Math.cos(a2),y2=cy+R*Math.sin(a2);
-      const large = sweep>Math.PI?1:0;
-      return {card,color:COLORS[i%COLORS.length],path:`M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2}`,mid:(a1+a2)/2};
-    });
-    let cum2=startAngle;
-    const usedSegs=cards.map((card,i)=>{
-      const frac=card.limit/total; const sweep=frac*totalSweep;
-      const a1=cum2; cum2+=sweep;
-      const balFrac=card.limit>0?Math.min(1,card.balance/card.limit):0;
-      const usedSweep=sweep*balFrac;
-      const x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);
-      const x2=cx+R*Math.cos(a1+usedSweep),y2=cy+R*Math.sin(a1+usedSweep);
-      return {path:usedSweep>0.02?`M ${x1} ${y1} A ${R} ${R} 0 ${usedSweep>Math.PI?1:0} 1 ${x2} ${y2}`:"",color:COLORS[i%COLORS.length]};
-    });
-    const trackEndX = cx+R*Math.cos(startAngle+totalSweep), trackEndY = cy+R*Math.sin(startAngle+totalSweep);
-    const trackStartX = cx+R*Math.cos(startAngle), trackStartY = cy+R*Math.sin(startAngle);
-    const sel=segs.find(s=>s.card.id===selCard);
-    const markerX = sel ? cx+R*Math.cos(sel.mid) : null;
-    const markerY = sel ? cy+R*Math.sin(sel.mid) : null;
-    const sc=cards.find(c=>c.id===selCard);
-
-    return (
-      <div>
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",maxWidth:280,margin:"0 auto"}}>
-          <defs>
-            {segs.map((s,i)=>(
-              <linearGradient key={i} id={`hgrad-${s.card.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={s.color} stopOpacity="0.75"/>
-                <stop offset="100%" stopColor={s.color} stopOpacity="1"/>
-              </linearGradient>
-            ))}
-          </defs>
-          <path d={`M ${trackStartX} ${trackStartY} A ${R} ${R} 0 1 1 ${trackEndX} ${trackEndY}`} fill="none" stroke="rgba(255,255,255,.1)" strokeWidth={SW} strokeLinecap="round"/>
-          {segs.map((s,i)=>(
-            <path key={i} d={s.path} fill="none" stroke={`url(#hgrad-${s.card.id})`}
-              strokeWidth={selCard===s.card.id?SW+6:SW} strokeLinecap="round"
-              opacity={selCard&&selCard!==s.card.id?0.35:1}
-              style={{cursor:"pointer",transition:"all .25s ease",filter:selCard===s.card.id?`drop-shadow(0 2px 8px ${s.color}90)`:"none"}}
-              onClick={()=>setSelCard(id=>id===s.card.id?null:s.card.id)}/>
-          ))}
-          {usedSegs.map((s,i)=>(
-            s.path?<path key={i} d={s.path} fill="none" stroke="rgba(0,0,0,.35)" strokeWidth={SW*.45} strokeLinecap="round" style={{pointerEvents:"none"}}/>:null
-          ))}
-          {markerX!==null && markerY!==null && sel && (
-            <>
-              <circle cx={markerX} cy={markerY} r={11} fill={sel.color} opacity={0.3}>
-                <animate attributeName="r" values="9;14;9" dur="2s" repeatCount="indefinite"/>
-                <animate attributeName="opacity" values="0.35;0.08;0.35" dur="2s" repeatCount="indefinite"/>
-              </circle>
-              <circle cx={markerX} cy={markerY} r={6} fill="white" style={{filter:`drop-shadow(0 1px 4px ${sel.color})`}}/>
-              <circle cx={markerX} cy={markerY} r={3.2} fill={sel.color}/>
-            </>
-          )}
-          {sc?(
-            <>
-              <text x={cx} y={cy-6} textAnchor="middle" fill="white" fontSize={17} fontWeight="700">{sc.name}</text>
-              <text x={cx} y={cy+16} textAnchor="middle" fill="rgba(255,255,255,.55)" fontSize={10} fontWeight="600" letterSpacing="1">${f(sc.balance)} OF ${f(sc.limit)}</text>
-            </>
-          ):(
-            <>
-              <text x={cx} y={cy-6} textAnchor="middle" fill="white" fontSize={28} fontWeight="700" letterSpacing="-0.5">{util}%</text>
-              <text x={cx} y={cy+16} textAnchor="middle" fill="rgba(255,255,255,.5)" fontSize={10} fontWeight="600" letterSpacing="1.2">OVERALL UTILIZATION</text>
-            </>
-          )}
-        </svg>
-        {/* Card pills */}
-        <div style={{display:"flex",flexWrap:"wrap",gap:6,justifyContent:"center",marginTop:6}}>
-          {segs.map((s,i)=>(
-            <button key={i} onClick={()=>setSelCard(id=>id===s.card.id?null:s.card.id)} className="press" style={{
-              display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:99,
-              border:`1.5px solid ${selCard===s.card.id?s.color:"rgba(255,255,255,.15)"}`,
-              background:selCard===s.card.id?`${s.color}25`:"rgba(255,255,255,.07)",cursor:"pointer",transition:"all .15s"
-            }}>
-              <span style={{width:7,height:7,borderRadius:"50%",background:s.color,flexShrink:0}}/>
-              <span style={{fontSize:11,fontWeight:600,color:selCard===s.card.id?"white":"rgba(255,255,255,.65)"}}>{s.card.issuer}</span>
-              <span style={{fontSize:11,color:"rgba(255,255,255,.4)"}}>{pct(s.card.balance,s.card.limit)}%</span>
-            </button>
-          ))}
-        </div>
-        {/* Selected card detail */}
-        {sc && (
-          <div className="ai" style={{marginTop:10,background:"rgba(0,0,0,.22)",borderRadius:12,padding:"12px 14px"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div>
-                <p style={{color:"white",fontSize:14,fontWeight:700}}>{sc.name}</p>
-                <p style={{color:"rgba(255,255,255,.5)",fontSize:12,marginTop:1}}>{sc.rewardRate} · {f(sc.points)} pts</p>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <p style={{color:"#F0D080",fontSize:16,fontWeight:700}}>${f(sc.balance)}<span style={{color:"rgba(255,255,255,.35)",fontSize:11,fontWeight:400}}> used</span></p>
-                <p style={{color:"rgba(255,255,255,.45)",fontSize:12}}>${f(sc.limit-sc.balance)} left</p>
-              </div>
-            </div>
-            <div style={{marginTop:8}}>
-              <div style={{height:4,background:"rgba(255,255,255,.12)",borderRadius:99,overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${pct(sc.balance,sc.limit)}%`,background:pct(sc.balance,sc.limit)>30?"#EF4444":"#22C55E",borderRadius:99,transition:"width .6s ease"}}/>
-              </div>
-            </div>
-            {/* Quick balance update */}
-            {editingCard===sc.id?(
-              <div style={{marginTop:10,display:"flex",gap:8,alignItems:"center"}}>
-                <input className="field" type="number" placeholder="New balance" value={editBal} onChange={e=>setEditBal(e.target.value)} style={{flex:1,padding:"7px 10px",fontSize:13,background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"white"}}/>
-                <input className="field" type="number" placeholder="Points" value={editPts} onChange={e=>setEditPts(e.target.value)} style={{flex:1,padding:"7px 10px",fontSize:13,background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"white"}}/>
-                <button onClick={()=>{onUpdateCard&&onUpdateCard(sc.id,Number(editBal)||sc.balance,Number(editPts)||sc.points);setEditingCard(null);showToast("Card updated");}} style={{background:"#22C55E",border:"none",borderRadius:7,padding:"7px 12px",color:"white",fontSize:13,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Save</button>
-                <button onClick={()=>setEditingCard(null)} style={{background:"rgba(255,255,255,.1)",border:"none",borderRadius:7,padding:"7px 10px",color:"rgba(255,255,255,.6)",fontSize:13,cursor:"pointer"}}>✕</button>
-              </div>
-            ):(
-              <button onClick={()=>{setEditBal(String(sc.balance));setEditPts(String(sc.points));setEditingCard(sc.id);}} style={{marginTop:8,background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.12)",borderRadius:7,padding:"6px 12px",color:"rgba(255,255,255,.6)",fontSize:12,cursor:"pointer",fontFamily:"var(--sans)"}}>
-                Update balance & points
-              </button>
-            )}
-          </div>
-        )}
+  if (!dataLoaded) return (
+    <div className="screen desktop-content" style={{padding:"60px 40px"}}>
+      <div style={{height:32,width:220}} className="skeleton-shimmer"/><br/>
+      <div style={{height:16,width:280}} className="skeleton-shimmer"/><br/><br/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
+        {[1,2,3].map(i=><div key={i} style={{height:100,borderRadius:14}} className="skeleton-shimmer"/>)}
       </div>
-    );
-  };
+    </div>
+  );
+
+  const utilColor = util<30?"var(--green)":util<50?"var(--amber)":"var(--red)";
+  const utilLabel = util<30?"Healthy":util<50?"Monitor":"High";
+  const score = profile.creditRange?.split("–")[0]||"740";
+  const totalRewards = cards.reduce((s,c) => s + (c.points * 0.01), 0);
 
   return (
-    <div className="screen desktop-content screen-enter" style={{position:"relative"}}>
-      {/* Ambient aurora background -- fixed, behind all content via negative z-index (bulletproof
-          regardless of how other unpositioned content paints), very subtle */}
-      <div style={{position:"fixed",top:-100,left:"10%",width:420,height:420,borderRadius:"50%",background:"radial-gradient(circle,rgba(37,99,235,.07),transparent 70%)",animation:"meshDrift 20s ease-in-out infinite",pointerEvents:"none",zIndex:-1}}/>
-      <div style={{position:"fixed",top:200,right:"5%",width:340,height:340,borderRadius:"50%",background:"radial-gradient(circle,rgba(34,197,94,.05),transparent 70%)",animation:"meshDrift 24s ease-in-out infinite reverse",pointerEvents:"none",zIndex:-1}}/>
-      {/* Header with search */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
-        <div>
-          <p style={{color:"var(--text2)",fontSize:14,fontWeight:500,marginBottom:3}}>{greet}</p>
-          <h1 style={{fontSize:26,fontWeight:700,lineHeight:1.2,letterSpacing:"-.5px",color:"var(--text)"}}>{profile.name||"Welcome"}</h1>
+    <div className="screen desktop-content screen-enter">
+      <div className="px" style={{paddingTop:8}}>
+        {/* Greeting */}
+        <div className="au" style={{marginBottom:32}}>
+          <h1 style={{fontSize:28,fontWeight:300,color:"var(--text)",letterSpacing:"-1px",lineHeight:1.2,margin:0}}>
+            {greeting}, <span style={{fontWeight:700}}>{profile.name||"there"}</span>.
+          </h1>
+          <p style={{fontSize:14,color:"var(--text2)",marginTop:6,fontWeight:400}}>
+            {util < 30 ? "Your finances look healthy." : util < 50 ? "A few things need attention." : "Some metrics need your focus."}
+          </p>
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={()=>setShowSearch(s=>!s)} className="press" style={{width:40,height:40,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="search" size={17}/></button>
-          <button onClick={()=>go("notifications")} className="press" style={{width:40,height:40,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-            <Icon name="bell" size={17}/>
-            {dueSoon.length>0&&<span style={{position:"absolute",top:6,right:6,width:7,height:7,borderRadius:"50%",background:"var(--red)"}}/>}
-          </button>
-          <button onClick={()=>go("settings")} className="press" style={{width:40,height:40,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="settings" size={17}/></button>
-        </div>
-      </div>
 
-      {/* Search bar */}
-      {showSearch && (
-        <div className="ap" style={{marginBottom:16,position:"relative"}}>
-          <input className="field" autoFocus placeholder="Search cards, screens, features..." value={search} onChange={e=>setSearch(e.target.value)}
-            onKeyDown={e=>e.key==="Escape"&&(setShowSearch(false),setSearch(""))}
-            style={{paddingLeft:40,paddingRight:36}}/>
-          <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",color:"var(--text3)"}}><Icon name="search" size={15}/></span>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"var(--text3)",fontSize:18,cursor:"pointer",padding:0}}>✕</button>}
-          {searchResults.length>0&&(
-            <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,right:0,background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,boxShadow:"var(--shadow-lg)",zIndex:100,overflow:"hidden"}}>
-              {searchResults.map((r,i)=>(
-                <button key={i} onClick={()=>{r.action();setShowSearch(false);setSearch("");}} className="press" style={{width:"100%",padding:"12px 16px",background:"none",border:"none",borderBottom:i<searchResults.length-1?"1px solid var(--border)":"none",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{display:"flex",color:"var(--text2)"}}><Icon name={r.type==="card"?"card":"home"} size={13}/></span>
-                  <div>
-                    <p style={{color:"var(--text)",fontSize:14,fontWeight:600}}>{r.label}</p>
-                    <p style={{color:"var(--text2)",fontSize:12}}>{r.sub}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* "What to do next" -- ONE ranked action, not three competing banners.
-          Priority order: real money/score risk (payment, utilization) beats opportunity (rewards). */}
-      {(() => {
-        type Item = {key:string;urgent:boolean;icon:string;color:string;bg:string;border:string;title:string;sub:string;cta:string;action:S};
-        const items: Item[] = [];
-        if (dueSoon.length>0) items.push({key:"due",urgent:true,icon:"clock",color:"var(--red)",bg:"var(--redbg)",border:"rgba(220,38,38,.2)",title:`Payment due in ${daysUntil(dueSoon[0].dueDate)} days`,sub:`${dueSoon[0].name} — minimum $${f(dueSoon[0].minPayment)}`,cta:"Pay",action:"cards"});
-        if (highUtil.length>0) items.push({key:"util",urgent:true,icon:"analytics",color:"var(--amber)",bg:"var(--amberbg)",border:"rgba(217,119,6,.2)",title:`High utilization on ${highUtil[0].name}`,sub:`${pct(highUtil[0].balance,highUtil[0].limit)}% used — pay down to protect your score`,cta:"Review",action:"cards"});
-        if (missingRewards>0 && cards.length>0) items.push({key:"rewards",urgent:false,icon:"rocket",color:"var(--accent)",bg:"var(--accentbg)",border:"rgba(37,99,235,.15)",title:`You could earn ~$${f(missingRewards)}/year more`,sub:"See which card to add for your spending",cta:"See how",action:"ai-recommender"});
-        if (items.length===0) return null;
-        const top = items[0];
-        const rest = items.slice(1);
-        return (
-          <div className="au" style={{marginBottom:20}}>
-            <div style={{background:top.bg,border:`1px solid ${top.border}`,borderRadius:"var(--radius-md)",padding:"15px 16px",display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go(top.action)}>
-              <span style={{flexShrink:0,color:top.color}}><Icon name={top.icon} size={19}/></span>
-              <div style={{flex:1}}>
-                <p style={{color:top.color,fontSize:14,fontWeight:700}}>{top.title}</p>
-                <p style={{color:"var(--text2)",fontSize:13,marginTop:1}}>{top.sub}</p>
-              </div>
-              <span style={{color:top.color,fontSize:13,fontWeight:600,flexShrink:0}}>{top.cta} →</span>
-            </div>
-            {rest.length>0 && (
-              <button onClick={()=>go(rest[0].action)} style={{width:"100%",textAlign:"left",background:"none",border:"none",padding:"8px 4px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
-                <span style={{width:5,height:5,borderRadius:"50%",background:rest[0].color,flexShrink:0}}/>
-                <span style={{color:"var(--text3)",fontSize:12}}>Also: {rest[0].title.charAt(0).toLowerCase()+rest[0].title.slice(1)}</span>
-              </button>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Spending insight */}
-      {totalSpend>0&&topCat&&(
-        <div className="au" style={{background:"var(--greenbg)",border:"1px solid rgba(39,103,73,.15)",borderRadius:14,padding:"13px 16px",marginBottom:16,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}} onClick={()=>go("analytics")}>
-          <span style={{flexShrink:0,color:"var(--green)"}}><Icon name="analytics" size={18}/></span>
-          <div style={{flex:1}}>
-            <p style={{color:"var(--green)",fontSize:14,fontWeight:600}}>Your biggest spend: {topCat[0].charAt(0).toUpperCase()+topCat[0].slice(1)}</p>
-            <p style={{color:"var(--text2)",fontSize:13,marginTop:1}}>${f(Number(topCat[1]))}/mo · ${f(Number(topCat[1])*12)}/yr — see full breakdown</p>
-          </div>
-          <span style={{color:"var(--green)",fontSize:14}}>→</span>
-        </div>
-      )}
-
-      {/* Hero — Portfolio Speedometer */}
-      <div className="au" style={{
-        background:"linear-gradient(145deg,#0f1e3d 0%,#1a3a72 55%,#0d2045 100%)",
-        borderRadius:22,padding:"22px 18px 18px",marginBottom:16,
-        boxShadow:"0 8px 40px rgba(37,99,235,.3)",position:"relative",overflow:"hidden"
-      }}>
-        <div style={{position:"absolute",top:-50,right:-50,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,.02)"}}/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-          <div>
-            <p style={{color:"rgba(255,255,255,.45)",fontSize:11,letterSpacing:1.2,textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Portfolio</p>
-            <h2 style={{fontSize:30,fontWeight:800,color:"#F0D080",letterSpacing:"-1px",lineHeight:1}}>{f(totalPts)}<span style={{fontSize:14,fontWeight:300,opacity:.5}}> pts</span></h2>
-            <p style={{color:"rgba(255,255,255,.45)",fontSize:12,marginTop:2}}>≈ <strong style={{color:"#F0D080"}}>${f(ptsVal)}</strong> value</p>
-          </div>
-          <div style={{textAlign:"right"}}>
-            <p style={{color:"rgba(255,255,255,.4)",fontSize:10,textTransform:"uppercase",letterSpacing:.8,marginBottom:3}}>{cards.length} Card{cards.length!==1?"s":""}</p>
-            <p style={{color:"white",fontSize:12,fontWeight:600}}>${f(totalLim-totalBal)} available</p>
-          </div>
-        </div>
-        {cards.length>0?<HomeGauge/>:(
-          <div style={{textAlign:"center",padding:"16px 0"}}>
-            <p style={{color:"rgba(255,255,255,.3)",fontSize:14}}>Add a card to see your portfolio gauge</p>
-            <button onClick={()=>go("add-card")} style={{marginTop:10,background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",borderRadius:8,padding:"8px 18px",color:"white",fontSize:13,cursor:"pointer",fontFamily:"var(--sans)"}}>+ Add Card</button>
-          </div>
-        )}
-        <div style={{display:"flex",background:"rgba(0,0,0,.2)",borderRadius:12,padding:"11px 14px",gap:0,marginTop:12}}>
+        {/* Three key signals */}
+        <div className="au d1" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:28}}>
           {[
-            {l:"Balance",v:`$${f(totalBal)}`,c:"#F0D080"},
-            {l:"Utilization",v:`${util}%`,c:util<30?"#22C55E":util<50?"#F59E0B":"#EF4444"},
-            {l:"Available",v:`$${f(totalLim-totalBal)}`,c:"rgba(255,255,255,.75)"},
-          ].map(({l,v,c},i)=>(
-            <div key={l} style={{flex:1,textAlign:"center",borderLeft:i>0?"1px solid rgba(255,255,255,.08)":"none"}}>
-              <p style={{color:"rgba(255,255,255,.35)",fontSize:10,marginBottom:3,letterSpacing:.6,textTransform:"uppercase"}}>{l}</p>
-              <p style={{color:c,fontSize:14,fontWeight:700}}>{v}</p>
+            {label:"Credit Score",value:score,sub:"+8 this month",color:"var(--accent)",click:()=>go("credit-optimizer")},
+            {label:"Utilization",value:`${util}%`,sub:utilLabel,color:utilColor,click:()=>go("credit-optimizer")},
+            {label:"Rewards",value:`$${Math.round(totalRewards)}`,sub:`Across ${cards.length} cards`,color:"var(--green)",click:()=>go("perks")},
+          ].map((s,i) => (
+            <div key={i} onClick={s.click} className="card-surface hover-lift press" style={{padding:"20px 18px",cursor:"pointer"}}>
+              <div style={{fontSize:11,color:"var(--text2)",fontWeight:500,letterSpacing:".3px",textTransform:"uppercase",marginBottom:8}}>{s.label}</div>
+              <div style={{fontSize:28,fontWeight:800,color:s.color,letterSpacing:"-1.5px",lineHeight:1}}>{s.value}</div>
+              <div style={{fontSize:12,color:"var(--text2)",marginTop:6,fontWeight:450}}>{s.sub}</div>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Quick actions */}
-      <div className="au" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:20}}>
-        {([
-          ["chat","AI Advisor","chat"],
-          ["analytics","Analytics","analytics"],
-          ["travel","Travel","travel"],
-          ["goal","Goals","goals"],
-          ["split","Split Bill","split"],
-          ["optimize","Optimizer","lifestyle"],
-          ["credit-score","Credit Score","credit-optimizer"],
-          ["trophy","Tools","tools"],
-        ] as [string,string,S][]).map(([icon,label,target])=>(
-          <button key={label} onClick={()=>go(target)} className="hover-lift press card-surface" style={{padding:"14px 10px",textAlign:"center",width:"100%"}}>
-            <span style={{display:"flex",justifyContent:"center",marginBottom:6,color:"var(--accent)"}}><Icon name={icon} size={19}/></span>
-            <p style={{color:"var(--text)",fontSize:12,fontWeight:600}}>{label}</p>
-          </button>
-        ))}
-      </div>
-
-      {/* Quick Pick widget -- "what card should I use right now?" */}
-      {cards.length > 0 && (
-        <div className="au card-surface" style={{padding:"16px 18px",marginBottom:20,border:"1.5px solid var(--accent)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <span style={{color:"var(--accent)",display:"flex"}}><Icon name="optimize" size={16}/></span>
-            <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>What card should I use right now?</p>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
-            {([
-              ["dining","Dining","dining"],["groceries","Groceries","groceries"],
-              ["gas","Gas","gas"],["travel","Travel","travel"],
-              ["shopping","Shopping","shopping"],["streaming","Streaming","streaming"],
-              ["drugstore","Drugstore","drugstore"],["other","Other","other"],
-            ] as [string,string,string][]).map(([icon,label,cat])=>{
-              // Score each owned card for this category based on its rewardRate text
-              const scored = cards.map(c=>{
-                const rr = c.rewardRate.toLowerCase();
-                let mult = 1;
-                if(cat==="dining"&&rr.includes("dining")) mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"3");
-                else if(cat==="groceries"&&rr.includes("grocer")) mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"3");
-                else if(cat==="gas"&&rr.includes("gas")) mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"3");
-                else if(cat==="travel"&&rr.includes("travel")) mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"3");
-                else if(cat==="streaming"&&rr.includes("stream")) mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"3");
-                else if(cat==="shopping"&&(rr.includes("everything")||rr.includes("all"))) mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"1.5");
-                else mult = parseFloat(rr.match(/(\d+)x/)?.[1]||"1");
-                return {card:c, mult};
-              }).sort((a,b)=>b.mult-a.mult);
-              const best = scored[0];
-              return (
-                <button key={cat} onClick={()=>{
-                  if(best) showToast(`Use ${best.card.name} -- ${best.mult}x rewards on ${label.toLowerCase()}`);
-                }} className="press hover-lift" style={{
-                  padding:"10px 6px",borderRadius:10,background:"var(--surface2)",border:"1px solid var(--border)",
-                  textAlign:"center",cursor:"pointer",
-                }}>
-                  <span style={{display:"flex",justifyContent:"center",marginBottom:4,color:"var(--text2)"}}><Icon name={icon} size={15}/></span>
-                  <span style={{color:"var(--text2)",fontSize:10,fontWeight:600}}>{label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* My Cards */}
-      <div className="au" style={{marginBottom:20}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <h3 style={{fontSize:17,fontWeight:700,color:"var(--text)"}}>My Cards</h3>
-          <button onClick={()=>go("cards")} style={{color:"var(--accent)",fontSize:13,fontWeight:600,background:"none",border:"none",cursor:"pointer"}}>
-            {cards.length>0?"See all →":"Add a card →"}
-          </button>
-        </div>
-        {!dataLoaded?(
-          <><CardSkeleton/><div style={{marginTop:10}}><CardSkeleton/></div></>
-        ):cards.length===0?(
-          <button onClick={()=>go("add-card")} className="press hover-lift" style={{
-            width:"100%",padding:"28px 20px",background:"var(--surface)",
-            border:"2px dashed var(--accent)",borderRadius:18,textAlign:"center",cursor:"pointer",
-          }}>
-            <div style={{display:"flex",justifyContent:"center",marginBottom:8,color:"var(--accent)"}}><Icon name="card" size={24}/></div>
-            <p style={{color:"var(--accent)",fontSize:15,fontWeight:700,marginBottom:4}}>Add your first card</p>
-            <p style={{color:"var(--text2)",fontSize:13}}>Search 50+ cards and track everything in one place.</p>
-          </button>
-        ):(
-          <>
-            {cards.slice(0,3).map(card=>{
-              const u=pct(card.balance,card.limit);
-              const days=daysUntil(card.dueDate);
-              return (
-                <div key={card.id} className="hover-lift" style={{
-                  background:"var(--surface)",border:"1px solid var(--border)",
-                  borderRadius:16,padding:"14px 16px",marginBottom:10,
-                }}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <div style={{width:42,height:27,borderRadius:6,background:card.gradient,boxShadow:"0 2px 8px rgba(0,0,0,.4)",display:"flex",alignItems:"flex-end",justifyContent:"flex-end",padding:"2px 3px"}}>
-                        <NetworkBadge issuer={card.issuer} size={9}/>
-                      </div>
-                      <div>
-                        <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{card.name}</p>
-                        <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{card.issuer} · {card.rewardRate}</p>
-                      </div>
-                    </div>
-                    <div style={{textAlign:"right"}}>
-                      <p style={{color:"var(--accent)",fontSize:14,fontWeight:700}}>{f(card.points)} <span style={{fontSize:11,opacity:.6}}>pts</span></p>
-                      {days>=0&&days<=7&&<p style={{color:"var(--red)",fontSize:11,marginTop:1}}>Due in {days}d</p>}
-                    </div>
+        {/* Today — most important action */}
+        {util > 15 && (
+          <div className="au d2" style={{marginBottom:24}}>
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:10}}>TODAY</div>
+            <div className="card-surface" style={{padding:"18px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}}>
+              <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)",marginTop:7,flexShrink:0}}/>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:"var(--text)",lineHeight:1.4}}>
+                    {util > 30 ? "Utilization is elevated" : "Statement closing soon"}
                   </div>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                    <span style={{color:"var(--text2)",fontSize:12}}>${f(card.balance)} of ${f(card.limit)}</span>
-                    <span style={{color:uc(u),fontSize:12,fontWeight:600}}>{u}% used</span>
+                  <div style={{fontSize:12,color:"var(--text2)",marginTop:2,lineHeight:1.5}}>
+                    Pay ${Math.round(totalBal * 0.5)} to reduce utilization from {util}% to {Math.round(util*0.5)}%.
+                    <span style={{color:"var(--green)",fontWeight:600}}> Potential impact: +8–12 pts</span>
                   </div>
-                  <Bar v={card.balance} max={card.limit} color={uc(u)} h={4}/>
                 </div>
-              );
-            })}
-            <button onClick={()=>go("add-card")} className="press" style={{
-              width:"100%",padding:"12px",background:"none",
-              border:"2px dashed var(--border2)",borderRadius:14,
-              color:"var(--text3)",fontSize:13,fontWeight:500,cursor:"pointer",
-            }}>+ Add another card</button>
-          </>
-        )}
-      </div>
-
-      {/* Approval chances -- real, computed from this user's actual credit score and income,
-          using the same heuristic as the full AI Recommender screen (never two different numbers
-          for the same card in two different places) */}
-      {(() => {
-        const ownedIds = cards.map(c=>c.dbId);
-        const candidates = CARD_DB.filter(c=>!ownedIds.includes(c.id) && (profile.goal==="travel"?c.category==="travel":profile.goal==="dollar"?c.category==="cashback":true));
-        const pool = candidates.length>=3 ? candidates : CARD_DB.filter(c=>!ownedIds.includes(c.id));
-        const scored = pool
-          .map(c=>({name:c.name, chance:calcApprovalChance(c, profile)}))
-          .sort((a,b)=>b.chance-a.chance)
-          .slice(0,3);
-        if (scored.length===0) return null;
-        const chanceColor = (c:number) => c>=70?"var(--green)":c>=45?"var(--amber)":"var(--red)";
-        return (
-          <div className="au card-surface" style={{padding:"18px 20px",marginBottom:20}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-              <h3 style={{fontSize:16,fontWeight:700,color:"var(--text)"}}>Approval Chances</h3>
-              <span className="pill pill-gold" style={{fontSize:11}}>Based on your profile</span>
+              </div>
+              <button onClick={()=>go("credit-optimizer")} className="press" style={{padding:"8px 16px",borderRadius:8,border:"none",background:"var(--accent)",color:"white",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>Review</button>
             </div>
-            <p style={{color:"var(--text3)",fontSize:11,marginBottom:14}}>Estimated from your credit score range and income -- not a guarantee.</p>
-            {scored.map(({name,chance})=>(
-              <div key={name} style={{marginBottom:12}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                  <span style={{color:"var(--text)",fontSize:13,fontWeight:500}}>{name}</span>
-                  <span style={{color:chanceColor(chance),fontSize:13,fontWeight:700}}>{chance}%</span>
+          </div>
+        )}
+
+        {/* Smart picks — ambient AI */}
+        <div className="au d3" style={{marginBottom:24}}>
+          <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:10}}>SMART PICKS</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            {[
+              {q:"Dining tonight?",tip:"Use Amex Gold → 4x points",icon:"dining",click:()=>go("ai-recommender")},
+              {q:"Booking travel?",tip:"Use Sapphire Reserve → 8x",icon:"travel",click:()=>go("ai-recommender")},
+            ].map((pick,i) => (
+              <div key={i} onClick={pick.click} className="card-surface hover-lift press" style={{padding:"16px 18px",cursor:"pointer"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                  <Icon name={pick.icon} size={14} color="var(--accent)"/>
+                  <span style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{pick.q}</span>
                 </div>
-                <Bar v={chance} max={100} color={chanceColor(chance)} h={5}/>
+                <div style={{fontSize:11,color:"var(--text2)",lineHeight:1.4}}>{pick.tip}</div>
               </div>
             ))}
-            <button onClick={()=>go("ai-recommender")} style={{marginTop:8,color:"var(--accent)",fontSize:13,fontWeight:600,background:"none",border:"none",cursor:"pointer",padding:0}}>See full recommendations →</button>
           </div>
-        );
-      })()}
-
-      {/* ── Dashboard Charts ── */}
-      <div className="au d5 card-surface hover-lift" style={{padding:"18px 20px",marginBottom:14,cursor:"pointer"}} onClick={()=>go("analytics")}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <div>
-            <p style={{color:"var(--text2)",fontSize:13,fontWeight:500}}>Spending Breakdown</p>
-            <p style={{color:"var(--text)",fontSize:18,fontWeight:700}}>${f(totalBal)} balance</p>
-          </div>
-          <span style={{color:"var(--accent)",fontSize:11,fontWeight:600}}>View Details →</span>
         </div>
-        {(() => {
-          const cats = [
-            {label:"Dining",pct:28,color:"#3B82F6"},
-            {label:"Grocery",pct:22,color:"#22C55E"},
-            {label:"Travel",pct:18,color:"#F59E0B"},
-            {label:"Gas",pct:12,color:"#EF4444"},
-            {label:"Shopping",pct:11,color:"#8B5CF6"},
-            {label:"Other",pct:9,color:"#6B7280"},
-          ];
-          return (
-            <div>
-              <div style={{display:"flex",height:8,borderRadius:4,overflow:"hidden",marginBottom:8}}>
-                {cats.map(c=><div key={c.label} style={{width:`${c.pct}%`,background:c.color,transition:"width .5s"}}/>)}
-              </div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:"4px 12px"}}>
-                {cats.map(c=><div key={c.label} style={{display:"flex",alignItems:"center",gap:4}}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:c.color}}/>
-                  <span style={{fontSize:10,color:"var(--text2)"}}>{c.label} {c.pct}%</span>
-                </div>)}
-              </div>
+
+        {/* Cards */}
+        {cards.length > 0 && (
+          <div className="au d4" style={{marginBottom:24}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>YOUR CARDS</div>
+              <button onClick={()=>go("cards")} style={{fontSize:12,color:"var(--accent)",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>View all</button>
             </div>
-          );
-        })()}
-      </div>
+            <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:4}} className="no-scrollbar">
+              {cards.slice(0,4).map(c => (
+                <div key={c.id} onClick={()=>go("cards")} className="press" style={{cursor:"pointer",flexShrink:0,width:200}}>
+                  <div style={{background:c.gradient,borderRadius:12,padding:"16px 14px",height:110,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"transform .2s",position:"relative",overflow:"hidden"}}>
+                    <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"linear-gradient(135deg,rgba(255,255,255,.08) 0%,transparent 50%)",pointerEvents:"none"}}/>
+                    <div style={{fontSize:10,color:"rgba(255,255,255,.6)",letterSpacing:"1px",textTransform:"uppercase"}}>{c.issuer}</div>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:700,color:"white"}}>{c.name}</div>
+                      <div style={{fontSize:11,color:"rgba(255,255,255,.5)",marginTop:2}}>${c.balance.toLocaleString()} / ${c.limit.toLocaleString()}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-      <div className="au d6 card-surface hover-lift" style={{padding:"18px 20px",marginBottom:14,cursor:"pointer"}} onClick={()=>go("credit-optimizer")}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <p style={{color:"var(--text2)",fontSize:13,fontWeight:500}}>Credit Health</p>
-          <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:util<30?"rgba(34,197,94,.1)":util<50?"rgba(245,158,11,.1)":"rgba(239,68,68,.1)",color:util<30?"#22c55e":util<50?"#f59e0b":"#ef4444",fontWeight:600}}>{util<30?"Healthy":util<50?"Monitor":"High"}</span>
+        {/* Spending snapshot */}
+        <div className="au d5" style={{marginBottom:24}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:12}}>
+            <div>
+              <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>SPENDING</div>
+              <div style={{fontSize:22,fontWeight:700,color:"var(--text)",letterSpacing:"-1px",marginTop:4}}>${totalBal.toLocaleString()}</div>
+            </div>
+            <button onClick={()=>go("analytics")} style={{fontSize:12,color:"var(--accent)",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Details →</button>
+          </div>
+          {(() => {
+            const cats = [
+              {label:"Dining",pct:28,color:"#6C8EEF"},
+              {label:"Grocery",pct:22,color:"#34D399"},
+              {label:"Travel",pct:18,color:"#FBBF24"},
+              {label:"Gas",pct:12,color:"#F87171"},
+              {label:"Shopping",pct:11,color:"#A78BFA"},
+              {label:"Other",pct:9,color:"#6B7280"},
+            ];
+            return (
+              <div>
+                <div style={{display:"flex",height:6,borderRadius:3,overflow:"hidden",marginBottom:10}}>
+                  {cats.map(c=><div key={c.label} style={{width:`${c.pct}%`,background:c.color,transition:"width .6s cubic-bezier(.4,0,.2,1)"}}/>)}
+                </div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:"6px 16px"}}>
+                  {cats.map(c=><div key={c.label} style={{display:"flex",alignItems:"center",gap:5}}>
+                    <div style={{width:6,height:6,borderRadius:"50%",background:c.color}}/>
+                    <span style={{fontSize:11,color:"var(--text2)"}}>{c.label} {c.pct}%</span>
+                  </div>)}
+                </div>
+              </div>
+            );
+          })()}
         </div>
-        <div style={{display:"flex",alignItems:"baseline",gap:6}}>
-          <span style={{fontSize:28,fontWeight:700,color:"var(--text)"}}>{util}%</span>
-          <span style={{fontSize:12,color:"var(--text2)"}}>utilization</span>
-        </div>
-        <div style={{height:6,background:"var(--border)",borderRadius:3,marginTop:8,overflow:"hidden"}}>
-          <div style={{width:`${Math.min(util,100)}%`,height:"100%",borderRadius:3,background:util<30?"#22c55e":util<50?"#f59e0b":"#ef4444",transition:"width .5s"}}/>
-        </div>
-        <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-          <span style={{fontSize:9,color:"var(--text2)"}}>0%</span>
-          <span style={{fontSize:9,color:util<30?"#22c55e":"var(--red)"}}>30% target</span>
-          <span style={{fontSize:9,color:"var(--text2)"}}>100%</span>
-        </div>
+
+        {/* Upcoming */}
+        {cards.length > 0 && (
+          <div className="au d6" style={{marginBottom:24}}>
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:10}}>UPCOMING PAYMENTS</div>
+            {cards.filter(c=>c.balance>0).slice(0,3).map(c => (
+              <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:"1px solid var(--border)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:28,height:18,borderRadius:5,background:c.gradient,flexShrink:0}}/>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{c.name}</div>
+                    <div style={{fontSize:11,color:"var(--text2)"}}>Due {c.dueDate || "Aug 15"}</div>
+                  </div>
+                </div>
+                <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>${c.balance.toLocaleString()}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* ============================================================
-   ADD CARD SCREEN
-   ============================================================ */
 function AddCard({ go, onAdd }: { go:(s:S)=>void; onAdd:(card:CreditCard)=>void }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<typeof CARD_DB[0]|null>(null);
@@ -3694,34 +3387,37 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
   const cardS:React.CSSProperties = { background:"var(--card)", borderRadius:"var(--radius)", padding:18, boxShadow:"var(--shadow)", border:"1px solid var(--border)", marginBottom:14 };
   const riskColors:{[k:string]:string} = { "Very Low":"#22c55e", "Low":"#65a30d", "Moderate":"#ca8a04", "High":"#ea580c", "Very High":"#ef4444" };
 
-  // Animated gauge
-  const Gauge = ({score, sz=210}:{score:number; sz?:number}) => {
-    const pct = Math.max(0, Math.min(1, (score - 300) / 550));
-    const r = sz/2 - 18, cx = sz/2, cy = sz/2;
-    const startAngle = 135, endAngle = 405, range = endAngle - startAngle;
-    const toXY = (a:number) => ({ x: cx + r*Math.cos(a*Math.PI/180), y: cy + r*Math.sin(a*Math.PI/180) });
-    const s1 = toXY(startAngle), s2 = toXY(endAngle), fg = toXY(startAngle + range*pct);
-    const circumference = 2 * Math.PI * r * (range / 360);
-    const dashLen = circumference * pct;
+  // Hero score — linear scale, not speedometer
+  const ScoreHero = ({score}:{score:number}) => {
+    const pct = Math.max(0, Math.min(100, ((score - 300) / 550) * 100));
     return (
-      <svg width={sz} height={sz*0.72} viewBox={`0 0 ${sz} ${sz*0.82}`}>
-        <defs>
-          <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#ef4444"/>
-            <stop offset="30%" stopColor="#f59e0b"/>
-            <stop offset="60%" stopColor="#84cc16"/>
-            <stop offset="100%" stopColor="#22c55e"/>
-          </linearGradient>
-        </defs>
-        <path d={`M ${s1.x} ${s1.y} A ${r} ${r} 0 1 1 ${s2.x} ${s2.y}`} fill="none" stroke="var(--border)" strokeWidth="14" strokeLinecap="round" opacity={0.4}/>
-        {pct > 0 && <path d={`M ${s1.x} ${s1.y} A ${r} ${r} 0 ${range*pct>180?1:0} 1 ${fg.x} ${fg.y}`} fill="none" stroke="url(#gaugeGrad)" strokeWidth="14" strokeLinecap="round" style={{filter:`drop-shadow(0 0 8px ${scoreColor(score)}40)`,transition:"all .6s cubic-bezier(.4,0,.2,1)"}}/>}
-        <circle cx={fg.x} cy={fg.y} r={6} fill={scoreColor(score)} style={{filter:`drop-shadow(0 0 4px ${scoreColor(score)})`,transition:"all .6s cubic-bezier(.4,0,.2,1)"}}/>
-        <text x={cx} y={cy-8} textAnchor="middle" fontSize="42" fontWeight="800" fill="var(--text)" style={{fontFamily:"var(--sans)"}}>{score}</text>
-        <text x={cx} y={cy+14} textAnchor="middle" fontSize="13" fontWeight="700" fill={scoreColor(score)}>{scoreLabel(score)}</text>
-        <text x={cx} y={cy+30} textAnchor="middle" fontSize="10" fill="var(--text2)">out of 850</text>
-        <text x={toXY(startAngle).x+8} y={toXY(startAngle).y+14} fontSize="9" fill="var(--text2)">300</text>
-        <text x={toXY(endAngle).x-14} y={toXY(endAngle).y+14} fontSize="9" fill="var(--text2)">850</text>
-      </svg>
+      <div style={{textAlign:"center",padding:"8px 0 16px"}}>
+        <div style={{fontSize:56,fontWeight:800,color:scoreColor(score),letterSpacing:"-3px",lineHeight:1,transition:"color .4s"}}>{score}</div>
+        <div style={{fontSize:14,fontWeight:600,color:scoreColor(score),marginTop:4,letterSpacing:".5px",textTransform:"uppercase",transition:"color .4s"}}>{scoreLabel(score)}</div>
+        <div style={{fontSize:12,color:"var(--green)",marginTop:6,fontWeight:500}}>+8 this month</div>
+
+        {/* Linear scale */}
+        <div style={{position:"relative",margin:"20px auto 0",maxWidth:320}}>
+          <div style={{height:4,borderRadius:2,background:"var(--border)",position:"relative",overflow:"visible"}}>
+            <div style={{position:"absolute",left:0,top:0,height:"100%",width:`${pct}%`,borderRadius:2,
+              background:`linear-gradient(90deg, #F87171, #FBBF24 40%, #34D399 70%, ${scoreColor(score)})`,
+              transition:"width .6s cubic-bezier(.4,0,.2,1)",boxShadow:`0 0 8px ${scoreColor(score)}30`}}/>
+            <div style={{position:"absolute",left:`${pct}%`,top:-4,width:12,height:12,borderRadius:"50%",
+              background:scoreColor(score),border:"2px solid var(--surface)",
+              transform:"translateX(-50%)",transition:"left .6s cubic-bezier(.4,0,.2,1)",
+              boxShadow:`0 0 12px ${scoreColor(score)}40`}}/>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
+            <span style={{fontSize:10,color:"var(--text3)"}}>300</span>
+            <span style={{fontSize:10,color:"var(--text3)"}}>850</span>
+          </div>
+        </div>
+
+        {/* Next milestone */}
+        <div style={{marginTop:12,fontSize:12,color:"var(--text2)"}}>
+          Next milestone: <span style={{fontWeight:600,color:"var(--text)"}}>760 · Excellent</span>
+        </div>
+      </div>
     );
   };
 
@@ -3761,7 +3457,7 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
 
   return (
     <div className="px" style={{paddingBottom:100}}>
-      <PageHead title="Credit Score" sub="Analyze and improve your credit profile"/>
+      <PageHead title="Credit" sub="Score analysis and improvement"/>
 
 
 
@@ -3781,16 +3477,14 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
       {/* ═══════════════ INPUT TAB ═══════════════ */}
       {tab === "input" && <>
         <div style={{...cardS, textAlign:"center"}}>
-          <Gauge score={liveScore}/>
+          <ScoreHero score={liveScore}/>
           <Sparkline data={history}/>
           {history.length > 0 && <div style={{fontSize:10,color:"var(--text2)",marginTop:4}}>Score history from this session</div>}
           <div style={{fontSize:11,color:"var(--text2)",marginTop:4}}>Adjust your profile below to see how changes affect your score</div>
         </div>
 
         <div style={cardS}>
-          <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:4,display:"flex",alignItems:"center",gap:8}}>
-            <Icon name="edit" size={14}/> Your Credit Profile
-          </div>
+          <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:4}}>Profile</div>
           
           {sliders.map(({label,field,min,max,step,fmt,warn,tip}) => (
             <div key={field} style={{marginBottom:14}}>
@@ -3820,7 +3514,7 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
       {tab === "results" && result && <>
         {/* Score card */}
         <div style={{...cardS, textAlign:"center"}}>
-          <Gauge score={result.score}/>
+          <ScoreHero score={result.score}/>
           <div style={{display:"flex",justifyContent:"center",gap:20,marginTop:8,flexWrap:"wrap"}}>
             {[
               {label:"Risk Level",value:result.riskLevel,color:riskColors[result.riskLevel]||"var(--text)"},
