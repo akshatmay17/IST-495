@@ -3036,11 +3036,22 @@ function Perks({ cards }: { cards:CreditCard[] }) {
 
   // Dynamic perks based on owned cards
   const perksByCard: {card:string; dbId:string; perks:{name:string;icon:string;total:number;used:number;resets:string;color:string}[]}[] = [
+    {card:"Blue Cash Everyday", dbId:"ambu", perks:[
+      {name:"Disney Bundle credit",icon:"streaming",total:84,used:49,resets:"Monthly ($7/mo)",color:colors.green},
+      {name:"Cash back rewards",icon:"dollar",total:360,used:186,resets:"Ongoing (3% groceries)",color:colors.blue},
+    ]},
+    {card:"Blue Cash Preferred", dbId:"ambc", perks:[
+      {name:"Disney Bundle credit",icon:"streaming",total:84,used:49,resets:"Monthly ($7/mo)",color:colors.green},
+      {name:"Cash back rewards",icon:"dollar",total:540,used:280,resets:"Ongoing (6% groceries)",color:colors.blue},
+    ]},
     {card:"Chase Sapphire Reserve", dbId:"csr", perks:[
       {name:"Travel credit",icon:"travel",total:300,used:180,resets:"Anniversary",color:colors.blue},
       {name:"Hotel Edit credit",icon:"globe",total:500,used:201,resets:"Anniversary",color:colors.blue},
       {name:"Dining credit",icon:"dining",total:300,used:135,resets:"Semi-annual",color:colors.green},
       {name:"Apple TV+ and Music",icon:"streaming",total:288,used:288,resets:"Monthly",color:colors.green},
+    ]},
+    {card:"Chase Sapphire Preferred", dbId:"csp", perks:[
+      {name:"Travel credit",icon:"travel",total:50,used:25,resets:"Anniversary",color:colors.blue},
     ]},
     {card:"Amex Gold Card", dbId:"amg", perks:[
       {name:"Uber cash",icon:"gas",total:120,used:96,resets:"Monthly ($10/mo)",color:colors.amber},
@@ -3055,6 +3066,23 @@ function Perks({ cards }: { cards:CreditCard[] }) {
     ]},
     {card:"Capital One Venture X", dbId:"covx", perks:[
       {name:"Travel credit",icon:"travel",total:300,used:180,resets:"Anniversary",color:colors.blue},
+    ]},
+    {card:"Capital One Venture", dbId:"cov", perks:[
+      {name:"Miles bonus",icon:"travel",total:100,used:0,resets:"Ongoing",color:colors.blue},
+    ]},
+    {card:"Hilton Aspire", dbId:"hiltonaspire", perks:[
+      {name:"Resort credits",icon:"travel",total:400,used:200,resets:"Semi-annual ($200)",color:colors.blue},
+      {name:"Flight credits",icon:"travel",total:200,used:50,resets:"Quarterly ($50)",color:colors.blue},
+      {name:"Free night award",icon:"globe",total:150,used:0,resets:"Anniversary",color:colors.amber},
+    ]},
+    {card:"Chase Freedom Flex", dbId:"cff", perks:[
+      {name:"Quarterly bonus categories",icon:"shopping",total:300,used:125,resets:"Quarterly (5% on $1500)",color:colors.green},
+    ]},
+    {card:"Chase Freedom Unlimited", dbId:"cfu", perks:[
+      {name:"Grocery bonus (first year)",icon:"groceries",total:300,used:140,resets:"Annual (5% on $12K)",color:colors.green},
+    ]},
+    {card:"Costco Visa", dbId:"costco", perks:[
+      {name:"Annual reward check",icon:"dollar",total:400,used:210,resets:"Annual (Feb)",color:colors.amber},
     ]},
   ];
 
