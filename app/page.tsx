@@ -3027,120 +3027,235 @@ function Split({ cards }: { cards:CreditCard[] }) {
    PERKS SCREEN
    ============================================================ */
 function Perks({ cards }: { cards:CreditCard[] }) {
-  const allOffers = cards.flatMap(c => c.offers.map(o=>({...o,cardName:c.name,cardGradient:c.gradient})));
-  // Dynamic perks based on actual cards owned
-  const perksByCard: {card:string; dbId:string; perks:{name:string;emoji:string;total:number;resets:string}[]}[] = [
+  const [filter, setFilter] = useState<"all"|"remaining"|"expiring">("remaining");
+  const [cardFilter, setCardFilter] = useState<string>("all");
+  const [expandedOffer, setExpandedOffer] = useState<string|null>(null);
+
+  // Color system — three jewel tones
+  const colors = { blue:"#5B8DB8", green:"#5B9A6F", amber:"#C4875C" };
+
+  // Dynamic perks based on owned cards
+  const perksByCard: {card:string; dbId:string; perks:{name:string;icon:string;total:number;used:number;resets:string;color:string}[]}[] = [
     {card:"Chase Sapphire Reserve", dbId:"csr", perks:[
-      {name:"Annual Travel Credit",emoji:"travel",total:300,resets:"Anniversary"},
-      {name:"Hotel Edit Credit",emoji:"globe",total:500,resets:"Anniversary"},
-      {name:"Dining Credit (Exclusive Tables)",emoji:"dining",total:300,resets:"Semi-annual"},
-      {name:"Apple TV+ & Apple Music",emoji:"other",total:288,resets:"Annual"},
+      {name:"Travel credit",icon:"travel",total:300,used:180,resets:"Anniversary",color:colors.blue},
+      {name:"Hotel Edit credit",icon:"globe",total:500,used:201,resets:"Anniversary",color:colors.blue},
+      {name:"Dining credit",icon:"dining",total:300,used:135,resets:"Semi-annual",color:colors.green},
+      {name:"Apple TV+ and Music",icon:"streaming",total:288,used:288,resets:"Monthly",color:colors.green},
     ]},
     {card:"Amex Gold Card", dbId:"amg", perks:[
-      {name:"Monthly Dining Credit",emoji:"dining",total:120,resets:"Monthly ($10/mo)"},
-      {name:"Monthly Uber Cash",emoji:"gas",total:120,resets:"Monthly ($10/mo)"},
-      {name:"Dunkin Credit",emoji:"dining",total:84,resets:"Monthly ($7/mo)"},
+      {name:"Uber cash",icon:"gas",total:120,used:96,resets:"Monthly ($10/mo)",color:colors.amber},
+      {name:"Dining credit",icon:"dining",total:120,used:80,resets:"Monthly ($10/mo)",color:colors.green},
+      {name:"Dunkin credit",icon:"dining",total:84,used:56,resets:"Monthly ($7/mo)",color:colors.amber},
     ]},
     {card:"Amex Platinum Card", dbId:"amp", perks:[
-      {name:"Airline Fee Credit",emoji:"travel",total:200,resets:"Jan 1"},
-      {name:"Hotel Credit (FHR)",emoji:"globe",total:200,resets:"Jan 1"},
-      {name:"Digital Entertainment",emoji:"other",total:240,resets:"Monthly ($20/mo)"},
-      {name:"Walmart+ Credit",emoji:"shopping",total:155,resets:"Monthly"},
-      {name:"Saks Fifth Avenue",emoji:"shopping",total:100,resets:"Semi-annual ($50)"},
-      {name:"CLEAR+ Membership",emoji:"travel",total:209,resets:"Annual"},
+      {name:"Airline fee credit",icon:"travel",total:200,used:0,resets:"Jan 1",color:colors.blue},
+      {name:"Hotel credit",icon:"globe",total:200,used:120,resets:"Jan 1",color:colors.blue},
+      {name:"Digital entertainment",icon:"streaming",total:240,used:160,resets:"Monthly ($20/mo)",color:colors.green},
+      {name:"Saks Fifth Avenue",icon:"shopping",total:100,used:50,resets:"Semi-annual ($50)",color:colors.amber},
     ]},
     {card:"Capital One Venture X", dbId:"covx", perks:[
-      {name:"Annual Travel Credit",emoji:"travel",total:300,resets:"Anniversary"},
-      {name:"Anniversary Miles Bonus",emoji:"globe",total:100,resets:"Anniversary (10K miles)"},
-    ]},
-    {card:"Blue Cash Preferred", dbId:"ambc", perks:[
-      {name:"Disney Bundle Credit",emoji:"other",total:84,resets:"Monthly ($7/mo)"},
-    ]},
-    {card:"Hilton Aspire", dbId:"hiltonaspire", perks:[
-      {name:"Resort Credits",emoji:"travel",total:400,resets:"Semi-annual ($200)"},
-      {name:"Flight Credits",emoji:"travel",total:200,resets:"Quarterly ($50)"},
-      {name:"CLEAR+ Credit",emoji:"travel",total:209,resets:"Annual"},
-      {name:"Free Night Award",emoji:"globe",total:150,resets:"Anniversary (est. value)"},
+      {name:"Travel credit",icon:"travel",total:300,used:180,resets:"Anniversary",color:colors.blue},
     ]},
   ];
+
   const ownedPerks = perksByCard.filter(pb => cards.some(c => c.dbId === pb.dbId));
-  const unusedPerks = perksByCard.filter(pb => !cards.some(c => c.dbId === pb.dbId));
-  // Generate perks list with randomized usage for demo
-  const perks = ownedPerks.flatMap(pb => pb.perks.map(p => ({
-    card: pb.card, name: p.name, emoji: p.emoji,
-    used: Math.round(p.total * (0.3 + Math.random()*0.5)),
-    total: p.total, resets: p.resets, urgent: Math.random() > 0.5,
-  })));
-  const totalLeft = perks.reduce((s,p)=>s+(p.total-p.used),0);
+  const allPerks = ownedPerks.flatMap(pb => pb.perks.map(p => ({...p, card: pb.card, dbId: pb.dbId})));
+  const filteredPerks = allPerks.filter(p => {
+    if (cardFilter !== "all" && p.dbId !== cardFilter) return false;
+    if (filter === "expiring") return (p.total - p.used) > 0 && (p.total - p.used) < p.total * 0.4;
+    if (filter === "remaining") return (p.total - p.used) > 0;
+    return true;
+  });
+
+  const totalValue = allPerks.reduce((s,p) => s + p.total, 0);
+  const totalUsed = allPerks.reduce((s,p) => s + p.used, 0);
+  const totalRemaining = totalValue - totalUsed;
+  const expiring = allPerks.filter(p => (p.total - p.used) > 0 && (p.total - p.used) < p.total * 0.4).reduce((s,p) => s + (p.total - p.used), 0);
+  const usedPct = totalValue > 0 ? Math.round(totalUsed / totalValue * 100) : 0;
+
+  // All offers from all cards
+  const allOffers = cards.flatMap(c => c.offers.map(o => ({...o, card: c.name, dbId: c.dbId, issuer: c.issuer})));
+  const filteredOffers = cardFilter === "all" ? allOffers : allOffers.filter(o => o.dbId === cardFilter);
+
+  // Rings data — top 3 credits by remaining value
+  const topCredits = [...allPerks].filter(p => p.total - p.used > 0).sort((a,b) => (b.total - b.used) - (a.total - a.used)).slice(0, 3);
+
+  // Missing value
+  const unusedCards = perksByCard.filter(pb => !cards.some(c => c.dbId === pb.dbId));
+  const missingValue = unusedCards.reduce((s,pb) => s + pb.perks.reduce((a,p) => a + p.total, 0), 0);
+
   return (
     <div className="screen desktop-content screen-enter">
-      <PageHead title="Perks & Offers" sub="Don't let real money expire"/>
-      <div className="px">
-        <div className="au card-surface" style={{padding:"18px 20px",marginBottom:20,border:"1.5px solid rgba(240,164,41,.3)",background:"rgba(240,164,41,.05)"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <div>
-              <p style={{color:"var(--amber)",fontSize:13,fontWeight:600,marginBottom:4}}>Credits remaining</p>
-              <h2 className="serif" style={{fontSize:44,fontWeight:400,color:"var(--text)",letterSpacing:"-1px"}}>${f(totalLeft)}</h2>
-            </div>
-            <span style={{color:"var(--amber)",display:"flex"}}><Icon name="perks" size={36}/></span>
-          </div>
-          <p style={{color:"var(--text2)",fontSize:14}}>Money you've already paid for -- use it before it resets.</p>
-          {unusedPerks.length > 0 && <div style={{marginTop:8,fontSize:11,color:"var(--accent)"}}>💡 {unusedPerks.reduce((s,p)=>s+p.perks.reduce((a,pk)=>a+pk.total,0),0).toLocaleString()} in annual credits available if you add: {unusedPerks.map(p=>p.card).join(", ")}</div>}
-        </div>
+      <div className="px" style={{paddingTop:8}}>
+        <button onClick={()=>{}} style={{fontSize:13,color:"var(--text2)",background:"none",border:"none",cursor:"pointer",marginBottom:10,display:"flex",alignItems:"center",gap:4}}>
+          <Icon name="arrow-right" size={12} strokeWidth={1.5} color="var(--text2)"/><span style={{transform:"scaleX(-1)",display:"inline-block"}}></span>Back
+        </button>
+        <h1 style={{fontSize:24,fontWeight:500,color:"var(--text)",letterSpacing:"-.3px",margin:"0 0 24px"}}>Rewards</h1>
 
-        {/* Active offers */}
-        {allOffers.length > 0 && (
-          <>
-            <h3 className="serif" style={{fontSize:26,fontWeight:400,marginBottom:14,letterSpacing:"-.3px"}}>Active Offers</h3>
-            {allOffers.map((offer,i)=>(
-              <div key={i} className={`au d${i+1} card-surface`} style={{padding:"14px 16px",marginBottom:10,display:"flex",gap:12,alignItems:"center"}}>
-                <div style={{width:36,height:24,borderRadius:6,background:offer.cardGradient,flexShrink:0}}/>
-                <div style={{flex:1}}>
-                  <p style={{color:"var(--text)",fontSize:14,fontWeight:600,letterSpacing:"-.1px"}}>{offer.title}</p>
-                  <p style={{color:"var(--text2)",fontSize:12,marginTop:1}}>{offer.cardName}  Expires {offer.expires}</p>
-                </div>
-                <span className="pill pill-emerald" style={{fontSize:11}}>{offer.value}</span>
+        {/* Vault hero */}
+        <div style={{textAlign:"center",padding:"28px 20px 24px"}}>
+          <div className="score-entrance" style={{fontSize:48,fontWeight:500,color:"var(--text)",letterSpacing:"-2px",lineHeight:1,fontVariantNumeric:"tabular-nums"}}>${totalRemaining.toLocaleString()}</div>
+          <div style={{fontSize:13,color:"var(--text2)",marginTop:6}}>Available this year</div>
+          <div style={{display:"flex",justifyContent:"center",gap:0,marginTop:20}}>
+            {[
+              {key:"all" as const,label:"Total",value:`$${totalValue.toLocaleString()}`,color:"var(--text)"},
+              {key:"remaining" as const,label:"Remaining",value:`$${totalRemaining.toLocaleString()}`,color:colors.green},
+              {key:"expiring" as const,label:"Expiring",value:`$${expiring}`,color:colors.amber},
+            ].map(m => (
+              <div key={m.key} onClick={()=>setFilter(m.key)} className="press" style={{padding:"10px 24px",cursor:"pointer",textAlign:"center",position:"relative"}}>
+                <div style={{fontSize:16,fontWeight:500,letterSpacing:"-.3px",color:m.color,opacity:filter===m.key?1:0.45,transition:"opacity .2s"}}>{m.value}</div>
+                <div style={{fontSize:10,color:"var(--text2)",marginTop:2}}>{m.label}</div>
+                {filter===m.key && <div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:20,height:1.5,borderRadius:1,background:m.color,transition:"all .25s cubic-bezier(.22,1,.36,1)"}}/>}
               </div>
             ))}
-            <div className="divider" style={{margin:"20px 0"}}/>
-          </>
+          </div>
+        </div>
+
+        {/* Activity rings + legend */}
+        {topCredits.length > 0 && (
+          <div style={{display:"flex",alignItems:"center",gap:28,padding:"16px 0 24px"}}>
+            <svg width={130} height={130} viewBox="0 0 130 130" style={{flexShrink:0}}>
+              {topCredits.map((cr,i) => {
+                const r = 56 - i * 10;
+                const circ = 2 * Math.PI * r;
+                const pct = cr.total > 0 ? cr.used / cr.total : 0;
+                const offset = circ * (1 - pct);
+                return (
+                  <g key={i}>
+                    <circle cx={65} cy={65} r={r} fill="none" stroke="var(--border)" strokeWidth={5.5} opacity={0.5}/>
+                    <circle cx={65} cy={65} r={r} fill="none" stroke={cr.color} strokeWidth={5.5}
+                      strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+                      transform="rotate(-90 65 65)"
+                      style={{transition:"stroke-dashoffset .8s cubic-bezier(.22,1,.36,1)"}}/>
+                  </g>
+                );
+              })}
+              <text x={65} y={62} textAnchor="middle" fontSize={18} fontWeight={500} fill="var(--text)" style={{fontFamily:"var(--sans)"}}>{usedPct}%</text>
+              <text x={65} y={76} textAnchor="middle" fontSize={10} fill="var(--text2)">used</text>
+            </svg>
+            <div style={{flex:1}}>
+              {topCredits.map((cr,i) => (
+                <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:i<topCredits.length-1?"1px solid var(--border)":"none"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:cr.color,flexShrink:0}}/>
+                    <div>
+                      <div style={{fontSize:13,color:"var(--text)"}}>{cr.name}</div>
+                      <div style={{fontSize:11,color:"var(--text2)"}}>{cr.card.split(" ").slice(-2).join(" ")}</div>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:14,fontWeight:500,color:cr.color}}>${cr.total - cr.used}</div>
+                    <div style={{fontSize:10,color:"var(--text2)"}}>of ${cr.total}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
-        <h3 className="serif" style={{fontSize:26,fontWeight:400,marginBottom:14,letterSpacing:"-.3px"}}>Annual Credits</h3>
-        {perks.map((perk,i)=>{
-          const rem=perk.total-perk.used, p=Math.round(perk.used/perk.total*100);
-          return (
-            <div key={i} className={`au d${i+1} card-surface hover-lift`} style={{padding:"18px",marginBottom:12,border:`1.5px solid ${perk.urgent?"rgba(240,164,41,.3)":"var(--border2)"}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-                <div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
-                    <span style={{color:"var(--accent)",display:"flex"}}><Icon name={perk.emoji} size={16}/></span>
-                    <p style={{color:"var(--text)",fontSize:14,fontWeight:700}}>{perk.name}</p>
-                    {perk.urgent&&<span className="pill pill-amber">Expiring</span>}
+        {/* Card filter chips */}
+        <div style={{display:"flex",gap:6,marginBottom:16,overflowX:"auto",paddingBottom:2}} className="no-scrollbar">
+          <button onClick={()=>setCardFilter("all")} className="press" style={{padding:"7px 14px",borderRadius:18,border:cardFilter==="all"?"none":"1px solid var(--border)",fontSize:12,cursor:"pointer",background:cardFilter==="all"?"var(--text)":"transparent",color:cardFilter==="all"?"var(--surface)":"var(--text2)",fontWeight:cardFilter==="all"?500:400,whiteSpace:"nowrap",transition:"all .2s"}}>All cards</button>
+          {ownedPerks.map(pb => (
+            <button key={pb.dbId} onClick={()=>setCardFilter(cardFilter===pb.dbId?"all":pb.dbId)} className="press" style={{padding:"7px 14px",borderRadius:18,border:cardFilter===pb.dbId?"none":"1px solid var(--border)",fontSize:12,cursor:"pointer",background:cardFilter===pb.dbId?"var(--text)":"transparent",color:cardFilter===pb.dbId?"var(--surface)":"var(--text2)",fontWeight:cardFilter===pb.dbId?500:400,whiteSpace:"nowrap",transition:"all .2s"}}>{pb.card.split(" ").slice(-2).join(" ")}</button>
+          ))}
+        </div>
+
+        {/* AI insight */}
+        {expiring > 0 && (
+          <div style={{padding:"14px 16px",borderRadius:10,marginBottom:4,fontSize:12,color:"var(--text2)",lineHeight:1.6,background:`linear-gradient(135deg,${colors.amber}08,${colors.amber}02)`,border:`1px solid ${colors.amber}18`}}>
+            <Icon name="cpu" size={13} color={colors.amber}/> <span style={{fontWeight:500,color:"var(--text)"}}>${expiring} expiring within 30 days.</span> Use your highest unused benefit before it resets.
+          </div>
+        )}
+
+        {/* Offers */}
+        {filteredOffers.length > 0 && (
+          <div>
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",margin:"24px 0 10px"}}>Offers</div>
+            {filteredOffers.map((o,i) => {
+              const isExpanded = expandedOffer === `${o.card}-${o.title}`;
+              return (
+                <div key={i} onClick={()=>setExpandedOffer(isExpanded?null:`${o.card}-${o.title}`)}
+                  style={{padding:"13px 0",borderBottom:i<filteredOffers.length-1?"1px solid var(--border)":"none",cursor:"pointer",transition:"transform .2s"}}
+                  onMouseEnter={e=>(e.currentTarget.style.transform="translateX(3px)")} onMouseLeave={e=>(e.currentTarget.style.transform="translateX(0)")}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div>
+                      <div style={{fontSize:13,color:"var(--text)"}}>{o.title}</div>
+                      <div style={{fontSize:11,color:"var(--text2)",marginTop:1}}>{o.card} · {o.expires.includes("Jan")?"Ongoing":"Expires "+o.expires}</div>
+                    </div>
+                    <span style={{fontSize:10,padding:"3px 8px",border:"1px solid var(--border)",borderRadius:4,color:"var(--text2)"}}>{o.value}</span>
                   </div>
-                  <p style={{color:"var(--text2)",fontSize:12}}>{perk.card}</p>
+                  {isExpanded && (
+                    <div className="ai" style={{paddingTop:12}}>
+                      <div style={{display:"flex",gap:20}}>
+                        <div><div style={{fontSize:14,fontWeight:500,color:"var(--text)"}}>${Math.round(Math.random()*200+50)}</div><div style={{fontSize:10,color:"var(--text2)"}}>Your spend (90d)</div></div>
+                        <div><div style={{fontSize:14,fontWeight:500,color:"var(--text)"}}>${Math.round(Math.random()*30+5)}</div><div style={{fontSize:10,color:"var(--text2)"}}>Est. value</div></div>
+                      </div>
+                      <button className="press spring-hover" style={{marginTop:10,padding:"8px 16px",borderRadius:8,border:"none",background:colors.blue,color:"white",fontSize:12,fontWeight:500,cursor:"pointer"}}>Activate offer</button>
+                    </div>
+                  )}
                 </div>
-                <div style={{textAlign:"right"}}>
-                  <p style={{color:"var(--text)",fontSize:18,fontWeight:800}}>${rem}</p>
-                  <p style={{color:"var(--text3)",fontSize:11,marginTop:2}}>of ${perk.total}</p>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Credits */}
+        {filteredPerks.length > 0 && (
+          <div>
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",margin:"24px 0 10px"}}>Credits</div>
+            {filteredPerks.map((p,i) => {
+              const remaining = p.total - p.used;
+              const pct = p.total > 0 ? Math.round(p.used / p.total * 100) : 0;
+              const isActive = remaining <= 0;
+              return (
+                <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:i<filteredPerks.length-1?"1px solid var(--border)":"none",cursor:"pointer",transition:"transform .2s"}}
+                  onMouseEnter={e=>(e.currentTarget.style.transform="translateX(3px)")} onMouseLeave={e=>(e.currentTarget.style.transform="translateX(0)")}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+                    <div style={{width:6,height:6,borderRadius:"50%",background:p.color,flexShrink:0}}/>
+                    <div>
+                      <div style={{fontSize:13,color:"var(--text)"}}>{p.name}</div>
+                      <div style={{fontSize:11,color:"var(--text2)"}}>{p.card.split(" ").slice(-2).join(" ")} · {p.resets}</div>
+                    </div>
+                  </div>
+                  {!isActive && <div style={{width:80,height:3,borderRadius:2,background:`${p.color}20`,overflow:"hidden",margin:"0 12px",flexShrink:0}}>
+                    <div style={{width:`${pct}%`,height:"100%",borderRadius:2,background:p.color,transition:"width .6s cubic-bezier(.22,1,.36,1)"}}/>
+                  </div>}
+                  <div style={{textAlign:"right",minWidth:55}}>
+                    {isActive ? (
+                      <div style={{fontSize:12,fontWeight:500,color:colors.green}}>Active</div>
+                    ) : (
+                      <>
+                        <div style={{fontSize:13,fontWeight:500,color:p.color}}>${remaining}</div>
+                        <div style={{fontSize:10,color:"var(--text2)"}}>of ${p.total}</div>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <Bar v={perk.used} max={perk.total} color={p>80?"var(--green)":p>40?"var(--accent)":"var(--red)"} h={7}/>
-              <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
-                <p style={{color:"var(--text3)",fontSize:13}}>${perk.used} used  ${rem} left</p>
-                <p style={{color:perk.urgent?"var(--amber)":"var(--text3)",fontSize:13,fontWeight:perk.urgent?600:400}}>Resets {perk.resets}</p>
-              </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Missing value */}
+        {missingValue > 0 && (
+          <div style={{marginTop:24,paddingTop:20,borderTop:"1px solid var(--border)"}}>
+            <div style={{fontSize:20,fontWeight:500,color:"var(--text)",letterSpacing:"-.5px"}}>${missingValue.toLocaleString()}<span style={{fontSize:12,color:"var(--text2)",fontWeight:400}}>/year</span></div>
+            <div style={{fontSize:12,color:"var(--text2)",marginTop:2}}>In credits from cards you don't own</div>
+            <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
+              {unusedCards.slice(0,3).map((uc,i) => (
+                <span key={i} style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:"1px solid var(--border)",color:"var(--text2)"}}>{uc.card} ${uc.perks.reduce((s,p)=>s+p.total,0)}</span>
+              ))}
+              {unusedCards.length > 3 && <span style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:"1px solid var(--border)",color:"var(--text2)"}}>+{unusedCards.length-3} more</span>}
             </div>
-          );
-        })}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* ============================================================
-   SETTINGS SCREEN
-   ============================================================ */
+
 function Settings({ go, profile, theme, toggleTheme, onSignOut }: { go:(s:S)=>void; profile:UserProfile; theme:"dark"|"light"; toggleTheme:()=>void; onSignOut?:()=>void }) {
   const [feats, setFeats] = useState({ai:true,geo:true,digest:true,split:true,travel:true,perks:true,fraud:true,goals:true,approvals:true});
   const tog = (k: keyof typeof feats) => setFeats(p=>({...p,[k]:!p[k]}));
