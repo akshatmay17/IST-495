@@ -4534,192 +4534,253 @@ function LifestyleOptimizer({go, cards, profile}:{go:(s:S)=>void; cards:CreditCa
    ============================================================ */
 function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:S)=>void; cards:CreditCard[]; profile:UserProfile; txns:Txn[]; onAddTxn:(cat:string,amount:number,desc:string,card:string,date:string)=>void; onDeleteTxn:(id:string)=>void }) {
   const CATS = [
-    {label:"Dining",    key:"dining",    color:"#6C8EEF", icon:"dining"},
-    {label:"Groceries", key:"groceries", color:"#34D399", icon:"groceries"},
-    {label:"Travel",    key:"travel",    color:"#FBBF24", icon:"travel"},
-    {label:"Gas",       key:"gas",       color:"#F87171", icon:"gas"},
-    {label:"Shopping",  key:"shopping",  color:"#A78BFA", icon:"shopping"},
-    {label:"Other",     key:"other",     color:"#94A3B8", icon:"other"},
+    {label:"Dining",key:"dining",color:"#5B8DB8",icon:"dining"},
+    {label:"Groceries",key:"groceries",color:"#5B9A6F",icon:"groceries"},
+    {label:"Travel",key:"travel",color:"#C4875C",icon:"travel"},
+    {label:"Gas",key:"gas",color:"#C4875C",icon:"gas"},
+    {label:"Shopping",key:"shopping",color:"#8B7EB8",icon:"shopping"},
+    {label:"Other",key:"other",color:"#94A3B8",icon:"other"},
   ];
   const [showAdd, setShowAdd] = useState(false);
   const [amt, setAmt] = useState(""); const [desc, setDesc] = useState(""); const [cat, setCat] = useState("dining"); const [card, setCard] = useState(cards[0]?.name||"");
-  const [sel, setSel] = useState<string|null>(null);
+  const [activeCat, setActiveCat] = useState<string|null>(null);
   const [period, setPeriod] = useState<"1M"|"3M"|"6M"|"1Y">("1M");
+  const [hoverDay, setHoverDay] = useState<number|null>(null);
+  const [hoverX, setHoverX] = useState(0);
+  const chartRef = useRef<HTMLDivElement>(null);
+
   const spending = profile.spending||{};
-  const merged = CATS.map(c=>{
-    const val = Number((spending as any)[c.key]||0)+txns.filter(t=>t.cat===c.key).reduce((s,t)=>s+t.amount,0);
+  const merged = CATS.map(c => {
+    const val = Number((spending as any)[c.key]||0) + txns.filter(t=>t.cat===c.key).reduce((s,t)=>s+t.amount,0);
     return {...c, val};
-  }).sort((a,b)=>b.val-a.val);
-  const total = merged.reduce((s,c)=>s+c.val,0);
+  }).sort((a,b) => b.val - a.val);
+  const total = merged.reduce((s,c) => s+c.val, 0);
   const totalBal = cards.reduce((s,c)=>s+c.balance,0);
-  const totalLim = cards.reduce((s,c)=>s+c.limit,0);
-  const util = totalLim>0?Math.round(totalBal/totalLim*100):0;
+  const displayTotal = total || totalBal;
+  const prevTotal = Math.round(displayTotal * 1.12);
+  const changePct = prevTotal > 0 ? Math.abs(((displayTotal - prevTotal) / prevTotal * 100)).toFixed(1) : "0";
+  const isDown = displayTotal <= prevTotal;
   const totalPts = cards.reduce((s,c)=>s+c.points,0);
+  const totalLim = cards.reduce((s,c)=>s+c.limit,0);
+  const util = totalLim > 0 ? Math.round(totalBal/totalLim*100) : 0;
 
-  // Simulated month-over-month change
-  const prevTotal = Math.round(total * 1.12);
-  const changePct = prevTotal > 0 ? ((total - prevTotal) / prevTotal * 100).toFixed(1) : "0";
-  const changeDir = Number(changePct) <= 0 ? "down" : "up";
+  // Generate 30-day spending data from seed
+  const dailyData = Array.from({length:30},(_, i) => {
+    const seed = (displayTotal + i * 37) % 100;
+    const base = displayTotal / 30;
+    const val = Math.round(base * (0.3 + seed/50));
+    const topCat = merged[i % merged.length];
+    return {day: i+1, val, cat: topCat?.key||"other", label: `Jul ${i+1}`};
+  });
 
-  const selectedCat = sel ? merged.find(c=>c.key===sel) : null;
-  const displayTotal = selectedCat ? selectedCat.val : total;
+  // SVG chart path
+  const maxVal = Math.max(...dailyData.map(d=>d.val), 1);
+  const chartW = 640, chartH = 160;
+  const points = dailyData.map((d,i) => ({x: (i/(dailyData.length-1))*chartW, y: chartH - (d.val/maxVal)*(chartH-20) - 10}));
+  const linePath = points.map((p,i) => {
+    if (i===0) return `M${p.x},${p.y}`;
+    const prev = points[i-1];
+    const cpx1 = prev.x + (p.x-prev.x)*0.4, cpx2 = prev.x + (p.x-prev.x)*0.6;
+    return `C${cpx1},${prev.y} ${cpx2},${p.y} ${p.x},${p.y}`;
+  }).join(" ");
+  const areaPath = linePath + ` L${chartW},${chartH} L0,${chartH} Z`;
+
+  // Bubble sizes — proportional to spending
+  const maxCatVal = Math.max(...merged.map(m=>m.val), 1);
+  const bubbleSize = (val:number) => Math.max(48, Math.round(90 * (val / maxCatVal)));
+
+  const filteredTxns = activeCat ? txns.filter(t=>t.cat===activeCat) : txns;
+
+  const handleChartHover = (e:React.MouseEvent) => {
+    if (!chartRef.current) return;
+    const rect = chartRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const pct = x / rect.width;
+    const idx = Math.min(29, Math.max(0, Math.round(pct * 29)));
+    setHoverDay(idx);
+    setHoverX(x);
+  };
 
   return (
     <div className="screen desktop-content screen-enter">
       <div className="px" style={{paddingTop:8}}>
-
-        {/* Header — minimal, Apple style */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28}}>
-          <div>
-            <button onClick={()=>go("home")} style={{fontSize:12,color:"var(--text2)",background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:8,display:"flex",alignItems:"center",gap:4}}>
-              <Icon name="arrow-right" size={12} strokeWidth={2}/> <span style={{transform:"scaleX(-1)",display:"inline-block"}}></span>Back
-            </button>
-            <h1 style={{fontSize:28,fontWeight:700,color:"var(--text)",letterSpacing:"-1px",margin:0}}>Insights</h1>
-          </div>
-          <button onClick={()=>setShowAdd(true)} className="press spring-hover" style={{padding:"10px 20px",borderRadius:10,border:"none",background:"var(--accent)",color:"white",fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Log</button>
+        {/* Header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+          <h1 style={{fontSize:24,fontWeight:500,color:"var(--text)",letterSpacing:"-.3px",margin:0}}>Insights</h1>
+          <button onClick={()=>setShowAdd(true)} className="press spring-hover" style={{padding:"8px 16px",borderRadius:8,border:"1px solid var(--border2)",background:"transparent",color:"var(--text)",fontSize:12,fontWeight:500,cursor:"pointer"}}>+ Log</button>
         </div>
 
-        {/* Hero — your money this month */}
-        <div className="au" style={{marginBottom:32}}>
-          <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:8}}>
-            {selectedCat ? selectedCat.label : "YOUR MONEY THIS MONTH"}
+        {/* Hero number */}
+        <div className="au">
+          <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:2}}>
+            <span className="animate-number" style={{fontSize:44,fontWeight:500,color:"var(--text)",letterSpacing:"-2px",lineHeight:1}}>${displayTotal.toLocaleString()}</span>
+            <span style={{fontSize:13,fontWeight:500,color:isDown?"var(--green)":"var(--red)"}}>
+              <Icon name={isDown?"trending-up":"trending-up"} size={14}/> {isDown?"↓":"↑"} {changePct}%
+            </span>
           </div>
-          <div style={{display:"flex",alignItems:"baseline",gap:12}}>
-            <span className="animate-number" style={{fontSize:44,fontWeight:600,color:"var(--text)",letterSpacing:"-1.5px",lineHeight:1}}>${displayTotal.toLocaleString()}</span>
-            {!selectedCat && <span style={{fontSize:14,color:changeDir==="down"?"var(--green)":"var(--red)",fontWeight:600}}>
-              {changeDir==="down"?"↓":"↑"} {Math.abs(Number(changePct))}% vs last month
-            </span>}
+          <div style={{fontSize:12,color:"var(--text2)",marginBottom:6}}>
+            You're spending <span style={{fontWeight:500,color:"var(--text)"}}>${Math.abs(displayTotal-prevTotal).toLocaleString()} {isDown?"less":"more"}</span> than last month
           </div>
-          {selectedCat && (
-            <button onClick={()=>setSel(null)} style={{fontSize:12,color:"var(--accent)",background:"none",border:"none",cursor:"pointer",marginTop:6,padding:0,fontWeight:500}}>← View all categories</button>
-          )}
         </div>
 
-        {/* Period selector — sliding capsule */}
-        <div className="au d1" style={{display:"inline-flex",background:"var(--surface2)",borderRadius:10,padding:3,marginBottom:24,gap:2}}>
+        {/* Period pills */}
+        <div className="au d1" style={{display:"inline-flex",borderRadius:8,padding:3,border:"1px solid var(--border)",marginBottom:16,gap:2}}>
           {(["1M","3M","6M","1Y"] as const).map(p => (
             <button key={p} onClick={()=>setPeriod(p)} className="press" style={{
-              padding:"7px 18px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:period===p?600:450,
-              background:period===p?"var(--surface)":"transparent",
-              color:period===p?"var(--text)":"var(--text2)",
-              boxShadow:period===p?"var(--shadow)":"none",
-              transition:"all .2s cubic-bezier(.4,0,.2,1)",
+              padding:"6px 16px",borderRadius:6,border:"none",cursor:"pointer",fontSize:12,
+              fontWeight:period===p?500:400,
+              background:period===p?"var(--text)":"transparent",
+              color:period===p?"var(--surface)":"var(--text2)",
+              transition:"all .2s cubic-bezier(.22,1,.36,1)",
             }}>{p}</button>
           ))}
         </div>
 
-        {/* Horizontal bar chart — minimal, Apple Health style */}
-        <div className="au d2" style={{marginBottom:28}}>
-          {merged.map((c,i) => {
-            const pct = total > 0 ? (c.val / total * 100) : 0;
-            const isSelected = sel === c.key;
-            const isDimmed = sel && !isSelected;
+        {/* Interactive area chart */}
+        <div className="au d2" ref={chartRef} onMouseMove={handleChartHover} onMouseLeave={()=>setHoverDay(null)}
+          style={{position:"relative",height:180,marginBottom:4,borderBottom:"1px solid var(--border)",overflow:"hidden",cursor:"crosshair"}}>
+          
+          {/* Hairline */}
+          {hoverDay !== null && (
+            <div style={{position:"absolute",top:0,bottom:0,left:hoverX,width:1,background:"var(--border2)",pointerEvents:"none",zIndex:1}}/>
+          )}
+          
+          {/* Tooltip */}
+          {hoverDay !== null && (
+            <div style={{position:"absolute",top:16,left:Math.min(hoverX+10, 520),background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:8,padding:"8px 12px",pointerEvents:"none",zIndex:2,boxShadow:"var(--shadow)"}}>
+              <div style={{fontSize:12,fontWeight:500,color:"var(--text)"}}>{dailyData[hoverDay]?.label}</div>
+              <div style={{fontSize:11,color:"var(--text2)",marginTop:2}}>${dailyData[hoverDay]?.val} spent</div>
+            </div>
+          )}
+          
+          {/* Dot on hover */}
+          {hoverDay !== null && points[hoverDay] && (
+            <div style={{position:"absolute",left:points[hoverDay].x-4,top:points[hoverDay].y-4,width:8,height:8,borderRadius:"50%",background:"#5B8DB8",border:"2px solid var(--surface)",pointerEvents:"none",zIndex:2,transition:"left .05s, top .05s"}}/>
+          )}
+          
+          <svg viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none" style={{width:"100%",height:"100%"}}>
+            <defs>
+              <linearGradient id="aGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#5B8DB8" stopOpacity=".18"/>
+                <stop offset="100%" stopColor="#5B8DB8" stopOpacity=".01"/>
+              </linearGradient>
+            </defs>
+            <path d={areaPath} fill="url(#aGrad)" style={{animation:"fadeUp .8s ease both"}}/>
+            <path d={linePath} fill="none" stroke="#5B8DB8" strokeWidth="2" strokeLinecap="round"/>
+            <circle cx={points[points.length-1]?.x} cy={points[points.length-1]?.y} r="3.5" fill="#5B8DB8"/>
+          </svg>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--text3)",padding:"4px 0",marginBottom:4}}>
+          <span>Jul 1</span><span>Jul 10</span><span>Jul 20</span><span>Jul 30</span>
+        </div>
+
+        {/* Category bubbles */}
+        <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",margin:"20px 0 10px"}}>Where your money goes</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",padding:"8px 0 16px"}}>
+          {merged.filter(m=>m.val>0).map((m,i) => {
+            const sz = bubbleSize(m.val);
+            const isActive = activeCat === m.key;
+            const isDimmed = activeCat && !isActive;
             return (
-              <div key={c.key} onClick={()=>setSel(isSelected?null:c.key)} className="press"
-                style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",cursor:"pointer",
-                  borderBottom:i<merged.length-1?"1px solid var(--border)":"none",
-                  opacity:isDimmed?0.35:1,transition:"opacity .3s"}}>
-                <div style={{width:8,height:8,borderRadius:"50%",background:c.color,flexShrink:0}}/>
-                <div style={{width:80,fontSize:13,fontWeight:isSelected?600:450,color:"var(--text)",flexShrink:0}}>{c.label}</div>
-                <div style={{flex:1,height:6,background:"var(--border)",borderRadius:3,overflow:"hidden"}}>
-                  <div style={{width:`${pct}%`,height:"100%",background:c.color,borderRadius:3,
-                    transition:"width .6s cubic-bezier(.4,0,.2,1)",
-                    boxShadow:isSelected?`0 0 8px ${c.color}40`:"none"}}/>
-                </div>
-                <div style={{width:70,textAlign:"right",fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"var(--sans)",letterSpacing:"-.5px"}}>${c.val.toLocaleString()}</div>
-                <div style={{width:40,textAlign:"right",fontSize:11,color:"var(--text2)"}}>{pct.toFixed(0)}%</div>
+              <div key={m.key} onClick={()=>setActiveCat(isActive?null:m.key)} className="press"
+                style={{
+                  width:sz,height:sz,borderRadius:"50%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+                  background:`${m.color}${isActive?"22":"12"}`,
+                  cursor:"pointer",transition:"all .35s cubic-bezier(.22,1,.36,1)",
+                  transform:isActive?"scale(1.12)":isDimmed?"scale(.85)":"scale(1)",
+                  opacity:isDimmed?0.3:1,
+                  animation:`popIn .4s cubic-bezier(.34,1.56,.64,1) ${i*0.08}s both`,
+                }}>
+                <div style={{fontSize:sz>60?13:11,fontWeight:500,color:m.color,letterSpacing:"-.3px"}}>${m.val.toLocaleString()}</div>
+                <div style={{fontSize:sz>60?10:8,fontWeight:500,color:m.color,opacity:.7}}>{m.label}</div>
               </div>
             );
           })}
         </div>
 
-        {/* Insight row — what the data means */}
-        {merged.length > 0 && (
-          <div className="au d3" style={{padding:"16px 20px",background:"var(--accentbg)",borderRadius:12,marginBottom:28,display:"flex",alignItems:"flex-start",gap:12}}>
-            <Icon name="trending-up" size={16} color="var(--accent)"/>
-            <div style={{fontSize:13,color:"var(--text)",lineHeight:1.5}}>
-              {merged[0].val > merged[1]?.val * 1.5
-                ? <><strong>{merged[0].label}</strong> is your biggest expense at ${merged[0].val.toLocaleString()} ({total>0?Math.round(merged[0].val/total*100):0}% of spending). {merged[merged.length-1] && <>Lowest: <strong>{merged[merged.length-1].label}</strong> at ${merged[merged.length-1].val.toLocaleString()}.</>}</>
-                : <>Your spending is balanced across categories. <strong>{merged[0].label}</strong> leads at ${merged[0].val.toLocaleString()}.</>
-              }
-            </div>
-          </div>
-        )}
-
-        {/* Key metrics — three clean stats */}
-        <div className="au d4 stagger" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:28}}>
+        {/* Key metrics */}
+        <div className="au d3" style={{display:"flex",padding:"16px 0",borderTop:"1px solid var(--border)",borderBottom:"1px solid var(--border)",marginBottom:4}}>
           {[
             {label:"Utilization",value:`${util}%`,color:util<30?"var(--green)":util<50?"var(--amber)":"var(--red)"},
-            {label:"Total Points",value:totalPts.toLocaleString(),color:"var(--accent)"},
-            {label:"Rewards Value",value:`$${Math.round(totalPts*0.01).toLocaleString()}`,color:"var(--green)"},
-          ].map(m => (
-            <div key={m.label} style={{textAlign:"center",padding:"20px 12px"}}>
-              <div style={{fontSize:24,fontWeight:800,color:m.color,letterSpacing:"-1px",lineHeight:1}}>{m.value}</div>
-              <div style={{fontSize:11,color:"var(--text2)",marginTop:6,fontWeight:500}}>{m.label}</div>
+            {label:"Points earned",value:totalPts.toLocaleString(),color:"#5B8DB8"},
+            {label:"Rewards value",value:`$${Math.round(totalPts*0.01)}`,color:"#5B9A6F"},
+          ].map((m,i) => (
+            <div key={i} style={{flex:1,textAlign:"center",borderRight:i<2?"1px solid var(--border)":"none"}}>
+              <div style={{fontSize:18,fontWeight:500,color:m.color,letterSpacing:"-.3px"}}>{m.value}</div>
+              <div style={{fontSize:10,color:"var(--text2)",marginTop:3}}>{m.label}</div>
             </div>
           ))}
         </div>
 
-        {/* Recent transactions */}
-        {txns.length > 0 && (
-          <div className="au d5" style={{marginBottom:28}}>
-            <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:12}}>RECENT</div>
-            {txns.slice(-8).reverse().map((t,i) => {
+        {/* Transaction feed */}
+        <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",margin:"20px 0 10px"}}>
+          {activeCat ? `${CATS.find(c=>c.key===activeCat)?.label||""} transactions` : "Recent activity"}
+          {activeCat && <button onClick={()=>setActiveCat(null)} style={{fontSize:11,color:"var(--text2)",background:"none",border:"none",cursor:"pointer",marginLeft:8}}>Clear</button>}
+        </div>
+        
+        {filteredTxns.length > 0 ? (
+          <div>
+            {filteredTxns.slice(-10).reverse().map((t,i) => {
               const catInfo = CATS.find(c=>c.key===t.cat);
               return (
-                <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:i<Math.min(txns.length,8)-1?"1px solid var(--border)":"none"}}>
+                <div key={t.id} className="au" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:i<Math.min(filteredTxns.length,10)-1?"1px solid var(--border)":"none",cursor:"pointer",transition:"transform .2s",animationDelay:`${i*0.04}s`}}
+                  onMouseEnter={e=>(e.currentTarget.style.transform="translateX(3px)")} onMouseLeave={e=>(e.currentTarget.style.transform="translateX(0)")}>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
-                    <div style={{width:32,height:32,borderRadius:8,background:catInfo?.color+"15",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                      <Icon name={catInfo?.icon||"other"} size={15} color={catInfo?.color||"var(--text2)"}/>
-                    </div>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:catInfo?.color||"var(--text3)",flexShrink:0}}/>
                     <div>
-                      <div style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{t.desc||catInfo?.label}</div>
-                      <div style={{fontSize:11,color:"var(--text2)"}}>{catInfo?.label} · {t.date||"Today"}</div>
+                      <div style={{fontSize:13,color:"var(--text)"}}>{t.desc||catInfo?.label}</div>
+                      <div style={{fontSize:11,color:"var(--text2)"}}>{catInfo?.label} · {cards.find(c=>c.name===t.card)?.name||t.card||"Card"} · {t.date||"Today"}</div>
                     </div>
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <span style={{fontSize:14,fontWeight:700,color:"var(--text)",letterSpacing:"-.3px"}}>${t.amount}</span>
-                    <button onClick={()=>onDeleteTxn(t.id)} className="press" style={{background:"none",border:"none",cursor:"pointer",color:"var(--text3)",padding:2}}>
-                      <Icon name="trash" size={13}/>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:14,fontWeight:500,color:"var(--text)",letterSpacing:"-.3px"}}>${t.amount}</div>
+                      <div style={{fontSize:10,color:"var(--text2)"}}>+{t.amount * 3} pts</div>
+                    </div>
+                    <button onClick={(e)=>{e.stopPropagation();onDeleteTxn(t.id)}} className="press" style={{background:"none",border:"none",cursor:"pointer",color:"var(--text3)",padding:2}}>
+                      <Icon name="trash" size={12}/>
                     </button>
                   </div>
                 </div>
               );
             })}
           </div>
+        ) : (
+          <div style={{textAlign:"center",padding:"32px 0"}}>
+            <div style={{fontSize:14,fontWeight:500,color:"var(--text)",marginBottom:4}}>No transactions yet</div>
+            <div style={{fontSize:12,color:"var(--text2)",marginBottom:12}}>Log your spending for better insights and predictions.</div>
+            <button onClick={()=>setShowAdd(true)} className="press spring-hover" style={{padding:"9px 18px",borderRadius:8,border:"none",background:"var(--text)",color:"var(--surface)",fontSize:12,fontWeight:500,cursor:"pointer"}}>Log first transaction</button>
+          </div>
         )}
 
         {/* Spending predictor */}
         {txns.length >= 3 && (
-          <div className="au d6" style={{marginBottom:28}}>
-            <div style={{fontSize:11,color:"var(--text3)",fontWeight:600,letterSpacing:"1px",textTransform:"uppercase",marginBottom:12}}>PREDICTED SPENDING</div>
-            <div style={{padding:"16px 20px",background:"var(--surface2)",borderRadius:12}}>
+          <div style={{margin:"20px 0"}}>
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",marginBottom:10}}>Predicted next month</div>
+            <div style={{padding:"14px 16px",background:"var(--surface2)",borderRadius:10,border:"1px solid var(--border)"}}>
               {(() => {
                 const catTotals: Record<string,number[]> = {};
-                txns.forEach(t => {
-                  if (!catTotals[t.category]) catTotals[t.category] = [];
-                  catTotals[t.category].push(t.amount);
-                });
+                txns.forEach(t => { if (!catTotals[t.cat]) catTotals[t.cat] = []; catTotals[t.cat].push(t.amount); });
                 const predictions = Object.entries(catTotals).map(([c, amounts]) => {
                   const avg = amounts.reduce((s,a)=>s+a,0) / amounts.length;
                   const trend = amounts.length > 1 ? (amounts[amounts.length-1] - amounts[0]) / amounts.length : 0;
                   const predicted = Math.max(0, Math.round(avg + trend));
-                  const catInfo = CATS.find(ci => ci.key === c);
-                  return { cat: c, label: catInfo?.label || c, color: catInfo?.color || "#94A3B8", predicted, trend, count: amounts.length };
+                  const ci = CATS.find(cc => cc.key === c);
+                  return { cat: c, label: ci?.label || c, color: ci?.color || "#94A3B8", predicted, trend };
                 }).sort((a,b) => b.predicted - a.predicted);
                 const totalPred = predictions.reduce((s,p)=>s+p.predicted,0);
                 return (
                   <div>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:14}}>
-                      <span style={{fontSize:12,color:"var(--text2)"}}>Next month estimate</span>
-                      <span style={{fontSize:20,fontWeight:700,color:"var(--text)",letterSpacing:"-1px"}}>${totalPred.toLocaleString()}</span>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:12}}>
+                      <span style={{fontSize:12,color:"var(--text2)"}}>Estimate</span>
+                      <span style={{fontSize:18,fontWeight:500,color:"var(--text)",letterSpacing:"-.5px"}}>${totalPred.toLocaleString()}</span>
                     </div>
-                    {predictions.slice(0,4).map((p,i) => (
-                      <div key={p.cat} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0"}}>
-                        <div style={{width:6,height:6,borderRadius:"50%",background:p.color}}/>
+                    {predictions.slice(0,4).map(p => (
+                      <div key={p.cat} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0"}}>
+                        <div style={{width:5,height:5,borderRadius:"50%",background:p.color}}/>
                         <span style={{fontSize:12,color:"var(--text)",flex:1}}>{p.label}</span>
-                        <span style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>${p.predicted}</span>
-                        <span style={{fontSize:10,color:p.trend>5?"var(--red)":p.trend<-5?"var(--green)":"var(--text2)",width:20,textAlign:"right"}}>
+                        <span style={{fontSize:12,fontWeight:500,color:"var(--text)"}}>${p.predicted}</span>
+                        <span style={{fontSize:10,width:14,textAlign:"right",color:p.trend>5?"var(--red)":p.trend<-5?"var(--green)":"var(--text2)"}}>
                           {p.trend > 5 ? "↑" : p.trend < -5 ? "↓" : "→"}
                         </span>
                       </div>
@@ -4731,29 +4792,38 @@ function Analytics({ go, cards, profile, txns, onAddTxn, onDeleteTxn }: { go:(s:
           </div>
         )}
 
-        {/* Add transaction modal */}
+        {/* Why card */}
+        {merged.length > 1 && merged[0].val > 0 && (
+          <div onClick={()=>go("chat")} className="press" style={{padding:"16px 18px",borderRadius:10,border:"1px solid var(--border)",marginTop:8,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"border-color .2s"}}
+            onMouseEnter={e=>(e.currentTarget.style.borderColor="var(--border2)")} onMouseLeave={e=>(e.currentTarget.style.borderColor="var(--border)")}>
+            <div>
+              <div style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>Why is {merged[0].label.toLowerCase()} your biggest expense?</div>
+              <div style={{fontSize:11,color:"var(--text2)",marginTop:2}}>Ask the advisor to analyze your pattern</div>
+            </div>
+            <Icon name="arrow-right" size={16} color="var(--text2)"/>
+          </div>
+        )}
+
+        {/* Add modal */}
         {showAdd && (
           <div style={{position:"fixed",inset:0,zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,.4)",backdropFilter:"blur(4px)"}} onClick={()=>setShowAdd(false)}>
-            <div onClick={e=>e.stopPropagation()} className="ap" style={{background:"var(--surface)",borderRadius:16,padding:"28px 24px",width:"90%",maxWidth:400,boxShadow:"var(--shadow-lg)"}}>
-              <div style={{fontSize:18,fontWeight:700,color:"var(--text)",marginBottom:4}}>Log Transaction</div>
-              <div style={{fontSize:12,color:"var(--text2)",marginBottom:20}}>Track spending for better predictions</div>
-              <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                <input className="field" type="number" placeholder="Amount" value={amt} onChange={e=>setAmt(e.target.value)} />
-                <input className="field" placeholder="Description (optional)" value={desc} onChange={e=>setDesc(e.target.value)} />
+            <div onClick={e=>e.stopPropagation()} className="ap" style={{background:"var(--surface)",borderRadius:14,padding:"24px 22px",width:"90%",maxWidth:380,boxShadow:"var(--shadow-lg)"}}>
+              <div style={{fontSize:17,fontWeight:500,color:"var(--text)",marginBottom:4}}>Log transaction</div>
+              <div style={{fontSize:12,color:"var(--text2)",marginBottom:18}}>Track spending for better predictions</div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <input className="field" type="number" placeholder="Amount" value={amt} onChange={e=>setAmt(e.target.value)}/>
+                <input className="field" placeholder="Description" value={desc} onChange={e=>setDesc(e.target.value)}/>
                 <select className="field" value={cat} onChange={e=>setCat(e.target.value)}>
                   {CATS.map(c=><option key={c.key} value={c.key}>{c.label}</option>)}
                 </select>
                 {cards.length>0 && <select className="field" value={card} onChange={e=>setCard(e.target.value)}>
                   {cards.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>}
-                <button onClick={()=>{if(!amt)return;onAddTxn(cat,parseFloat(amt),desc,card,new Date().toISOString().split("T")[0]);setAmt("");setDesc("");setShowAdd(false);}} className="press spring-hover" style={{padding:"13px 0",borderRadius:10,border:"none",background:"var(--accent)",color:"white",fontSize:14,fontWeight:600,cursor:"pointer",width:"100%"}}>
-                  Save
-                </button>
+                <button onClick={()=>{if(!amt)return;onAddTxn(cat,parseFloat(amt),desc,card,new Date().toISOString().split("T")[0]);setAmt("");setDesc("");setShowAdd(false);}} className="press spring-hover" style={{padding:"12px 0",borderRadius:8,border:"none",background:"var(--text)",color:"var(--surface)",fontSize:13,fontWeight:500,cursor:"pointer",width:"100%"}}>Save</button>
               </div>
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
