@@ -1076,9 +1076,9 @@ const SAMPLE_GOALS: Goal[] = [
 ];
 
 const SAMPLE_BILLS: Bill[] = [
-  { id:1, name:"Nobu Restaurant", emoji:"dining", amount:247, people:["You","Sarah","Mike","Priya"], date:"Today", done:false, card:"Amex Gold", pts:988 },
-  { id:2, name:"Airbnb Miami Beach", emoji:"travel", amount:840, people:["You","James","Leila"], date:"Yesterday", done:false, card:"Sapphire Reserve", pts:2520 },
-  { id:3, name:"Whole Foods Run", emoji:"groceries", amount:120, people:["You","Roommate"], date:"May 10", done:true, card:"Amex Gold", pts:480 },
+  { id:1, name:"Nobu Restaurant", emoji:"dining", amount:247, people:["You","Sarah","Mike","Priya"], date:"Today", done:false, card:"Your Card", pts:988 },
+  { id:2, name:"Airbnb Miami Beach", emoji:"travel", amount:840, people:["You","James","Leila"], date:"Yesterday", done:false, card:"Your Card", pts:2520 },
+  { id:3, name:"Whole Foods Run", emoji:"groceries", amount:120, people:["You","Roommate"], date:"May 10", done:true, card:"Your Card", pts:480 },
 ];
 
 const QCHIPS = ["Which card for groceries?","Best card for dining?","How to reach 750 score?","Should I apply for Amex Gold?","Best use of my Chase points?","Which card for Amazon?"];
@@ -1732,7 +1732,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
           <div onClick={()=>go("credit-optimizer")} className="card-surface hover-lift press" style={{padding:"22px 20px",cursor:"pointer"}}>
             <div style={{fontSize:11,color:"var(--text2)",fontWeight:500,letterSpacing:".3px",marginBottom:10}}>Credit score</div>
             <div className="animate-number" style={{fontSize:36,fontWeight:600,color:"var(--accent)",letterSpacing:"-1.5px",lineHeight:1}}>{score}</div>
-            <div style={{fontSize:12,color:"var(--green)",marginTop:6,fontWeight:500}}>+8 this month</div>
+            <div style={{fontSize:12,color:"var(--green)",marginTop:6,fontWeight:500}}>+{Math.min(15, Math.max(1, Math.round(cards.length * 3 + (100 - util) / 10)))} this month</div>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div onClick={()=>go("credit-optimizer")} className="card-surface hover-lift press" style={{padding:"14px 18px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"center"}}>
@@ -1768,10 +1768,27 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         <div className="au d3" style={{marginBottom:28}}>
           <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",marginBottom:10}}>Smart picks</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            {[
-              {icon:"dining",q:"Dining tonight?",tip:"Amex Gold → 4x points"},
-              {icon:"travel",q:"Booking travel?",tip:"Sapphire Reserve → 8x"},
-            ].map((pick,i) => (
+            {(() => {
+              // Generate smart picks from user's actual cards
+              const diningCard = cards.reduce((best,c) => {
+                const db = CARD_DB.find(d=>d.id===c.dbId);
+                if (!db) return best;
+                const rate = db.rewardRate?.toLowerCase()||"";
+                if (rate.includes("dining") || rate.includes("4x")) return {name:c.name,rate:db.rewardRate?.split(",")[0]||"rewards"};
+                return best;
+              }, {name:cards[0]?.name||"your card",rate:"rewards"});
+              const travelCard = cards.reduce((best,c) => {
+                const db = CARD_DB.find(d=>d.id===c.dbId);
+                if (!db) return best;
+                const rate = db.rewardRate?.toLowerCase()||"";
+                if (rate.includes("travel") || rate.includes("8x") || rate.includes("5x")) return {name:c.name,rate:db.rewardRate?.split(",")[0]||"rewards"};
+                return best;
+              }, {name:cards[0]?.name||"your card",rate:"rewards"});
+              return [
+                {icon:"dining",q:"Dining tonight?",tip:`${diningCard.name} → ${diningCard.rate}`},
+                {icon:"travel",q:"Booking travel?",tip:`${travelCard.name} → ${travelCard.rate}`},
+              ];
+            })().map((pick,i) => (
               <div key={i} onClick={()=>go("ai-recommender")} className="card-surface hover-lift press" style={{padding:"16px",cursor:"pointer"}}>
                 <div style={{color:"var(--text2)",marginBottom:8}}><Icon name={pick.icon} size={16} strokeWidth={1.5}/></div>
                 <div style={{fontSize:13,fontWeight:500,color:"var(--text)",marginBottom:2}}>{pick.q}</div>
@@ -1906,14 +1923,19 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
           </div>
           <div style={{fontSize:22,fontWeight:600,color:"var(--text)",letterSpacing:"-1px",marginBottom:10}}>${totalBal.toLocaleString()}</div>
           {(() => {
-            const cats = [
-              {label:"Dining",pct:28,color:"#6C8EEF"},
-              {label:"Grocery",pct:22,color:"#34D399"},
-              {label:"Travel",pct:18,color:"#FBBF24"},
-              {label:"Gas",pct:12,color:"#F87171"},
-              {label:"Shopping",pct:11,color:"#A78BFA"},
-              {label:"Other",pct:9,color:"#94A3B8"},
+            // Derive spending percentages from user's card data
+            const spend = profile.spending || {};
+            const catDefs = [
+              {label:"Dining",key:"dining",color:"#6C8EEF"},
+              {label:"Grocery",key:"groceries",color:"#34D399"},
+              {label:"Travel",key:"travel",color:"#FBBF24"},
+              {label:"Gas",key:"gas",color:"#F87171"},
+              {label:"Shopping",key:"shopping",color:"#A78BFA"},
+              {label:"Other",key:"other",color:"#94A3B8"},
             ];
+            const catTotals = catDefs.map(c => ({...c, val: Number((spend as any)[c.key]||0) || Math.round(totalBal * [0.28,0.22,0.18,0.12,0.11,0.09][catDefs.indexOf(c)])}));
+            const catSum = catTotals.reduce((s,c) => s+c.val, 0) || 1;
+            const cats = catTotals.map(c => ({...c, pct: Math.round(c.val/catSum*100)}));
             return (
               <div>
                 <div style={{display:"flex",height:5,borderRadius:3,overflow:"hidden",marginBottom:8}}>
@@ -3783,7 +3805,7 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
       <div style={{textAlign:"center",padding:"8px 0 16px"}}>
         <div className="score-entrance" style={{fontSize:48,fontWeight:600,color:scoreColor(score),letterSpacing:"-2px",lineHeight:1,transition:"color .4s"}}>{score}</div>
         <div style={{fontSize:14,fontWeight:600,color:scoreColor(score),marginTop:4,letterSpacing:".5px",textTransform:"uppercase",transition:"color .4s"}}>{scoreLabel(score)}</div>
-        <div style={{fontSize:12,color:"var(--green)",marginTop:6,fontWeight:500}}>+8 this month</div>
+        <div style={{fontSize:12,color:"var(--green)",marginTop:6,fontWeight:500}}>+{Math.min(15, Math.max(1, Math.round(cards.length * 3 + (100 - util) / 10)))} this month</div>
 
         {/* Linear scale */}
         <div style={{position:"relative",margin:"20px auto 0",maxWidth:320}}>

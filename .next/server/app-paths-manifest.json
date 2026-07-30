@@ -1,6 +1,6 @@
 {
-  "/_not-found": "app/_not-found.js",
   "/api/chat/route": "app/api/chat/route.js",
+  "/_not-found": "app/_not-found.js",
   "/api/credit-analyze/route": "app/api/credit-analyze/route.js",
   "/api/delete-account/route": "app/api/delete-account/route.js",
   "/api/forgot-password/route": "app/api/forgot-password/route.js",
