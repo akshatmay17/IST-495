@@ -315,6 +315,87 @@ select.field { appearance:none; }
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* 3D Card tilt on hover — luxury card feel */
+.card-3d {
+  perspective: 800px;
+  transform-style: preserve-3d;
+}
+.card-3d-inner {
+  transition: transform .4s cubic-bezier(.03,.98,.52,.99), box-shadow .4s ease;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.card-3d-inner:hover {
+  box-shadow: 0 20px 40px rgba(0,0,0,.3), 0 0 0 1px rgba(255,255,255,.05);
+}
+
+/* Shimmer sweep across cards */
+@keyframes cardShimmer {
+  0% { transform: translateX(-150%) skewX(-20deg); }
+  100% { transform: translateX(250%) skewX(-20deg); }
+}
+.card-shimmer::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.08) 45%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.08) 55%, transparent 70%);
+  transform: translateX(-150%) skewX(-20deg);
+  pointer-events: none;
+}
+.card-shimmer:hover::after {
+  animation: cardShimmer .8s ease forwards;
+}
+
+/* Smooth number counter animation */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.animate-number {
+  animation: countUp .5s cubic-bezier(.4,0,.2,1) both;
+}
+
+/* Score entrance — dramatic reveal */
+@keyframes scoreReveal {
+  0% { opacity: 0; transform: scale(0.8); filter: blur(8px); }
+  60% { opacity: 1; transform: scale(1.02); filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+.score-entrance {
+  animation: scoreReveal .8s cubic-bezier(.16,1,.3,1) both;
+}
+
+/* Marker slide */
+@keyframes markerSlide {
+  from { opacity: 0; transform: translateX(-50%) scale(0); }
+  to { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+.marker-animate {
+  animation: markerSlide .6s cubic-bezier(.34,1.56,.64,1) .3s both;
+}
+
+/* Stagger children */
+.stagger > * { opacity: 0; animation: fadeUp .35s cubic-bezier(.4,0,.2,1) both; }
+.stagger > *:nth-child(1) { animation-delay: .05s; }
+.stagger > *:nth-child(2) { animation-delay: .1s; }
+.stagger > *:nth-child(3) { animation-delay: .15s; }
+.stagger > *:nth-child(4) { animation-delay: .2s; }
+.stagger > *:nth-child(5) { animation-delay: .25s; }
+.stagger > *:nth-child(6) { animation-delay: .3s; }
+
+/* Pulse glow for important actions */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212,168,71,.3); }
+  50% { box-shadow: 0 0 0 8px rgba(212,168,71,0); }
+}
+.pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
+
+/* Spring hover for buttons */
+.spring-hover {
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease;
+}
+.spring-hover:hover { transform: translateY(-2px) scale(1.01); }
+.spring-hover:active { transform: translateY(0) scale(0.98); transition-duration: .1s; }
 @keyframes screenFade {
   from { opacity:0; transform:translateY(6px); }
   to   { opacity:1; transform:translateY(0); }
@@ -1623,7 +1704,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
         </div>
 
         {/* Three key signals */}
-        <div className="au d1" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:28}}>
+        <div className="au d1" className="stagger" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:28}}>
           {[
             {label:"Credit",value:score,sub:"+8 this month",color:"var(--accent)",click:()=>go("credit-optimizer")},
             {label:"Utilization",value:`${util}%`,sub:utilLabel,color:utilColor,click:()=>go("credit-optimizer")},
@@ -1631,7 +1712,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
           ].map((s,i) => (
             <div key={i} onClick={s.click} className="card-surface hover-lift press" style={{padding:"20px 18px",cursor:"pointer"}}>
               <div style={{fontSize:11,color:"var(--text2)",fontWeight:500,letterSpacing:".3px",textTransform:"uppercase",marginBottom:8}}>{s.label}</div>
-              <div style={{fontSize:28,fontWeight:800,color:s.color,letterSpacing:"-1.5px",lineHeight:1}}>{s.value}</div>
+              <div className="animate-number" style={{fontSize:28,fontWeight:800,color:s.color,letterSpacing:"-1.5px",lineHeight:1}}>{s.value}</div>
               <div style={{fontSize:12,color:"var(--text2)",marginTop:6,fontWeight:450}}>{s.sub}</div>
             </div>
           ))}
@@ -1654,7 +1735,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
                   </div>
                 </div>
               </div>
-              <button onClick={()=>go("credit-optimizer")} className="press" style={{padding:"8px 16px",borderRadius:8,border:"none",background:"var(--accent)",color:"white",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>Review</button>
+              <button onClick={()=>go("credit-optimizer")} className="press pulse-glow spring-hover" style={{padding:"8px 16px",borderRadius:8,border:"none",background:"var(--accent)",color:"white",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>Review</button>
             </div>
           </div>
         )}
@@ -1688,7 +1769,7 @@ function Home({ profile, cards, go, dataLoaded, onUpdateCard }: { profile:UserPr
             <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:4}} className="no-scrollbar">
               {cards.slice(0,4).map(c => (
                 <div key={c.id} onClick={()=>go("cards")} className="press" style={{cursor:"pointer",flexShrink:0,width:200}}>
-                  <div style={{background:c.gradient,borderRadius:12,padding:"16px 14px",height:110,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"transform .2s",position:"relative",overflow:"hidden"}}>
+                  <div onMouseMove={handleTilt} onMouseLeave={resetTilt} className="card-shimmer" style={{background:c.gradient,borderRadius:12,padding:"16px 14px",height:110,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"transform .4s cubic-bezier(.03,.98,.52,.99), box-shadow .4s",position:"relative",overflow:"hidden",transformStyle:"preserve-3d"}}>
                     <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"linear-gradient(135deg,rgba(255,255,255,.08) 0%,transparent 50%)",pointerEvents:"none"}}/>
                     <div style={{fontSize:10,color:"rgba(255,255,255,.6)",letterSpacing:"1px",textTransform:"uppercase"}}>{c.issuer}</div>
                     <div>
@@ -3392,7 +3473,7 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
     const pct = Math.max(0, Math.min(100, ((score - 300) / 550) * 100));
     return (
       <div style={{textAlign:"center",padding:"8px 0 16px"}}>
-        <div style={{fontSize:56,fontWeight:800,color:scoreColor(score),letterSpacing:"-3px",lineHeight:1,transition:"color .4s"}}>{score}</div>
+        <div className="score-entrance" style={{fontSize:56,fontWeight:800,color:scoreColor(score),letterSpacing:"-3px",lineHeight:1,transition:"color .4s"}}>{score}</div>
         <div style={{fontSize:14,fontWeight:600,color:scoreColor(score),marginTop:4,letterSpacing:".5px",textTransform:"uppercase",transition:"color .4s"}}>{scoreLabel(score)}</div>
         <div style={{fontSize:12,color:"var(--green)",marginTop:6,fontWeight:500}}>+8 this month</div>
 
@@ -3402,9 +3483,9 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
             <div style={{position:"absolute",left:0,top:0,height:"100%",width:`${pct}%`,borderRadius:2,
               background:`linear-gradient(90deg, #F87171 0%, #FBBF24 35%, #D4A847 55%, #34D399 80%)`,
               transition:"width .6s cubic-bezier(.4,0,.2,1)",boxShadow:`0 0 8px ${scoreColor(score)}30`}}/>
-            <div style={{position:"absolute",left:`${pct}%`,top:-4,width:12,height:12,borderRadius:"50%",
+            <div className="marker-animate" style={{position:"absolute",left:`${pct}%`,top:-4,width:12,height:12,borderRadius:"50%",
               background:scoreColor(score),border:"2px solid var(--surface)",
-              transform:"translateX(-50%)",transition:"left .6s cubic-bezier(.4,0,.2,1)",
+              transition:"left .6s cubic-bezier(.4,0,.2,1)",
               boxShadow:`0 0 12px ${scoreColor(score)}40`}}/>
           </div>
           <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
@@ -3500,11 +3581,11 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
           ))}
         </div>
 
-        <button onClick={runAnalysis} disabled={loading} className="press" style={{
+        <button onClick={runAnalysis} disabled={loading} className="press" className="spring-hover" style={{
           width:"100%",padding:"15px 0",borderRadius:12,border:"none",cursor:"pointer",
           background:loading?"var(--border2)":"var(--accent)",color:"white",
-          fontSize:15,fontWeight:700,boxShadow:"0 4px 14px rgba(37,99,235,.3)",
-          fontFamily:"var(--sans)",transition:"all .2s",
+          fontSize:15,fontWeight:700,boxShadow:"0 4px 14px rgba(212,168,71,.2)",
+          fontFamily:"var(--sans)",
         }}>
           {loading ? "Analyzing..." : "Run Analysis"}
         </button>
@@ -3576,11 +3657,11 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
         )}
 
         {/* AI Analysis button */}
-        <button onClick={runAI} disabled={aiLoading} className="press" style={{
+        <button onClick={runAI} disabled={aiLoading} className="press" className="spring-hover" style={{
           width:"100%",padding:"15px 0",borderRadius:12,border:"none",cursor:"pointer",
-          background:aiLoading?"var(--border2)":"#7c3aed",color:"white",
-          fontSize:15,fontWeight:700,boxShadow:"0 4px 14px rgba(124,58,237,.3)",
-          fontFamily:"var(--sans)",transition:"all .2s",marginBottom:10,
+          background:aiLoading?"var(--border2)":"var(--accent2)",color:"white",
+          fontSize:15,fontWeight:700,boxShadow:"0 4px 14px rgba(212,168,71,.15)",
+          fontFamily:"var(--sans)",marginBottom:10,
         }}>
           {aiLoading ? "Generating insights..." : "Get AI Insights"}
         </button>
@@ -4764,7 +4845,7 @@ function Compare({ go, cards }: { go:(s:S)=>void; cards:CreditCard[] }) {
           <>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18}}>
               {[cA,cB].map(c=>(
-                <div key={c.dbId} style={{background:c.gradient,borderRadius:14,padding:"16px 14px"}}>
+                <div key={c.dbId} className="card-shimmer" style={{background:c.gradient,borderRadius:14,padding:"16px 14px",position:"relative",overflow:"hidden"}}>
                   <p style={{color:"rgba(255,255,255,.55)",fontSize:11,letterSpacing:1,textTransform:"uppercase"}}>{c.issuer}</p>
                   <p style={{color:"#fff",fontSize:15,fontWeight:700,marginTop:3}}>{c.name}</p>
                   <p style={{color:"rgba(255,255,255,.6)",fontSize:12,marginTop:5}}>{c.rewardRate}</p>
