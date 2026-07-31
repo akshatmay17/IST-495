@@ -144,6 +144,10 @@ button, input, select, textarea { font-family: var(--sans); cursor: pointer; }
 @keyframes fadeUp  { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
 @keyframes popIn   { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
+
+/* Landing page card marquee */
+@keyframes cardMarquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+.card-marquee { animation: cardMarquee 20s linear infinite; }
 @keyframes glow    { 0%,100% { box-shadow:0 0 20px rgba(139,92,246,.15); } 50% { box-shadow:0 0 30px rgba(139,92,246,.25); } }
 @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.4} }
 
@@ -5972,94 +5976,261 @@ function useScrollReveal() {
 
 function Landing({ onGetStarted, onSignIn }: { onGetStarted:()=>void; onSignIn:()=>void }) {
   useScrollReveal();
-  const words = ["every card swipe","your next flight","every hotel stay","your dinner tonight","every grocery run"];
-  const [wordIdx, setWordIdx] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setWordIdx(i => (i+1)%words.length), 2400);
-    return () => clearInterval(t);
-  }, []);
+  const [pulledCard, setPulledCard] = useState(0);
+
+  const featureCards = [
+    {bg:"linear-gradient(135deg,#006FCF,#003170)",title:"Smart optimizer",desc:"Best card for every purchase",detail:"Enter any purchase — WiseCard instantly ranks all your cards by total value. Cashback, points, purchase protection, and bonus categories compared in one tap."},
+    {bg:"linear-gradient(135deg,#0F172A,#1E293B)",title:"Benefits vault",desc:"Track credits and perks",detail:"Annual travel credits, dining credits, streaming perks — all tracked with activity rings. Alerts before anything expires."},
+    {bg:"linear-gradient(135deg,#8B6914,#D4A847)",title:"Credit score AI",desc:"ML-powered scoring",detail:"Gradient Boosting model with SHAP-style factor breakdown. Simulate any payment and see projected score impact instantly.",dark:true},
+    {bg:"linear-gradient(135deg,#1b4332,#2d6a4f)",title:"Spending insights",desc:"Charts and predictions",detail:"Interactive area charts, category bubbles, and AI spending predictions. Click any category to drill down into transactions."},
+    {bg:"linear-gradient(135deg,#5B2B82,#3D1D56)",title:"AI advisor",desc:"Ask anything about cards",detail:"\"What card for Whole Foods?\" Get instant, specific answers based on your actual cards and spending — not generic advice."},
+  ];
+
+  const supportedCards = [
+    {name:"Blue Cash",bg:"linear-gradient(135deg,#006FCF,#003170)"},
+    {name:"Sapphire",bg:"linear-gradient(135deg,#0F172A,#1E293B)"},
+    {name:"Venture X",bg:"linear-gradient(135deg,#1b4332,#2d6a4f)"},
+    {name:"Gold",bg:"linear-gradient(135deg,#8B6914,#D4A847)",dark:true},
+    {name:"Discover",bg:"linear-gradient(135deg,#E85D1A,#C44A15)"},
+    {name:"Citi",bg:"linear-gradient(135deg,#003B70,#002855)"},
+    {name:"Hilton",bg:"linear-gradient(135deg,#5B2B82,#3D1D56)"},
+    {name:"Wells Fargo",bg:"linear-gradient(135deg,#D71E28,#A0161D)"},
+    {name:"BoA",bg:"linear-gradient(135deg,#012169,#001540)"},
+    {name:"Platinum",bg:"linear-gradient(135deg,#606060,#303030)"},
+    {name:"Freedom",bg:"linear-gradient(135deg,#1a1f3a,#0c1629)"},
+    {name:"Costco",bg:"linear-gradient(135deg,#003B70,#002855)"},
+  ];
+
+  const testimonials = [
+    {text:"Found $240 in annual credits I didn't know I had. The benefits vault alone is worth it.",name:"James K.",role:"3 cards · $1,840 recovered",color:"#1E3A5F"},
+    {text:"Was using Sapphire for groceries. WiseCard showed me Blue Cash earns 3x more.",name:"Sarah P.",role:"5 cards · $3,200 recovered",color:"#5B9A6F"},
+    {text:"The AI advisor is like a financial consultant in my pocket. Answers in 2 seconds.",name:"Michael R.",role:"4 cards · 760 credit score",color:"#C4875C"},
+    {text:"My score went up 35 points in 3 months from the utilization tips.",name:"Aisha L.",role:"2 cards · +35 pts in 3mo",color:"#8B7EB8"},
+  ];
 
   return (
-    <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"var(--sans)",overflow:"hidden"}}>
+    <div style={{background:"#FAFBFD",color:"#111827",minHeight:"100vh",position:"relative",overflow:"hidden"}}>
+      {/* Ambient glows */}
+      <div style={{position:"absolute",width:500,height:500,borderRadius:"50%",filter:"blur(140px)",top:"-10%",right:"-8%",background:"rgba(30,58,95,.06)",pointerEvents:"none"}}/>
+      <div style={{position:"absolute",width:400,height:400,borderRadius:"50%",filter:"blur(140px)",bottom:"25%",left:"-8%",background:"rgba(212,168,71,.04)",pointerEvents:"none"}}/>
+
       {/* Nav */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 24px",maxWidth:1100,margin:"0 auto",position:"relative",zIndex:2,animation:"heroFadeUp .6s ease both"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:34,height:34,borderRadius:9,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 20px",margin:"10px 24px",borderRadius:12,background:"rgba(255,255,255,.8)",border:"1px solid rgba(0,0,0,.06)",backdropFilter:"blur(12px)",position:"relative",zIndex:10}}>
+        <div style={{fontSize:15,fontWeight:600,display:"flex",alignItems:"center",gap:7,color:"#1E3A5F"}}>
+          <Icon name="credit-card" size={15} strokeWidth={1.5} color="#1E3A5F"/> WiseCard
+        </div>
+        <div style={{display:"flex",gap:12,alignItems:"center"}}>
+          <button onClick={onSignIn} className="press" style={{padding:"8px 18px",borderRadius:8,border:"1px solid rgba(0,0,0,.1)",fontSize:12,cursor:"pointer",background:"#fff",color:"#111827",fontWeight:500}}>Sign in</button>
+          <button onClick={onGetStarted} className="press" style={{padding:"8px 18px",borderRadius:8,background:"#1E3A5F",color:"#fff",fontSize:12,fontWeight:600,border:"none",cursor:"pointer"}}>Create account</button>
+        </div>
+      </div>
+
+      {/* Hero — split */}
+      <div style={{display:"flex",gap:32,alignItems:"center",padding:"56px 32px 48px",position:"relative",zIndex:2,flexWrap:"wrap"}}>
+        <div style={{flex:1,minWidth:280}}>
+          <h1 style={{fontSize:40,fontWeight:700,letterSpacing:"-1.5px",lineHeight:1.08,color:"#0F172A",margin:"0 0 16px"}}>Open your wallet.<br/>See what you're<br/><span style={{color:"#1E3A5F"}}>missing</span>.</h1>
+          <p style={{fontSize:15,color:"#6B7280",lineHeight:1.6,margin:"0 0 28px",maxWidth:380}}>WiseCard uses AI to find every reward, track every credit, and maximize every swipe — automatically.</p>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+            <button onClick={onGetStarted} className="press spring-hover" style={{padding:"14px 30px",borderRadius:10,border:"none",fontSize:14,fontWeight:600,cursor:"pointer",background:"#1E3A5F",color:"#fff",boxShadow:"0 4px 14px rgba(30,58,95,.2)"}}>Create free account →</button>
+            <button onClick={onSignIn} className="press spring-hover" style={{padding:"14px 30px",borderRadius:10,border:"1px solid rgba(0,0,0,.12)",fontSize:14,fontWeight:500,cursor:"pointer",background:"#fff",color:"#111827"}}>Sign in</button>
           </div>
-          <span className="serif" style={{fontSize:18,fontWeight:600,color:"var(--text)"}}>WiseCard</span>
+          <div style={{fontSize:11,color:"#9CA3AF",marginTop:14}}>Free forever · No credit card required</div>
         </div>
-        <button onClick={onSignIn} style={{background:"none",border:"1px solid var(--border2)",borderRadius:10,padding:"9px 18px",color:"var(--text)",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"var(--sans)"}}>Sign In</button>
+
+        {/* Card wallet stack */}
+        <div style={{flex:1,minWidth:280,position:"relative",height:360,perspective:1200}}>
+          {featureCards.map((fc,i) => {
+            const offset = ((i - pulledCard) + featureCards.length) % featureCards.length;
+            const isPulled = i === pulledCard;
+            return (
+              <div key={i} onClick={()=>setPulledCard(i)} className="press" style={{
+                position:"absolute",width:250,height:155,left:"50%",marginLeft:-125,
+                borderRadius:14,padding:"18px 20px",display:"flex",flexDirection:"column",justifyContent:"space-between",
+                overflow:"hidden",cursor:"pointer",
+                background:fc.bg,
+                boxShadow:isPulled?"0 25px 60px rgba(0,0,0,.18)":"0 8px 30px rgba(0,0,0,.1)",
+                transition:"all .5s cubic-bezier(.22,1,.36,1)",
+                zIndex:isPulled?10:6-offset,
+                transform:isPulled?"translateY(-200px) rotateX(-4deg) scale(1.03)":`translateY(${offset*13}px) scale(${1-offset*0.03}) rotateX(2deg)`,
+                opacity:isPulled?1:Math.max(0.2, 1-offset*0.2),
+                border:fc.bg.includes("0F172A")?"1px solid rgba(255,255,255,.06)":"none",
+              }}>
+                <div style={{position:"absolute",inset:0,background:"linear-gradient(125deg,rgba(255,255,255,.12),transparent 40%)",pointerEvents:"none"}}/>
+                <div style={{position:"relative",zIndex:1}}>
+                  <div style={{fontSize:7,letterSpacing:"1.5px",color:fc.dark?"rgba(0,0,0,.25)":"rgba(255,255,255,.35)"}}>WISECARD</div>
+                  <div style={{width:24,height:17,borderRadius:3,background:"linear-gradient(135deg,#D4A847,#B8922E)",opacity:.85,margin:"5px 0"}}/>
+                </div>
+                <div style={{position:"relative",zIndex:1,color:fc.dark?"#0F172A":"#fff"}}>
+                  <div style={{fontSize:13,fontWeight:600}}>{fc.title}</div>
+                  <div style={{fontSize:10,opacity:.55,marginTop:2}}>{fc.desc}</div>
+                </div>
+              </div>
+            );
+          })}
+          {/* Dots */}
+          <div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",display:"flex",gap:5}}>
+            {featureCards.map((_,i) => (
+              <div key={i} onClick={()=>setPulledCard(i)} style={{
+                width:pulledCard===i?18:6,height:6,borderRadius:3,cursor:"pointer",
+                background:pulledCard===i?"#1E3A5F":"rgba(0,0,0,.1)",
+                transition:"all .3s cubic-bezier(.22,1,.36,1)",
+              }}/>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Hero -- animated gradient mesh background + floating card visuals */}
-      <div style={{position:"relative",maxWidth:780,margin:"0 auto",padding:"50px 24px 60px",textAlign:"center",zIndex:1}}>
-        {/* Drifting gradient blobs */}
-        <div style={{position:"absolute",top:-80,left:"50%",width:500,height:500,marginLeft:-250,borderRadius:"50%",background:"radial-gradient(circle, rgba(37,99,235,.16), transparent 70%)",animation:"meshDrift 14s ease-in-out infinite",pointerEvents:"none",zIndex:-1}}/>
-        <div style={{position:"absolute",top:40,left:"20%",width:280,height:280,borderRadius:"50%",background:"radial-gradient(circle, rgba(34,197,94,.10), transparent 70%)",animation:"meshDrift 18s ease-in-out infinite reverse",pointerEvents:"none",zIndex:-1}}/>
-
-        {/* Floating mini card visuals, desktop only via opacity trick is fine on mobile too -- small enough */}
-        <div style={{position:"absolute",top:70,left:6,width:90,height:58,borderRadius:12,background:"linear-gradient(135deg,#0F1832,#1E3A6E)",boxShadow:"0 16px 32px rgba(0,0,0,.25)",animation:"floatCard 6s ease-in-out infinite",opacity:0.85}}/>
-        <div style={{position:"absolute",top:160,right:10,width:80,height:52,borderRadius:11,background:"linear-gradient(135deg,#2C1A00,#C9920A)",boxShadow:"0 16px 32px rgba(0,0,0,.2)",animation:"floatCard2 7s ease-in-out infinite",opacity:0.8}}/>
-
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"var(--accentbg)",border:"1px solid rgba(37,99,235,.15)",borderRadius:99,padding:"7px 16px",marginBottom:28,animation:"heroFadeUp .6s ease .05s both"}}>
-          <span style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"softPulse 2s ease-in-out infinite"}}/>
-          <span style={{fontSize:14,fontWeight:600,color:"var(--accent)"}}>AI-powered credit card optimization</span>
-        </div>
-
-        <h1 className="serif" style={{fontSize:"clamp(40px,7vw,64px)",fontWeight:500,letterSpacing:"-2px",lineHeight:1.08,color:"var(--text)",marginBottom:22,animation:"heroFadeUp .7s ease .12s both"}}>
-          Save more on<br/>
-          <span style={{position:"relative",display:"inline-block",height:"1.2em",overflow:"hidden",verticalAlign:"bottom",minWidth:"min(90vw,520px)"}}>
-            <span key={wordIdx} style={{position:"absolute",left:0,top:0,color:"var(--accent)",animation:"wordCycleIn .5s cubic-bezier(.2,.8,.2,1) both",whiteSpace:"nowrap"}}>{words[wordIdx]}</span>
-          </span>
-        </h1>
-
-        <p style={{fontSize:17,color:"var(--text2)",lineHeight:1.6,maxWidth:480,margin:"0 auto 34px",animation:"heroFadeUp .7s ease .2s both"}}>
-          WiseCard tells you exactly which card to use, tracks every reward, and finds money you're leaving on the table — automatically.
-        </p>
-        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",animation:"heroFadeUp .7s ease .28s both"}}>
-          <button onClick={onGetStarted} className="btn-gold press" style={{padding:"16px 34px",fontSize:16}}>Get Started Free →</button>
-          <button onClick={onSignIn} style={{background:"none",border:"1px solid var(--border2)",borderRadius:12,padding:"16px 30px",color:"var(--text)",fontSize:16,fontWeight:600,cursor:"pointer",fontFamily:"var(--sans)"}}>Sign In</button>
-        </div>
-        <p style={{color:"var(--text3)",fontSize:14,marginTop:18,animation:"heroFadeUp .7s ease .34s both"}}>Free to use · No credit card required to sign up</p>
+      {/* Card detail text */}
+      <div className="reveal-on-scroll" style={{textAlign:"center",padding:"0 32px 40px",position:"relative",zIndex:2}}>
+        <div style={{fontSize:16,fontWeight:500,color:"#0F172A",marginBottom:4}}>{featureCards[pulledCard].title}</div>
+        <div style={{fontSize:13,color:"#6B7280",lineHeight:1.6,maxWidth:440,margin:"0 auto"}}>{featureCards[pulledCard].detail}</div>
       </div>
 
-      {/* Feature grid -- scroll-reveal, staggered */}
-      <div style={{maxWidth:1000,margin:"0 auto",padding:"30px 24px 90px"}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16}}>
+      {/* How it works */}
+      <div className="reveal-on-scroll" style={{padding:"48px 32px",position:"relative",zIndex:2}}>
+        <div style={{fontSize:11,letterSpacing:"1.5px",textTransform:"uppercase",color:"#1E3A5F",opacity:.5,marginBottom:8}}>How it works</div>
+        <div style={{fontSize:24,fontWeight:600,letterSpacing:"-.5px",marginBottom:32,color:"#0F172A"}}>Three steps. Thirty seconds.</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
           {[
-            {icon:"chat",title:"AI Financial Advisor",desc:"Get personalized advice on which card to use, debt payoff strategy, and credit score improvement — anytime."},
-            {icon:"analytics",title:"Real Spending Analytics",desc:"Interactive speedometer dashboards show exactly where your money goes, down to the category."},
-            {icon:"travel",title:"Maximize Travel Points",desc:"Real, accurate transfer ratios across Chase, Amex, Citi, and Capital One — know exactly where to send your points."},
-            {icon:"percent",title:"Compare Any Two Cards",desc:"Side-by-side comparison of annual fees, perks, and net value across 45+ real cards."},
-            {icon:"trend-down",title:"Debt Payoff Planner",desc:"Avalanche or snowball calculator shows exactly when you'll be debt-free and how much interest you'll save."},
-            {icon:"gift",title:"Sign-up Bonus Tracker",desc:"Never miss a minimum-spend deadline again — track every bonus in one place."},
-          ].map((f,i)=>(
-            <div key={f.title} className="card-surface hover-lift reveal-on-scroll" style={{padding:"24px 22px",transitionDelay:`${i*80}ms`}}>
-              <div style={{width:46,height:46,borderRadius:13,background:"var(--accentbg)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:16,color:"var(--accent)"}}><Icon name={f.icon} size={21}/></div>
-              <p className="serif" style={{color:"var(--text)",fontSize:17,fontWeight:500,marginBottom:7}}>{f.title}</p>
-              <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.55}}>{f.desc}</p>
+            {n:"1",t:"Add your cards",d:"Select from 38 real cards. Balances, limits, and perks auto-populate."},
+            {n:"2",t:"Set your profile",d:"Credit range, income, spending habits — WiseCard calibrates to you."},
+            {n:"3",t:"Start optimizing",d:"Dashboard, rewards, insights, advisor — all built from your data."},
+          ].map(s => (
+            <div key={s.n} style={{padding:"24px 20px",textAlign:"center",background:"rgba(255,255,255,.7)",border:"1px solid rgba(0,0,0,.06)",borderRadius:14,backdropFilter:"blur(8px)"}}>
+              <div style={{fontSize:28,fontWeight:700,color:"#1E3A5F",opacity:.2,marginBottom:10}}>{s.n}</div>
+              <div style={{fontSize:14,fontWeight:600,color:"#0F172A",marginBottom:4}}>{s.t}</div>
+              <div style={{fontSize:12,color:"#6B7280",lineHeight:1.5}}>{s.d}</div>
             </div>
           ))}
         </div>
+      </div>
 
-        <div className="card-surface reveal-on-scroll" style={{marginTop:44,padding:"40px 32px",textAlign:"center",background:"linear-gradient(135deg,var(--accentbg),var(--surface))"}}>
-          <p className="serif" style={{color:"var(--text)",fontSize:26,fontWeight:500,marginBottom:14,letterSpacing:"-.5px"}}>Ready to stop leaving money on the table?</p>
-          <button onClick={onGetStarted} className="btn-gold press" style={{padding:"15px 34px",fontSize:15,marginTop:6}}>Create Your Free Account →</button>
+      {/* Features bento */}
+      <div className="reveal-on-scroll" style={{padding:"0 32px 48px",position:"relative",zIndex:2}}>
+        <div style={{fontSize:11,letterSpacing:"1.5px",textTransform:"uppercase",color:"#1E3A5F",opacity:.5,marginBottom:8}}>Features</div>
+        <div style={{fontSize:24,fontWeight:600,letterSpacing:"-.5px",marginBottom:32,color:"#0F172A"}}>Everything your wallet needs</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {[
+            {icon:"arrows-sort",name:"Card optimizer",desc:"Ranks cards by total value for any purchase type.",color:"#1E3A5F",span:true},
+            {icon:"chart-area",name:"Spending intelligence",desc:"Interactive charts with category bubbles and AI predictions.",color:"#5B8DB8"},
+            {icon:"diamond",name:"Benefits vault",desc:"Activity rings for credits. Alerts before anything expires.",color:"#5B9A6F"},
+            {icon:"brain",name:"Credit score AI",desc:"ML scoring with SHAP factors. Simulate any payment.",color:"#C4875C"},
+            {icon:"plane",name:"Travel optimizer",desc:"Best card, transfer partners, and lounge access.",color:"#8B7EB8"},
+            {icon:"message-chatbot",name:"AI financial advisor",desc:"Ask anything about your cards. Real answers from real data.",color:"#1E3A5F",span:true},
+          ].map((f,i) => (
+            <div key={i} onClick={onGetStarted} className="press spring-hover" style={{
+              padding:"22px 20px",borderRadius:14,cursor:"pointer",
+              background:"rgba(255,255,255,.7)",border:"1px solid rgba(0,0,0,.06)",backdropFilter:"blur(8px)",
+              gridColumn:f.span?"span 2":"span 1",
+              transition:"all .3s",
+            }}>
+              <div style={{width:34,height:34,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12,background:`${f.color}10`}}>
+                <Icon name={f.icon as any} size={16} strokeWidth={1.5} color={f.color}/>
+              </div>
+              <div style={{fontSize:14,fontWeight:600,color:"#0F172A",marginBottom:4}}>{f.name}</div>
+              <div style={{fontSize:12,color:"#6B7280",lineHeight:1.5}}>{f.desc}</div>
+            </div>
+          ))}
         </div>
+      </div>
 
-        <p style={{color:"var(--text3)",fontSize:13,textAlign:"center",marginTop:44}}>
-          WiseCard · Your data is encrypted and never sold · <a href="mailto:support@wisecard.app" style={{color:"var(--text3)"}}>support@wisecard.app</a>
-        </p>
+      {/* Live demo preview */}
+      <div className="reveal-on-scroll" style={{padding:"0 32px 48px",position:"relative",zIndex:2}}>
+        <div style={{fontSize:11,letterSpacing:"1.5px",textTransform:"uppercase",color:"#1E3A5F",opacity:.5,marginBottom:8}}>Live preview</div>
+        <div style={{fontSize:24,fontWeight:600,letterSpacing:"-.5px",marginBottom:24,color:"#0F172A"}}>This is your dashboard</div>
+        <div style={{borderRadius:14,overflow:"hidden",border:"1px solid rgba(0,0,0,.08)",background:"#fff"}}>
+          <div style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",background:"#F9FAFB",borderBottom:"1px solid rgba(0,0,0,.05)"}}>
+            <div style={{width:7,height:7,borderRadius:"50%",background:"#F87171",opacity:.5}}/>
+            <div style={{width:7,height:7,borderRadius:"50%",background:"#FBBF24",opacity:.5}}/>
+            <div style={{width:7,height:7,borderRadius:"50%",background:"#34D399",opacity:.5}}/>
+            <div style={{flex:1}}/>
+            <div style={{fontSize:9,color:"#9CA3AF"}}>ist-495.vercel.app</div>
+          </div>
+          <div style={{padding:20}}>
+            <div style={{display:"flex",gap:20,marginBottom:14}}>
+              <div>
+                <div style={{fontSize:8,color:"#9CA3AF",textTransform:"uppercase",letterSpacing:".5px"}}>Credit score</div>
+                <div style={{fontSize:28,fontWeight:600,color:"#1E3A5F",letterSpacing:"-1px"}}>740</div>
+                <div style={{fontSize:9,color:"#5B9A6F",fontWeight:500}}>+8 this month</div>
+              </div>
+              <div style={{flex:1,height:55}}>
+                <svg viewBox="0 0 300 55" preserveAspectRatio="none" style={{width:"100%",height:"100%"}}>
+                  <defs><linearGradient id="ldg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1E3A5F" stopOpacity=".1"/><stop offset="100%" stopColor="#1E3A5F" stopOpacity=".01"/></linearGradient></defs>
+                  <path d="M0,45 C30,40 60,30 90,25 C120,20 150,18 180,24 C210,30 240,14 270,10 L300,6 L300,55 L0,55 Z" fill="url(#ldg)"/>
+                  <path d="M0,45 C30,40 60,30 90,25 C120,20 150,18 180,24 C210,30 240,14 270,10 L300,6" fill="none" stroke="#1E3A5F" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:4,marginBottom:10}}>
+              {[{n:"Blue Cash",bg:"#006FCF"},{n:"Sapphire",bg:"#0F172A"},{n:"Venture X",bg:"#1b4332"}].map(c => (
+                <div key={c.n} style={{width:60,height:36,borderRadius:5,background:c.bg,padding:4}}><div style={{fontSize:5,color:"rgba(255,255,255,.6)"}}>{c.n}</div></div>
+              ))}
+            </div>
+            <div style={{padding:"8px 10px",borderRadius:6,background:"#F3F4F6",fontSize:10,color:"#4B5563",lineHeight:1.5}}>
+              Pay <strong style={{color:"#111827"}}>$600</strong> before statement → utilization drops to <strong style={{color:"#111827"}}>12%</strong>. Impact: <strong style={{color:"#5B9A6F"}}>+8–12 pts</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Testimonials */}
+      <div className="reveal-on-scroll" style={{padding:"0 32px 48px",position:"relative",zIndex:2}}>
+        <div style={{fontSize:11,letterSpacing:"1.5px",textTransform:"uppercase",color:"#1E3A5F",opacity:.5,marginBottom:8}}>Testimonials</div>
+        <div style={{fontSize:24,fontWeight:600,letterSpacing:"-.5px",marginBottom:24,color:"#0F172A"}}>Real results from real wallets</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {testimonials.map((t,i) => (
+            <div key={i} style={{padding:20,background:"rgba(255,255,255,.7)",border:"1px solid rgba(0,0,0,.06)",borderRadius:14,backdropFilter:"blur(8px)"}}>
+              <div style={{fontSize:13,color:"#4B5563",lineHeight:1.6,marginBottom:12}}>"{t.text}"</div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:28,height:28,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,background:`${t.color}12`,color:t.color}}>{t.name.split(" ").map(w=>w[0]).join("")}</div>
+                <div><div style={{fontSize:12,fontWeight:600,color:"#0F172A"}}>{t.name}</div><div style={{fontSize:10,color:"#9CA3AF"}}>{t.role}</div></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Supported cards marquee */}
+      <div className="reveal-on-scroll" style={{padding:"0 32px 8px",position:"relative",zIndex:2}}>
+        <div style={{fontSize:11,letterSpacing:"1.5px",textTransform:"uppercase",color:"#1E3A5F",opacity:.5,marginBottom:8}}>Supported</div>
+        <div style={{fontSize:24,fontWeight:600,letterSpacing:"-.5px",marginBottom:16,color:"#0F172A"}}>38 cards and counting</div>
+      </div>
+      <div style={{overflow:"hidden",paddingBottom:48,position:"relative",zIndex:2}}>
+        <div className="card-marquee" style={{display:"flex",gap:6,width:"max-content"}}>
+          {[...supportedCards,...supportedCards].map((c,i) => (
+            <div key={i} style={{width:72,height:44,borderRadius:6,display:"flex",alignItems:"flex-end",padding:"4px 6px",flexShrink:0,background:c.bg,boxShadow:"0 2px 8px rgba(0,0,0,.08)",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",inset:0,background:"linear-gradient(125deg,rgba(255,255,255,.1),transparent 40%)",pointerEvents:"none"}}/>
+              <div style={{fontSize:5,color:c.dark?"rgba(0,0,0,.4)":"rgba(255,255,255,.6)",position:"relative",zIndex:1}}>{c.name}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Closing CTA */}
+      <div style={{textAlign:"center",padding:"56px 32px 40px",borderTop:"1px solid rgba(0,0,0,.05)",position:"relative",zIndex:2}}>
+        <h2 style={{fontSize:30,fontWeight:600,letterSpacing:"-.8px",marginBottom:6,lineHeight:1.15,color:"#0F172A"}}>Stop guessing.<br/><span style={{color:"#1E3A5F"}}>Start optimizing.</span></h2>
+        <div style={{fontSize:14,color:"#6B7280",marginBottom:24}}>Join 12,000+ users who never miss a reward.</div>
+        <div style={{display:"flex",justifyContent:"center",gap:10}}>
+          <button onClick={onGetStarted} className="press spring-hover" style={{padding:"14px 30px",borderRadius:10,border:"none",fontSize:14,fontWeight:600,cursor:"pointer",background:"#1E3A5F",color:"#fff",boxShadow:"0 4px 14px rgba(30,58,95,.2)"}}>Create free account →</button>
+          <button onClick={onSignIn} className="press spring-hover" style={{padding:"14px 30px",borderRadius:10,border:"1px solid rgba(0,0,0,.12)",fontSize:14,fontWeight:500,cursor:"pointer",background:"#fff",color:"#111827"}}>Sign in</button>
+        </div>
+        <div style={{fontSize:11,color:"#9CA3AF",marginTop:14}}>Free forever · No credit card required</div>
+        <div style={{display:"flex",justifyContent:"center",gap:40,marginTop:32}}>
+          {[{n:"$2.4M",l:"Recovered",c:"#1E3A5F"},{n:"38",l:"Cards",c:"#5B8DB8"},{n:"12K+",l:"Users",c:"#5B9A6F"}].map(s => (
+            <div key={s.l} style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:700,color:s.c}}>{s.n}</div><div style={{fontSize:10,color:"#9CA3AF",marginTop:2}}>{s.l}</div></div>
+          ))}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{textAlign:"center",padding:"20px 24px",fontSize:10,color:"#9CA3AF",borderTop:"1px solid rgba(0,0,0,.04)"}}>
+        WiseCard · Encrypted and never sold · Penn State IST 495 · Dr. Raahmifer Kamraan · © 2026
       </div>
     </div>
   );
 }
 
 
-/* ============================================================
-   PRIVACY POLICY SCREEN
-   ============================================================ */
 function PrivacyPolicy({ go }: { go:(s:S)=>void }) {
   const sections = [
     {
