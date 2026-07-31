@@ -2843,133 +2843,315 @@ function Travel({ cards }: { cards:CreditCard[] }) {
 /* ============================================================
    GOALS SCREEN
    ============================================================ */
-function Goals({ goals, onAdd, onUpdateProgress, onDelete }: { goals:Goal[]; onAdd:(g:Omit<Goal,"id">)=>void; onUpdateProgress:(id:string,current:number)=>void; onDelete:(id:string)=>void }) {
+function Goals({ goals, onAdd, onUpdateProgress, onDelete, profile }: { goals:Goal[]; onAdd:(g:Omit<Goal,"id">)=>void; onUpdateProgress:(id:string,current:number)=>void; onDelete:(id:string)=>void; profile:UserProfile }) {
   const [add, setAdd] = useState(false);
-  const [open, setOpen] = useState<string|null>(null);
-  const [editingProgress, setEditingProgress] = useState<string|null>(null);
-  const [progressInput, setProgressInput] = useState("");
+  const [title, setTitle] = useState(""); const [target, setTarget] = useState(""); const [due, setDue] = useState(""); const [emoji, setEmoji] = useState("🎯");
+  const [expanded, setExpanded] = useState<string|null>(null);
+  const [jobStatus, setJobStatus] = useState<"student"|"employed"|"unemployed"|"">(profile.occupation?.toLowerCase().includes("student")?"student":"");
+  const [university, setUniversity] = useState(profile.occupation?.includes("Penn State")?"Penn State University":"");
+  const [showSetup, setShowSetup] = useState(false);
+  const [jobFilter, setJobFilter] = useState("all");
+  const [updateId, setUpdateId] = useState<string|null>(null);
+  const [updateAmt, setUpdateAmt] = useState("");
 
-  const GOAL_TYPES: [string,string,string,number,"$"|"%"|"pts",string,string[]][] = [
-    ["analytics","Utilization","Keep cards under 30%",30,"%","#C9A84C",["Pay down your highest-balance card first","Keep each card under 30% individually, not just overall","Consider asking for a credit limit increase"]],
-    ["wallet","Save Money","Hit a savings target",1000,"$","#2DC8A0",["Set up an automatic transfer on payday","Track spending in Analytics to find where to cut back","Move savings to a high-yield account"]],
-    ["trend-down","Credit Score","Reach a target score",750,"pts","#4F6EF7",["Pay every bill on time, every time","Keep utilization under 10% before statement closes","Don't apply for new cards while building score"]],
-    ["travel","Travel","Earn points for a trip",100000,"pts","#F59E0B",["Use the Travel & Points screen to find transfer bonuses","Put everyday spend on your highest-multiplier card","Watch for limited-time transfer bonuses (20-30%)"]],
-    ["card","Pay Off Debt","Become debt free",5000,"$","#EF4444",["Use the Debt Payoff Planner to pick avalanche or snowball","Put any extra cash toward your highest-APR card first","Avoid adding new charges while paying down debt"]],
-    ["shield","Emergency Fund","3-6 months expenses",10000,"$","#8B5CF6",["Start with a goal of 1 month of expenses, then build up","Keep this separate from everyday checking","Automate a fixed amount each payday"]],
-  ];
-  const [customTitle, setCustomTitle] = useState("");
-  const [customTarget, setCustomTarget] = useState("");
-  const [selectedType, setSelectedType] = useState<typeof GOAL_TYPES[0]|null>(null);
-
-  const createGoal = () => {
-    if(!selectedType) return;
-    const [emoji,title,,defaultTarget,unit,color,tips] = selectedType;
-    onAdd({
-      emoji, title: customTitle || title, target: Number(customTarget)||defaultTarget,
-      current: 0, unit, color, due: "No deadline set", tips,
-    });
-    setAdd(false); setSelectedType(null); setCustomTitle(""); setCustomTarget("");
+  // University career portals
+  const uniPortals: Record<string,{name:string;careers:string;handshake:string;studentJobs:string}> = {
+    "Penn State University":{name:"Penn State",careers:"https://psu.wd1.myworkdayjobs.com/PSU_Staff",handshake:"https://app.joinhandshake.com/stu/postings?page=1&per_page=25&sort_direction=desc&sort_column=default&school_id=693",studentJobs:"https://studentaffairs.psu.edu/involvement-student-life/employment"},
+    "University of Pittsburgh":{name:"Pitt",careers:"https://www.join.pitt.edu",handshake:"https://app.joinhandshake.com/stu/postings?school_id=694",studentJobs:"https://www.studentaffairs.pitt.edu/student-employment"},
+    "Temple University":{name:"Temple",careers:"https://temple.edu/jobs",handshake:"https://app.joinhandshake.com/stu/postings?school_id=697",studentJobs:"https://careers.temple.edu/students"},
+    "Drexel University":{name:"Drexel",careers:"https://careers.drexel.edu",handshake:"https://app.joinhandshake.com/stu/postings?school_id=703",studentJobs:"https://drexel.edu/scdc/co-op/"},
+    "Other":{name:"Your University",careers:"https://www.indeed.com/jobs?q=campus+student",handshake:"https://app.joinhandshake.com",studentJobs:"https://www.indeed.com/jobs?q=student+part+time"},
   };
 
-  const saveProgress = (goalId:string) => {
-    onUpdateProgress(goalId, Number(progressInput)||0);
-    setEditingProgress(null);
+  const uniData = uniPortals[university] || uniPortals["Other"];
+  const location = "State College, PA";
+
+  // Job categories with real search links
+  const getJobs = () => {
+    const base = jobStatus === "student" ? [
+      {title:"On-Campus Student Worker",company:uniData.name,type:"on-campus",pay:"$10–15/hr",payLow:10,payHigh:15,hours:"10–20 hrs/week",tags:["On-campus","Student","Flexible schedule"],link:uniData.studentJobs,source:"University Portal",verified:true,desc:"Library, dining, recreation, IT help desk, and research assistant positions. Flexible around class schedules."},
+      {title:"Work-Study Positions",company:uniData.name,type:"on-campus",pay:"$10–12/hr",payLow:10,payHigh:12,hours:"10–15 hrs/week",tags:["On-campus","Federal aid","Student"],link:uniData.careers,source:"University Portal",verified:true,desc:"Federal work-study positions for eligible students. Must have work-study in financial aid package."},
+      {title:"Teaching/Research Assistant",company:uniData.name+" Departments",type:"on-campus",pay:"$12–18/hr",payLow:12,payHigh:18,hours:"10–20 hrs/week",tags:["On-campus","Skill-based","Academic"],link:uniData.handshake,source:"Handshake",verified:true,desc:"Grade papers, run lab sessions, assist professors with research. Major-relevant experience."},
+      {title:"Campus Internship",company:"Various employers via "+uniData.name,type:"on-campus",pay:"$15–25/hr",payLow:15,payHigh:25,hours:"10–20 hrs/week",tags:["Hybrid","Career experience","Skill-based"],link:uniData.handshake,source:"Handshake",verified:true,desc:"Part-time internships through university partnerships. Great for resume building."},
+    ] : [];
+
+    const market = [
+      {title:"Freelance on Upwork",company:"Upwork",type:"remote",pay:"$15–50/hr",payLow:15,payHigh:50,hours:"Flexible",tags:["Remote","Freelance","Flexible"],link:"https://www.upwork.com/freelance-jobs/",source:"Upwork",verified:true,desc:"Data entry, writing, design, development, virtual assistance. Set your own rate and hours."},
+      {title:"Tutoring",company:"Wyzant",type:"remote",pay:"$20–40/hr",payLow:20,payHigh:40,hours:"Flexible",tags:["Remote","Skill-based","Flexible"],link:"https://www.wyzant.com/tutorjobs",source:"Wyzant",verified:true,desc:"Tutor students in subjects you know well. Set your own schedule and rates."},
+      {title:"Food Delivery Driver",company:"DoorDash",type:"gig",pay:"$15–22/hr",payLow:15,payHigh:22,hours:"Flexible",tags:["Gig","Flexible","Vehicle needed"],link:"https://dasher.doordash.com/en-us",source:"DoorDash",verified:true,desc:"Deliver food orders in your area. Earnings vary by time, location, and tips."},
+      {title:"Rideshare Driver",company:"Uber",type:"gig",pay:"$18–28/hr",payLow:18,payHigh:28,hours:"Flexible",tags:["Gig","Flexible","Vehicle + insurance"],link:"https://www.uber.com/us/en/drive/",source:"Uber",verified:true,desc:"Drive passengers on your own schedule. Must meet vehicle and background check requirements."},
+      {title:"Retail Part-Time",company:"Indeed Listings",type:"part-time",pay:"$12–16/hr",payLow:12,payHigh:16,hours:"15–25 hrs/week",tags:["Part-time","In-person","No experience"],link:`https://www.indeed.com/jobs?q=part+time+retail&l=${encodeURIComponent(location)}`,source:"Indeed",verified:true,desc:"Stores, restaurants, and local businesses hiring part-time. Consistent hours and schedule."},
+      {title:"Fiverr Freelancing",company:"Fiverr",type:"remote",pay:"$10–100/gig",payLow:10,payHigh:50,hours:"Per project",tags:["Remote","Freelance","Skill-based"],link:"https://www.fiverr.com/start_selling",source:"Fiverr",verified:true,desc:"Sell services: graphic design, writing, video editing, social media management. Build your own business."},
+      {title:"Virtual Assistant",company:"Belay / Time Etc",type:"remote",pay:"$15–25/hr",payLow:15,payHigh:25,hours:"10–30 hrs/week",tags:["Remote","Part-time","Organized"],link:"https://www.indeed.com/jobs?q=virtual+assistant+remote",source:"Indeed",verified:true,desc:"Email management, scheduling, data entry, customer service. Work from home."},
+      {title:"User Testing",company:"UserTesting",type:"remote",pay:"$10/test",payLow:10,payHigh:60,hours:"Flexible",tags:["Remote","No experience","Quick tasks"],link:"https://www.usertesting.com/get-paid-to-test",source:"UserTesting",verified:true,desc:"Test websites and apps, share your screen and opinions. Each test takes 15–20 minutes. $10 per test."},
+      {title:"Survey & Microtasks",company:"Prolific",type:"remote",pay:"$8–15/hr",payLow:8,payHigh:15,hours:"Flexible",tags:["Remote","No experience","Flexible"],link:"https://www.prolific.com/participants",source:"Prolific",verified:true,desc:"Participate in academic research studies. Short tasks, consistent availability. Better rates than most survey sites."},
+    ];
+
+    if (jobStatus === "unemployed") {
+      market.push(
+        {title:"Full-Time Job Search",company:"LinkedIn",type:"full-time",pay:"Market rate",payLow:35000,payHigh:80000,hours:"Full-time",tags:["Full-time","Career","Benefits"],link:"https://www.linkedin.com/jobs/",source:"LinkedIn",verified:true,desc:"Search full-time positions matched to your skills and experience on LinkedIn."},
+        {title:"Temp/Contract Work",company:"Robert Half",type:"part-time",pay:"$18–35/hr",payLow:18,payHigh:35,hours:"Full-time or part-time",tags:["Temp","Contract","Quick start"],link:"https://www.roberthalf.com/us/en/job-seekers",source:"Robert Half",verified:true,desc:"Temporary and contract positions that can start quickly while you search for permanent roles."},
+      );
+    }
+
+    return [...base, ...market];
   };
+
+  const allJobs = getJobs();
+  const filteredJobs = jobFilter === "all" ? allJobs : allJobs.filter(j => j.type === jobFilter);
+
+  // Calculate goal impact for a job
+  const calcImpact = (goal:Goal, payLow:number, hoursPerWeek:number) => {
+    const monthlyEarning = payLow * hoursPerWeek * 4.33;
+    const remaining = goal.target - goal.current;
+    const monthsWithJob = remaining > 0 ? Math.ceil(remaining / monthlyEarning) : 0;
+    const monthsWithout = remaining > 0 && goal.due ? Math.max(1, Math.round((new Date(goal.due).getTime() - Date.now()) / (30*24*60*60*1000))) : 6;
+    const earlyMonths = Math.max(0, monthsWithout - monthsWithJob);
+    return { monthlyEarning: Math.round(monthlyEarning), monthsToGoal: monthsWithJob, earlyMonths };
+  };
+
+  const activeGoal = expanded ? goals.find(g=>g.id===expanded) : goals[0];
 
   return (
     <div className="screen desktop-content screen-enter">
-      <PageHead title="My Goals" sub="Track your financial targets"
-        right={<button onClick={()=>setAdd(a=>!a)} className="pill pill-gold press" style={{fontSize:13,fontWeight:700}}>+ Add Goal</button>}/>
-      <div className="px">
-        {goals.length === 0 && !add && (
-          <EmptyState icon="goal" title="No goals yet" sub="Set financial goals — pay off debt, boost your credit score, or save points for a trip." action="Set Your First Goal" onAction={()=>setAdd(true)}/>
-        )}
-        {add&&(
-          <div className="ap card-surface" style={{border:"1.5px solid var(--accent)",padding:20,marginBottom:20}}>
-            {!selectedType ? (
-              <>
-                <p style={{color:"var(--text)",fontSize:15,fontWeight:600,marginBottom:14}}>Choose a goal type</p>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  {GOAL_TYPES.map(gt=>(
-                    <button key={gt[1]} onClick={()=>setSelectedType(gt)} className="press hover-lift card-surface-2" style={{padding:"14px 12px",textAlign:"left"}}>
-                      <p style={{marginBottom:7,color:gt[5]}}><Icon name={gt[0]} size={22}/></p>
-                      <p style={{color:"var(--text)",fontSize:13,fontWeight:700}}>{gt[1]}</p>
-                      <p style={{color:"var(--text2)",fontSize:12,marginTop:2}}>{gt[2]}</p>
-                    </button>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <>
-                <p style={{color:"var(--text)",fontSize:15,fontWeight:600,marginBottom:14}}>{selectedType[0]} {selectedType[1]} Goal</p>
-                <div style={{marginBottom:12}}>
-                  <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Goal title</label>
-                  <input className="field" placeholder={selectedType[1]} value={customTitle} onChange={e=>setCustomTitle(e.target.value)} style={{padding:"10px 12px"}}/>
-                </div>
-                <div style={{marginBottom:16}}>
-                  <label style={{fontSize:12,color:"var(--text2)",fontWeight:600,display:"block",marginBottom:5}}>Target ({selectedType[4]})</label>
-                  <input className="field" type="number" placeholder={String(selectedType[3])} value={customTarget} onChange={e=>setCustomTarget(e.target.value)} style={{padding:"10px 12px"}}/>
-                </div>
-                <div style={{display:"flex",gap:10}}>
-                  <button onClick={createGoal} className="btn-gold press" style={{flex:1,padding:"11px"}}>Create Goal</button>
-                  <button onClick={()=>setSelectedType(null)} className="btn-ghost press" style={{padding:"11px 16px"}}>Back</button>
-                </div>
-              </>
-            )}
+      <div className="px" style={{paddingTop:8}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+          <h1 style={{fontSize:24,fontWeight:500,color:"var(--text)",letterSpacing:"-.3px",margin:0}}>Goals</h1>
+          <button onClick={()=>setAdd(true)} className="press spring-hover" style={{padding:"8px 16px",borderRadius:8,border:"1px solid var(--border2)",background:"transparent",color:"var(--text)",fontSize:12,fontWeight:500,cursor:"pointer"}}>+ New goal</button>
+        </div>
+
+        {/* Status setup — only show if not set */}
+        {!jobStatus && (
+          <div style={{padding:20,borderRadius:14,background:"var(--surface2)",border:"1px solid var(--border)",marginBottom:20}}>
+            <div style={{fontSize:15,fontWeight:500,color:"var(--text)",marginBottom:4}}>Tell us about yourself</div>
+            <div style={{fontSize:12,color:"var(--text2)",marginBottom:16}}>We'll find the best opportunities for your situation.</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {(["student","employed","unemployed"] as const).map(s => (
+                <button key={s} onClick={()=>{setJobStatus(s);if(s==="student")setShowSetup(true);}} className="press spring-hover" style={{padding:"12px 16px",borderRadius:10,border:"1px solid var(--border2)",background:"transparent",color:"var(--text)",fontSize:13,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:18}}>{s==="student"?"🎓":s==="employed"?"💼":"🔍"}</span>
+                  <div>
+                    <div style={{fontWeight:500}}>{s==="student"?"I'm a student":s==="employed"?"I'm employed":"I'm looking for work"}</div>
+                    <div style={{fontSize:11,color:"var(--text2)",marginTop:1}}>{s==="student"?"Part-time jobs & campus work":s==="employed"?"Side income & freelance":"Full-time & part-time opportunities"}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
-        {goals.map((g,i)=>{
-          const p=Math.min(100,Math.round(g.current/g.target*100));
-          const isOpen=open===g.id;
-          return (
-            <div key={g.id} className="card-surface" style={{padding:"20px",marginBottom:16}}>
-              <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:16}}>
-                <div style={{width:52,height:52,borderRadius:16,flexShrink:0,background:`${g.color}18`,display:"flex",alignItems:"center",justifyContent:"center",color:g.color}}><Icon name={g.emoji} size={24}/></div>
-                <div style={{flex:1}}>
-                  <p style={{color:"var(--text)",fontSize:15,fontWeight:600,marginBottom:2}}>{g.title}</p>
-                  <p style={{color:"var(--text2)",fontSize:13}}>{g.due}</p>
-                </div>
-                <button onClick={()=>onDelete(g.id)} style={{background:"none",border:"none",color:"var(--text3)",cursor:"pointer",flexShrink:0,display:"flex"}}><Icon name="trash" size={15}/></button>
-              </div>
-              <Bar v={g.current} max={g.target} color={g.color} h={7}/>
-              <div style={{display:"flex",justifyContent:"space-between",marginTop:8,marginBottom:14}}>
-                <p style={{color:"var(--text2)",fontSize:13}}>{g.unit==="$"?"$":""}{f(g.current)}{g.unit!=="$"?" "+g.unit:""} ({p}%)</p>
-                <p style={{color:"var(--text2)",fontSize:13}}>Target: {g.unit==="$"?"$":""}{f(g.target)}{g.unit!=="$"?" "+g.unit:""}</p>
-              </div>
-              {editingProgress===g.id ? (
-                <div style={{display:"flex",gap:8,marginBottom:10}}>
-                  <input className="field" type="number" placeholder="Current progress" value={progressInput} onChange={e=>setProgressInput(e.target.value)} style={{flex:1,padding:"8px 10px",fontSize:14}}/>
-                  <button onClick={()=>saveProgress(g.id)} style={{background:"var(--green)",border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button>
-                  <button onClick={()=>setEditingProgress(null)} style={{background:"var(--surface2)",border:"none",borderRadius:8,padding:"8px 12px",color:"var(--text2)",fontSize:13,cursor:"pointer"}}>✕</button>
-                </div>
-              ) : (
-                <button onClick={()=>{setProgressInput(String(g.current));setEditingProgress(g.id);}} style={{background:"none",border:"none",color:"var(--accent)",fontSize:14,fontWeight:600,padding:0,marginRight:16}}>Update progress</button>
-              )}
-              <button onClick={()=>setOpen(isOpen?null:g.id)} style={{background:"none",border:"none",color:"var(--accent)",fontSize:14,fontWeight:600,padding:0}}>
-                {isOpen?"Hide":"View"} action plan
+
+        {/* University picker for students */}
+        {showSetup && jobStatus === "student" && !university && (
+          <div style={{padding:20,borderRadius:14,background:"var(--surface2)",border:"1px solid var(--border)",marginBottom:20}}>
+            <div style={{fontSize:15,fontWeight:500,color:"var(--text)",marginBottom:4}}>Which university?</div>
+            <div style={{fontSize:12,color:"var(--text2)",marginBottom:16}}>We'll find on-campus jobs and positions near you.</div>
+            {Object.keys(uniPortals).map(u => (
+              <button key={u} onClick={()=>{setUniversity(u);setShowSetup(false);}} className="press spring-hover" style={{display:"block",width:"100%",padding:"11px 14px",borderRadius:8,border:"1px solid var(--border)",background:"transparent",color:"var(--text)",fontSize:13,cursor:"pointer",textAlign:"left",marginBottom:6}}>
+                {u === "Other" ? "Other university" : u}
               </button>
-              {isOpen&&(
-                <div className="ai" style={{marginTop:14,background:"var(--surface2)",borderRadius:14,padding:"14px 16px"}}>
-                  <p style={{color:"var(--text3)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.8,marginBottom:12}}>Your Action Plan</p>
-                  {g.tips.map((tip,ti)=>(
-                    <div key={ti} style={{display:"flex",gap:10,marginBottom:ti<g.tips.length-1?12:0}}>
-                      <span style={{width:22,height:22,borderRadius:"50%",flexShrink:0,marginTop:1,background:`${g.color}20`,color:g.color,fontSize:12,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{ti+1}</span>
-                      <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.6}}>{tip}</p>
+            ))}
+          </div>
+        )}
+
+        {/* Goals list */}
+        {goals.length === 0 && jobStatus ? (
+          <div style={{textAlign:"center",padding:"40px 0"}}>
+            <div style={{fontSize:36,marginBottom:8}}>🎯</div>
+            <div style={{fontSize:16,fontWeight:500,color:"var(--text)",marginBottom:4}}>What would you like to buy?</div>
+            <div style={{fontSize:13,color:"var(--text2)",marginBottom:16,maxWidth:320,margin:"0 auto 16px"}}>Set a savings goal for something your main income can't cover. We'll find ways to get you there.</div>
+            <button onClick={()=>setAdd(true)} className="press spring-hover" style={{padding:"11px 24px",borderRadius:8,border:"none",background:"var(--text)",color:"var(--surface)",fontSize:13,fontWeight:500,cursor:"pointer"}}>Set a goal</button>
+          </div>
+        ) : goals.map(g => {
+          const pct = g.target > 0 ? Math.round(g.current / g.target * 100) : 0;
+          const remaining = Math.max(0, g.target - g.current);
+          const dueDate = g.due ? new Date(g.due) : null;
+          const monthsLeft = dueDate ? Math.max(1, Math.round((dueDate.getTime() - Date.now()) / (30*24*60*60*1000))) : 6;
+          const monthlyGap = Math.ceil(remaining / monthsLeft);
+          const isExpanded = expanded === g.id;
+
+          return (
+            <div key={g.id} style={{marginBottom:12}}>
+              <div onClick={()=>setExpanded(isExpanded?null:g.id)} className="press" style={{padding:"18px 20px",borderRadius:14,background:"var(--surface2)",border:"1px solid var(--border)",cursor:"pointer",transition:"all .25s"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                  <div>
+                    <div style={{fontSize:15,fontWeight:500,color:"var(--text)"}}>{g.emoji} {g.title}</div>
+                    <div style={{fontSize:11,color:"var(--text2)",marginTop:2}}>{g.due ? `By ${new Date(g.due).toLocaleDateString("en-US",{month:"long",year:"numeric"})}` : "No deadline"}</div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:18,fontWeight:600,color:"var(--text)",letterSpacing:"-.5px"}}>${g.target.toLocaleString()}</div>
+                    <div style={{fontSize:10,color:"var(--text2)"}}>target</div>
+                  </div>
+                </div>
+                <div style={{height:5,borderRadius:3,background:"var(--border)",overflow:"hidden",marginBottom:6}}>
+                  <div style={{width:`${pct}%`,height:"100%",borderRadius:3,background:pct>=100?"var(--green)":"#1E3A5F",transition:"width .6s cubic-bezier(.22,1,.36,1)"}}/>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"var(--text2)"}}>
+                  <span>${g.current.toLocaleString()} saved</span>
+                  <span>${remaining.toLocaleString()} to go</span>
+                  <span>{pct}%</span>
+                </div>
+              </div>
+
+              {/* Expanded: income gap + actions */}
+              {isExpanded && (
+                <div className="ai" style={{paddingTop:12}}>
+                  {/* Update progress */}
+                  <div style={{display:"flex",gap:6,marginBottom:12}}>
+                    <input type="number" placeholder="Add savings $" value={updateAmt} onChange={e=>setUpdateAmt(e.target.value)} style={{flex:1,padding:"9px 12px",borderRadius:8,border:"1px solid var(--border)",background:"var(--surface)",color:"var(--text)",fontSize:12}}/>
+                    <button onClick={()=>{if(updateAmt){onUpdateProgress(g.id,g.current+parseFloat(updateAmt));setUpdateAmt("");}}} className="press spring-hover" style={{padding:"9px 16px",borderRadius:8,border:"none",background:"var(--text)",color:"var(--surface)",fontSize:12,fontWeight:500,cursor:"pointer"}}>Update</button>
+                    <button onClick={()=>onDelete(g.id)} className="press" style={{padding:"9px 12px",borderRadius:8,border:"1px solid var(--border2)",background:"transparent",color:"var(--text2)",cursor:"pointer"}}><Icon name="trash" size={13}/></button>
+                  </div>
+
+                  {/* Income gap */}
+                  {remaining > 0 && (
+                    <div style={{padding:"14px 18px",borderRadius:10,background:"rgba(196,135,92,.06)",border:"1px solid rgba(196,135,92,.1)",marginBottom:12}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <div>
+                          <div style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>Monthly income needed</div>
+                          <div style={{fontSize:11,color:"var(--text2)",marginTop:1}}>To reach ${g.target.toLocaleString()} by {g.due ? new Date(g.due).toLocaleDateString("en-US",{month:"short",year:"numeric"}) : "your deadline"}</div>
+                        </div>
+                        <div style={{fontSize:20,fontWeight:600,color:"#C4875C",letterSpacing:"-.3px"}}>${monthlyGap}<span style={{fontSize:11,fontWeight:400,color:"var(--text2)"}}>/mo</span></div>
+                      </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Quick math */}
+                  <div style={{display:"flex",gap:8,marginBottom:16}}>
+                    {[
+                      {label:"Gap",value:`$${monthlyGap}/mo`,color:"#C4875C"},
+                      {label:"At $15/hr",value:`~${Math.ceil(monthlyGap/15/4.33)} hrs/wk`,color:"#5B8DB8"},
+                      {label:"Target",value:g.due ? new Date(g.due).toLocaleDateString("en-US",{month:"short",year:"2-digit"}) : "Flexible",color:"#5B9A6F"},
+                    ].map(m => (
+                      <div key={m.label} style={{flex:1,padding:"12px 10px",borderRadius:10,background:"var(--surface2)",border:"1px solid var(--border)",textAlign:"center"}}>
+                        <div style={{fontSize:16,fontWeight:600,color:m.color,letterSpacing:"-.3px"}}>{m.value}</div>
+                        <div style={{fontSize:10,color:"var(--text2)",marginTop:2}}>{m.label}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           );
         })}
+
+        {/* Job opportunities section */}
+        {goals.length > 0 && activeGoal && jobStatus && (
+          <div>
+            <div style={{fontSize:11,color:"var(--text3)",fontWeight:500,letterSpacing:".8px",textTransform:"uppercase",margin:"20px 0 10px"}}>Opportunities to reach your goal</div>
+
+            {/* Filters */}
+            <div style={{display:"flex",gap:6,marginBottom:14,overflowX:"auto",paddingBottom:2}} className="no-scrollbar">
+              {[
+                {key:"all",label:"All"},
+                ...(jobStatus==="student"?[{key:"on-campus",label:"On-campus"}]:[]),
+                {key:"remote",label:"Remote"},
+                {key:"part-time",label:"Part-time"},
+                {key:"gig",label:"Gig work"},
+                ...(jobStatus==="unemployed"?[{key:"full-time",label:"Full-time"}]:[]),
+              ].map(f => (
+                <button key={f.key} onClick={()=>setJobFilter(f.key)} className="press" style={{
+                  padding:"7px 14px",borderRadius:18,fontSize:12,cursor:"pointer",whiteSpace:"nowrap",
+                  border:jobFilter===f.key?"none":"1px solid var(--border)",
+                  background:jobFilter===f.key?"var(--text)":"transparent",
+                  color:jobFilter===f.key?"var(--surface)":"var(--text2)",
+                  fontWeight:jobFilter===f.key?500:400,transition:"all .2s",
+                }}>{f.label}</button>
+              ))}
+            </div>
+
+            {/* Job listings */}
+            {filteredJobs.map((job,i) => {
+              const remaining = activeGoal.target - activeGoal.current;
+              const monthsLeft = activeGoal.due ? Math.max(1, Math.round((new Date(activeGoal.due).getTime() - Date.now()) / (30*24*60*60*1000))) : 6;
+              const hoursGuess = jobStatus === "student" ? 12 : jobStatus === "employed" ? 10 : 30;
+              const impact = calcImpact(activeGoal, job.payLow, hoursGuess);
+
+              return (
+                <div key={i} className="au" style={{padding:"16px 18px",borderRadius:12,background:"var(--surface2)",border:"1px solid var(--border)",marginBottom:8,transition:"all .25s",animationDelay:`${i*0.04}s`}}
+                  onMouseEnter={e=>(e.currentTarget.style.transform="translateY(-1px)",e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,.04)")}
+                  onMouseLeave={e=>(e.currentTarget.style.transform="",e.currentTarget.style.boxShadow="")}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:500,color:"var(--text)"}}>{job.title}</div>
+                      <div style={{fontSize:12,color:"var(--text2)",marginTop:1}}>{job.company} · {job.hours}</div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:14,fontWeight:600,color:"var(--text)",letterSpacing:"-.3px"}}>{job.pay}</div>
+                      <div style={{fontSize:9,color:"var(--text3)"}}>{job.verified ? "Market rate" : "Estimated"}</div>
+                    </div>
+                  </div>
+
+                  <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.5,marginBottom:8}}>{job.desc}</div>
+
+                  <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
+                    {job.tags.map(t => (
+                      <span key={t} style={{fontSize:10,padding:"3px 8px",borderRadius:4,border:"1px solid var(--border)",color:"var(--text2)"}}>{t}</span>
+                    ))}
+                  </div>
+
+                  {/* Goal impact */}
+                  {remaining > 0 && (
+                    <div style={{display:"flex",alignItems:"center",gap:6,paddingTop:8,borderTop:"1px solid var(--border)",fontSize:11,color:"#5B9A6F"}}>
+                      <Icon name="trending-up" size={12} color="#5B9A6F"/>
+                      <span><strong style={{fontWeight:600}}>Goal impact:</strong> ~${impact.monthlyEarning}/mo at {hoursGuess} hrs/wk → {impact.earlyMonths > 0 ? `reach goal ${impact.earlyMonths} month${impact.earlyMonths>1?"s":""} early` : `reach goal in ${impact.monthsToGoal} months`}</span>
+                    </div>
+                  )}
+
+                  {/* Estimate disclaimer */}
+                  <div style={{fontSize:10,color:"var(--text3)",marginTop:6,lineHeight:1.4}}>
+                    Estimated gross income. Assumes {hoursGuess} hrs/wk × 4.33 wks/mo. Taxes and expenses not included. Source: {job.source}.
+                  </div>
+
+                  {/* Apply button — real link */}
+                  <div style={{display:"flex",gap:8,marginTop:10}}>
+                    <a href={job.link} target="_blank" rel="noopener noreferrer" className="press spring-hover" style={{flex:1,padding:"10px 0",borderRadius:8,border:"none",background:"var(--text)",color:"var(--surface)",fontSize:12,fontWeight:500,cursor:"pointer",textAlign:"center",textDecoration:"none",display:"block"}}>View on {job.source} ↗</a>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Disclaimer */}
+            <div style={{textAlign:"center",marginTop:16,padding:"14px 16px",borderRadius:10,border:"1px solid var(--border)",fontSize:11,color:"var(--text2)",lineHeight:1.6}}>
+              <strong style={{color:"var(--text)"}}>About these opportunities</strong><br/>
+              Income projections are planning estimates assuming consistent hours. Actual earnings vary by location, experience, and demand. Tax treatment differs by employment type. Job availability is verified through official sources but may change. Always verify details before applying.
+            </div>
+
+            {/* Change status */}
+            <button onClick={()=>{setJobStatus("");setUniversity("");setShowSetup(false);}} style={{display:"block",margin:"12px auto 0",fontSize:11,color:"var(--text3)",background:"none",border:"none",cursor:"pointer"}}>
+              Change employment status
+            </button>
+          </div>
+        )}
+
+        {/* Add goal modal */}
+        {add && (
+          <div style={{position:"fixed",inset:0,zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,.4)",backdropFilter:"blur(4px)"}} onClick={()=>setAdd(false)}>
+            <div onClick={e=>e.stopPropagation()} style={{background:"var(--surface)",borderRadius:14,padding:"24px 22px",width:"90%",maxWidth:380,boxShadow:"var(--shadow-lg)"}}>
+              <div style={{fontSize:17,fontWeight:500,color:"var(--text)",marginBottom:4}}>What do you want to save for?</div>
+              <div style={{fontSize:12,color:"var(--text2)",marginBottom:18}}>Something your current income can't cover — we'll find a path.</div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <div style={{display:"flex",gap:6}}>
+                  {["🎮","💻","✈️","📱","🚗","🎓","🏠","🎯"].map(e => (
+                    <button key={e} onClick={()=>setEmoji(e)} style={{fontSize:20,padding:6,borderRadius:8,border:emoji===e?"2px solid var(--text)":"2px solid transparent",background:"transparent",cursor:"pointer"}}>{e}</button>
+                  ))}
+                </div>
+                <input className="field" placeholder="What is it? (e.g., MacBook Pro, Japan trip)" value={title} onChange={e=>setTitle(e.target.value)}/>
+                <input className="field" type="number" placeholder="How much does it cost? ($)" value={target} onChange={e=>setTarget(e.target.value)}/>
+                <input className="field" type="date" value={due} onChange={e=>setDue(e.target.value)}/>
+                <button onClick={()=>{
+                  if(!title || !target) return;
+                  onAdd({emoji,title,target:parseFloat(target),current:0,unit:"$",color:"#1E3A5F",due:due||"",tips:[]});
+                  setTitle("");setTarget("");setDue("");setEmoji("🎯");setAdd(false);
+                }} className="press spring-hover" style={{padding:"12px 0",borderRadius:8,border:"none",background:"var(--text)",color:"var(--surface)",fontSize:13,fontWeight:500,cursor:"pointer"}}>Set goal</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* ============================================================
-   SPLIT SCREEN
-   ============================================================ */
+
 function Split({ cards }: { cards:CreditCard[] }) {
   const [popup, setPopup] = useState(true);
   const [sel, setSel] = useState<string[]>([]);
@@ -6944,7 +7126,7 @@ export default function App() {
         {screen==="add-card" && <AddCard  go={go} onAdd={addCard}/>}
         {screen==="chat"     && <Chat     cards={cards} profile={profile} go={go}/>}
         {screen==="travel"   && <Travel   cards={cards}/>}
-        {screen==="goals"    && <Goals goals={goals} onAdd={addGoal} onUpdateProgress={updateGoalProgress} onDelete={deleteGoal}/>}
+        {screen==="goals"    && <Goals goals={goals} onAdd={addGoal} onUpdateProgress={updateGoalProgress} onDelete={deleteGoal} profile={profile}/>}
         {screen==="split"    && <Split    cards={cards}/>}
         {screen==="perks"    && <Perks    cards={cards}/>}
         {screen==="settings"      && <Settings go={go} profile={profile} theme={theme} toggleTheme={toggleTheme} onSignOut={signOut}/>}
