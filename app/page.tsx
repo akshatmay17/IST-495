@@ -3809,7 +3809,7 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
       <div style={{textAlign:"center",padding:"8px 0 16px"}}>
         <div className="score-entrance" style={{fontSize:48,fontWeight:600,color:scoreColor(score),letterSpacing:"-2px",lineHeight:1,transition:"color .4s"}}>{score}</div>
         <div style={{fontSize:14,fontWeight:600,color:scoreColor(score),marginTop:4,letterSpacing:".5px",textTransform:"uppercase",transition:"color .4s"}}>{scoreLabel(score)}</div>
-        <div style={{fontSize:12,color:"var(--green)",marginTop:6,fontWeight:500}}>+{Math.min(15, Math.max(1, Math.round(cards.length * 3 + (100 - util) / 10)))} this month</div>
+        <div style={{fontSize:12,color:"var(--green)",marginTop:6,fontWeight:500}}>+{Math.min(15, Math.max(1, Math.round((100 - p.utilization * 100) / 10 + 3)))} this month</div>
 
         {/* Linear scale */}
         <div style={{position:"relative",margin:"20px auto 0",maxWidth:320}}>
