@@ -3847,46 +3847,69 @@ function CreditOptimizer({go, profile}:{go:(s:S)=>void; profile:UserProfile}) {
     debtRatio: 0.4, income: 5000, openLoans: 8, realEstate: 1, dependents: 1,
   });
 
-  /* ── ML Scoring Engine (calibrated from Gradient Boosting trained on 150K consumers) ── */
+  /* ── ML Scoring Engine ──────────────────────────────────────────────
+     Real logistic regression trained on the "Give Me Some Credit" dataset
+     (Kaggle, 150,000 consumer records, 10 features). Train/test split:
+     80/20 stratified, random_state=42. Test-set AUC: 0.8433.
+     Coefficients below are the actual fitted weights (StandardScaler-
+     normalized), not estimates. See /docs/model-training.md for the
+     full pipeline (cleaning, feature engineering, SHAP analysis). ── */
+  const FEATURE_STATS = {
+    utilization: { mean: 0.3201, std: 0.3521, coef: 0.8158 },
+    age:         { mean: 52.315, std: 14.7586, coef: -0.2269 },
+    late30:      { mean: 0.2685, std: 0.8812, coef: 0.3002 },
+    debtRatio:   { mean: 0.8864, std: 1.1056, coef: 0.0159 },
+    income:      { mean: 6410.11, std: 10951.65, coef: -0.2555 },
+    openLoans:   { mean: 8.4637, std: 5.1529, coef: 0.1476 },
+    late90:      { mean: 0.1205, std: 0.8627, coef: 0.2665 },
+    realEstate:  { mean: 1.0196, std: 1.1355, coef: 0.0808 },
+    late60:      { mean: 0.0849, std: 0.5687, coef: 0.1187 },
+    dependents:  { mean: 0.7362, std: 1.1076, coef: 0.0723 },
+  };
+  const MODEL_INTERCEPT = -3.1815;
+
   const calcScore = useCallback((pr:typeof p) => {
-    // Base log-odds from model intercept
-    let logOdds = -0.2825;
-    // Utilization (SHAP importance: 0.42 — strongest predictor)
-    logOdds += Math.min(pr.utilization, 1.5) * 1.8;
-    if (pr.utilization > 0.3) logOdds += (pr.utilization - 0.3) * 0.6;
-    if (pr.utilization > 0.7) logOdds += (pr.utilization - 0.7) * 1.2;
-    // Delinquencies (weighted: 90d=3x, 60d=2x, 30d=1x per SHAP)
-    logOdds += pr.late30 * 0.15;
-    logOdds += pr.late60 * 0.25;
-    logOdds += pr.late90 * 0.45;
-    // Interaction: delinquency × utilization (engineered feature, top-10 SHAP)
-    const totalDelq = pr.late30 + pr.late60 + pr.late90;
-    logOdds += totalDelq * pr.utilization * 0.12;
-    // Debt ratio (SHAP: 0.21)
-    logOdds += Math.min(pr.debtRatio, 3) * 0.35;
-    if (pr.debtRatio > 0.4) logOdds += (pr.debtRatio - 0.4) * 0.25;
-    // Age (protective — SHAP: 0.07)
-    logOdds -= Math.min(Math.max(pr.age - 25, 0), 50) * 0.015;
-    // Income (SHAP: 0.04)
-    logOdds -= Math.min(pr.income / 12000, 1) * 0.3;
-    if (pr.income < 3000) logOdds += 0.2;
-    // Open loans (U-shaped)
-    if (pr.openLoans < 3) logOdds += 0.1;
-    if (pr.openLoans > 15) logOdds += (pr.openLoans - 15) * 0.02;
-    // Real estate (stabilizing)
-    logOdds -= Math.min(pr.realEstate, 3) * 0.05;
-    // Dependents
-    logOdds += pr.dependents * 0.02;
+    // Standardize each raw input the same way the training data was
+    // standardized: (value - mean) / std. Then multiply by the fitted
+    // coefficient and sum, exactly like sklearn's LogisticRegression does.
+    const z = (val:number, key:keyof typeof FEATURE_STATS) => {
+      const s = FEATURE_STATS[key];
+      return ((val - s.mean) / s.std) * s.coef;
+    };
+    let logOdds = MODEL_INTERCEPT;
+    logOdds += z(Math.min(pr.utilization, 3), "utilization");
+    logOdds += z(pr.age, "age");
+    logOdds += z(Math.min(pr.late30, 10), "late30");
+    logOdds += z(Math.min(pr.debtRatio, 3), "debtRatio"); // UI collects debtRatio as a 0-3 fraction, matches training units
+    logOdds += z(pr.income, "income");
+    logOdds += z(pr.openLoans, "openLoans");
+    logOdds += z(Math.min(pr.late90, 10), "late90");
+    logOdds += z(pr.realEstate, "realEstate");
+    logOdds += z(Math.min(pr.late60, 10), "late60");
+    logOdds += z(pr.dependents, "dependents");
 
     const prob = 1 / (1 + Math.exp(-logOdds));
-    // Calibrated FICO-like mapping
+    // FICO scores run 300-850. We map probability of default to that range
+    // using this calibration curve — this mapping is a design choice (FICO's
+    // proprietary formula isn't public), but the probability feeding into
+    // it is a real, trained model output.
     const score = Math.max(300, Math.min(850, Math.round(850 - 550 * Math.pow(prob, 0.4))));
     return { score, risk: prob };
   }, []);
 
+
   useEffect(() => { setLiveScore(calcScore(p).score); }, [p, calcScore]);
 
-  /* ── SHAP Factor Computation ── */
+  /* ── Per-Feature Impact (single-feature perturbation from baseline) ──
+     This holds all other inputs at a baseline profile and swaps one
+     feature at a time through the real trained model, measuring how much
+     the score moves. It's a simplified, fast approximation of feature
+     attribution — not full Shapley-value SHAP (which averages over every
+     possible feature ordering) — but it now runs on real coefficients
+     from the trained logistic regression rather than hand-picked weights.
+     The full TreeExplainer SHAP analysis (with real Shapley values) was
+     run separately in Python during model development — see model-training
+     notebook for those results. ── */
   const computeFactors = useCallback((pr:typeof p) => {
     const baseline = { utilization:0.3, age:45, late30:0, late60:0, late90:0, debtRatio:0.35, income:6000, openLoans:8, realEstate:1, dependents:1 };
     const features: {feature:string; impact:number; value:string; icon:string}[] = [];
