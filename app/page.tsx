@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
+import SkillsAdvisor from "@/components/SkillsAdvisor";
 
 const supabase = createClient(
   "https://xlizcyyuadwnmdqbkjfg.supabase.co",
@@ -459,7 +460,7 @@ select.field { appearance:none; }
 /* ============================================================
    TYPES
    ============================================================ */
-type S = "onboard"|"home"|"cards"|"add-card"|"card-detail"|"chat"|"travel"|"goals"|"split"|"perks"|"settings"|"lifestyle"|"ai-recommender"|"analytics"|"notifications"|"compare"|"edit-profile"|"privacy"|"referral"|"about"|"card-strategy"|"debt-planner"|"net-worth"|"achievements"|"help"|"privacy-policy"|"terms"|"tools"|"credit-optimizer";
+type S = "onboard"|"home"|"cards"|"add-card"|"card-detail"|"chat"|"travel"|"goals"|"split"|"perks"|"settings"|"lifestyle"|"ai-recommender"|"analytics"|"notifications"|"compare"|"edit-profile"|"privacy"|"referral"|"about"|"card-strategy"|"debt-planner"|"net-worth"|"achievements"|"help"|"privacy-policy"|"terms"|"tools"|"credit-optimizer"|"skills-advisor";
 type ToastType = "success"|"error"|"info"|"warning";
 interface Toast { id: string; message: string; type: ToastType; }
 
@@ -1396,6 +1397,7 @@ function Sidebar({ active, go, theme, toggleTheme, profile, onSignOut }: {
     { label:"PLAN", items:[
       {id:"travel",icon:"travel",name:"Travel"},
       {id:"goals",icon:"goal",name:"Goals"},
+      {id:"skills-advisor",icon:"rocket",name:"Opportunities"},
       {id:"split",icon:"split",name:"Split"},
     ]},
     { label:"SYSTEM", items:[
@@ -7174,6 +7176,7 @@ export default function App() {
         {screen==="chat"     && <Chat     cards={cards} profile={profile} go={go}/>}
         {screen==="travel"   && <Travel   cards={cards}/>}
         {screen==="goals"    && <Goals goals={goals} onAdd={addGoal} onUpdateProgress={updateGoalProgress} onDelete={deleteGoal} profile={profile}/>}
+        {screen==="skills-advisor" && <SkillsAdvisor/>}
         {screen==="split"    && <Split    cards={cards}/>}
         {screen==="perks"    && <Perks    cards={cards}/>}
         {screen==="settings"      && <Settings go={go} profile={profile} theme={theme} toggleTheme={toggleTheme} onSignOut={signOut}/>}
