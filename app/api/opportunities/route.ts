@@ -6,9 +6,10 @@ import { NextRequest, NextResponse } from 'next/server'
    Two kinds of request, sent in parallel by the Opportunities page:
 
    kind: "career"   -> reads the uploaded resume PDF and returns a
-                       profile, certifications that raise earning
-                       power, and freelance work for existing skills
-   kind: "hobbies"  -> turns each hobby into concrete ways to earn
+                       profile, certifications (with the steps to earn
+                       each one) and freelance services with a start plan
+   kind: "hobbies"  -> turns each hobby into ways to earn, each with an
+                       hourly estimate and a three-phase launch plan
 
    The resume PDF is passed straight to Claude as a document and is
    never written to disk or a database.
@@ -156,7 +157,7 @@ function strList(v: unknown, maxItems: number, maxLen = 80): string[] {
 function money(v: unknown): number | null {
   const n = typeof v === 'number' ? v : Number(v)
   if (!Number.isFinite(n) || n <= 0 || n > 1e10) return null
-  return Math.round(n)
+  return n < 100 ? Math.round(n * 10) / 10 : Math.round(n)
 }
 
 function range(lowRaw: unknown, highRaw: unknown): { low: number; high: number } | null {
@@ -232,7 +233,7 @@ If the PDF is not a resume or CV, set is_resume to false, give a one-sentence no
 PROFILE
 - headline: one sentence describing who this person is professionally, in second person ("You're a ...").
 - role: their current role, or for students and career changers the role their resume is clearly pointing toward.
-- top_skills: up to 8 real skills or tools named in the resume, most marketable first.
+- job_titles: 2 or 3 job titles this person should be searching for right now.
 - pay_low and pay_high: typical annual base pay for that role at their experience level, in the country they work in (use the location given by the app; otherwise infer it from the resume; otherwise assume the United States), in local currency, as whole numbers. For students, use the entry-level range for the target role.
 - pay_basis: a short phrase naming the role, level, and region the range refers to.
 
@@ -248,9 +249,16 @@ Recommend 3 to 5 certifications or licences that would realistically move this p
 - roles_opened: 3 or 4 specific job titles.
 - cost_text: approximate exam or programme fee, starting with "About". study_time_text: realistic part-time preparation time for someone with this background.
 - prerequisites: what is required before sitting it, or "None".
+- course_search: the 2 to 5 word phrase someone would type into a course site to find preparation for it, e.g. "PL-300 Power BI".
+- steps: 3 or 4 actions, in order, that take this person from today to holding the credential (what to study first, how to practise, when to book). Each starts with a verb and stays under 16 words. No web addresses.
 
 FREELANCE
-2 or 3 ways to earn on the side right now using skills already on the resume. Each needs a concrete service to sell, well-known platforms or channels that operate in their country, and a typical rate for someone new to that platform.
+2 or 3 services this person could sell on the side right now using skills already on the resume.
+- title: the service, as a client would describe it.
+- how: one or two sentences on what they deliver and who pays.
+- rate_text: a typical rate for someone new, e.g. "$25 to $40 an hour".
+- search_term: the 1 to 3 word phrase a client or job poster would use for this work, e.g. "Tableau dashboard".
+- plan: 4 or 5 actions, in order, from nothing to the first paid client (a sample piece of work, a profile, pricing, first outreach). Each starts with a verb and stays under 16 words.
 
 Be direct and specific. No hype, no promises of income.`
 
@@ -268,13 +276,12 @@ const careerTool = {
         properties: {
           headline: { type: 'string' },
           role: { type: 'string' },
-          experience_level: { type: 'string', enum: ['Student', 'Entry level', 'Mid level', 'Senior'] },
-          top_skills: { type: 'array', items: { type: 'string' } },
+          job_titles: { type: 'array', items: { type: 'string' } },
           pay_low: { type: 'number' },
           pay_high: { type: 'number' },
           pay_basis: { type: 'string' },
         },
-        required: ['headline', 'role', 'experience_level', 'top_skills', 'pay_low', 'pay_high', 'pay_basis'],
+        required: ['headline', 'role', 'job_titles', 'pay_low', 'pay_high', 'pay_basis'],
       },
       certifications: {
         type: 'array',
@@ -291,8 +298,10 @@ const careerTool = {
             study_time_text: { type: 'string' },
             difficulty: { type: 'string', enum: ['Beginner', 'Intermediate', 'Advanced'] },
             prerequisites: { type: 'string' },
+            course_search: { type: 'string' },
+            steps: { type: 'array', items: { type: 'string' } },
           },
-          required: ['name', 'issuer', 'fit_reason', 'pay_low', 'pay_high', 'roles_opened', 'cost_text', 'study_time_text', 'difficulty', 'prerequisites'],
+          required: ['name', 'issuer', 'fit_reason', 'pay_low', 'pay_high', 'roles_opened', 'cost_text', 'study_time_text', 'difficulty', 'prerequisites', 'course_search', 'steps'],
         },
       },
       freelance: {
@@ -302,10 +311,11 @@ const careerTool = {
           properties: {
             title: { type: 'string' },
             how: { type: 'string' },
-            platforms: { type: 'array', items: { type: 'string' } },
             rate_text: { type: 'string' },
+            search_term: { type: 'string' },
+            plan: { type: 'array', items: { type: 'string' } },
           },
-          required: ['title', 'how', 'platforms', 'rate_text'],
+          required: ['title', 'how', 'rate_text', 'search_term', 'plan'],
         },
       },
     },
@@ -337,18 +347,16 @@ async function handleCareer(body: any) {
   }
 
   const location = str(body.location, 80)
-  const hours = str(body.hoursPerWeek, 20)
 
   const context = [
     location ? `Location given by the app: ${location}` : 'No location given by the app.',
-    hours ? `Time available for side work: ${hours} hours a week.` : '',
     `Approved issuers:\n${ISSUER_NAMES.map((n) => `- ${n}`).join('\n')}`,
-  ].filter(Boolean).join('\n\n')
+  ].join('\n\n')
 
   let report: any
   try {
     report = await callClaude({
-      max_tokens: 3500,
+      max_tokens: 4000,
       system: CAREER_SYSTEM,
       tools: [careerTool],
       tool_choice: { type: 'tool', name: 'career_report' },
@@ -395,6 +403,8 @@ async function handleCareer(body: any) {
         studyTime: str(c.study_time_text, 80),
         difficulty: oneOf(c.difficulty, ['Beginner', 'Intermediate', 'Advanced'] as const, 'Intermediate'),
         prerequisites: str(c.prerequisites, 240),
+        courseSearch: str(c.course_search, 60) || name,
+        steps: strList(c.steps, 4, 160),
         ...buildCertLinks(name, issuer.domain, location),
       }
     })
@@ -405,8 +415,9 @@ async function handleCareer(body: any) {
     .map((f: any) => ({
       title: str(f?.title, 100),
       how: str(f?.how, 400),
-      platforms: strList(f?.platforms, 4, 40),
       rate: str(f?.rate_text, 80),
+      searchTerm: str(f?.search_term, 40),
+      plan: strList(f?.plan, 5, 160),
     }))
     .filter((f: any) => f.title && f.how)
     .slice(0, 3)
@@ -416,8 +427,7 @@ async function handleCareer(body: any) {
     profile: {
       headline: str(p.headline, 300),
       role: str(p.role, 100),
-      level: oneOf(p.experience_level, ['Student', 'Entry level', 'Mid level', 'Senior'] as const, 'Entry level'),
-      topSkills: strList(p.top_skills, 8, 40),
+      jobTitles: strList(p.job_titles, 3, 50),
       pay: range(p.pay_low, p.pay_high),
       payBasis: str(p.pay_basis, 160),
     },
@@ -442,19 +452,26 @@ IDEAS
 
 MONEY
 - Use the local currency for the location given. If no location is given, assume the United States.
-- monthly_low and monthly_high: what a beginner could realistically take home per month in the hours stated, after direct costs like ingredients, materials or travel. Whole numbers. Be conservative; the first months are slow.
-- earning_basis: the arithmetic behind the range in one line, e.g. "12 to 20 tiffins a day, 5 days a week, about 4 profit each". It must reconcile with the monthly range.
+- hourly_low and hourly_high: what a beginner realistically takes home per hour of total time put in (count preparation, travel and selling time, not only the paid hours), after direct costs like ingredients, materials or fuel. Be conservative; the first months are slow.
+- earning_basis: the arithmetic behind the hourly figure in one line, e.g. "a 2-hour set pays 80 to 120, plus an hour of travel and setup".
 - startup_cost_text: what they need to spend to begin, starting with "About", or "Nothing if you already own ..." when that is true.
 - time_to_first_income_text: e.g. "1 to 2 weeks".
 
-GETTING STARTED
-- first_steps: exactly 3 concrete actions in order, each starting with a verb, each doable in under a week.
+LAUNCH PLAN
+Three phases, in order. Each has 2 or 3 actions that start with a verb, stay under 18 words, and are concrete enough to tick off: name a quantity, a place, a price or a deliverable.
+- plan_this_week: free or nearly free groundwork that proves there is demand.
+- plan_weeks_2_to_4: set a price, win the first paying customers, deliver.
+- plan_month_2_onward: make it repeatable and raise what they earn per hour.
+
+ALSO
 - find_customers: 2 to 4 specific platforms, places or channels that operate in their location.
-- check_first: the one or two permits, licences, registrations, insurance or safety points to confirm before taking money, specific to their location when it is known (for example home-kitchen or cottage food rules for selling food, liability cover for teaching movement classes, venue rules for performing).
+- check_first: the one or two permits, licences, registrations, insurance or safety points to confirm before taking money, specific to their location when it is known (for example home-kitchen or cottage food rules for selling food, liability cover for teaching movement classes, venue rules for performing). One or two sentences.
 
 If the text is not a real hobby or interest, or the only ways to earn from it are illegal or unsafe, return an empty ideas list and explain briefly in note.
 
 No hype and no income promises.`
+
+const STEP_LIST = { type: 'array', items: { type: 'string' } }
 
 function hobbyTool(ideaCount: number) {
   return {
@@ -473,17 +490,19 @@ function hobbyTool(ideaCount: number) {
             properties: {
               title: { type: 'string' },
               how_it_works: { type: 'string' },
-              monthly_low: { type: 'number' },
-              monthly_high: { type: 'number' },
+              hourly_low: { type: 'number' },
+              hourly_high: { type: 'number' },
               earning_basis: { type: 'string' },
               startup_cost_text: { type: 'string' },
               time_to_first_income_text: { type: 'string' },
               effort: { type: 'string', enum: ['Easy to start', 'Takes some setup', 'Bigger commitment'] },
-              first_steps: { type: 'array', items: { type: 'string' } },
+              plan_this_week: STEP_LIST,
+              plan_weeks_2_to_4: STEP_LIST,
+              plan_month_2_onward: STEP_LIST,
               find_customers: { type: 'array', items: { type: 'string' } },
               check_first: { type: 'string' },
             },
-            required: ['title', 'how_it_works', 'monthly_low', 'monthly_high', 'earning_basis', 'startup_cost_text', 'time_to_first_income_text', 'effort', 'first_steps', 'find_customers', 'check_first'],
+            required: ['title', 'how_it_works', 'hourly_low', 'hourly_high', 'earning_basis', 'startup_cost_text', 'time_to_first_income_text', 'effort', 'plan_this_week', 'plan_weeks_2_to_4', 'plan_month_2_onward', 'find_customers', 'check_first'],
           },
         },
       },
@@ -492,9 +511,9 @@ function hobbyTool(ideaCount: number) {
   }
 }
 
-async function ideasForHobby(hobby: string, ideaCount: number, location: string, hours: string) {
+async function ideasForHobby(hobby: string, ideaCount: number, location: string) {
   const report = await callClaude({
-    max_tokens: 1800,
+    max_tokens: 2600,
     system: HOBBY_SYSTEM,
     tools: [hobbyTool(ideaCount)],
     tool_choice: { type: 'tool', name: 'hobby_report' },
@@ -503,22 +522,25 @@ async function ideasForHobby(hobby: string, ideaCount: number, location: string,
       content: [
         `Hobby or interest: ${hobby}`,
         location ? `Location: ${location}` : 'Location: not given',
-        `Time available: ${hours || '5 to 10'} hours a week`,
         `Give exactly ${ideaCount} ideas.`,
       ].join('\n'),
     }],
-  }, 'hobby_report', 45_000)
+  }, 'hobby_report', 50_000)
 
   const ideas = (Array.isArray(report.ideas) ? report.ideas : [])
     .map((i: any) => ({
       title: str(i?.title, 100),
       howItWorks: str(i?.how_it_works, 400),
-      monthly: range(i?.monthly_low, i?.monthly_high),
+      hourly: range(i?.hourly_low, i?.hourly_high),
       earningBasis: str(i?.earning_basis, 200),
       startupCost: str(i?.startup_cost_text, 120),
       timeToFirstIncome: str(i?.time_to_first_income_text, 60),
       effort: oneOf(i?.effort, ['Easy to start', 'Takes some setup', 'Bigger commitment'] as const, 'Takes some setup'),
-      firstSteps: strList(i?.first_steps, 3, 200),
+      plan: [
+        { phase: 'This week', steps: strList(i?.plan_this_week, 3, 180) },
+        { phase: 'Weeks 2 to 4', steps: strList(i?.plan_weeks_2_to_4, 3, 180) },
+        { phase: 'Month 2 onward', steps: strList(i?.plan_month_2_onward, 3, 180) },
+      ].filter((ph) => ph.steps.length > 0),
       findCustomers: strList(i?.find_customers, 4, 50),
       checkFirst: str(i?.check_first, 300),
     }))
@@ -539,10 +561,9 @@ async function handleHobbies(body: any) {
     return NextResponse.json({ error: 'Add at least one hobby or interest.' }, { status: 400 })
   }
   const location = str(body.location, 80)
-  const hours = str(body.hoursPerWeek, 20)
   const ideaCount = hobbies.length <= 2 ? 3 : 2
 
-  const settled = await Promise.allSettled(hobbies.map((h) => ideasForHobby(h, ideaCount, location, hours)))
+  const settled = await Promise.allSettled(hobbies.map((h) => ideasForHobby(h, ideaCount, location)))
 
   const results = settled.map((s, i) =>
     s.status === 'fulfilled'
